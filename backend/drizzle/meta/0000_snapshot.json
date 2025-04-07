@@ -1,17 +1,24 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "121b8837-4aef-4651-b7f6-82064d232e3c",
+  "id": "3102f661-e9e8-483a-a23e-5fbd0bf8d273",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
       "name": "account",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
         "userId": {
           "name": "userId",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "type": {
@@ -101,15 +108,7 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "account_provider_providerAccountId_pk": {
-          "columns": [
-            "provider",
-            "providerAccountId"
-          ],
-          "name": "account_provider_providerAccountId_pk"
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -206,6 +205,120 @@
           "name": "authenticator_userId_credentialID_pk"
         }
       },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "group": {
+      "name": "group",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "patreonAccountId": {
+          "name": "patreonAccountId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deviantartAccountId": {
+          "name": "deviantartAccountId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "group_patreonAccountId_unique": {
+          "name": "group_patreonAccountId_unique",
+          "columns": [
+            "patreonAccountId"
+          ],
+          "isUnique": true
+        },
+        "group_deviantartAccountId_unique": {
+          "name": "group_deviantartAccountId_unique",
+          "columns": [
+            "deviantartAccountId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "group_userId_user_id_fk": {
+          "name": "group_userId_user_id_fk",
+          "tableFrom": "group",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_patreonAccountId_account_id_fk": {
+          "name": "group_patreonAccountId_account_id_fk",
+          "tableFrom": "group",
+          "tableTo": "account",
+          "columnsFrom": [
+            "patreonAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "group_deviantartAccountId_account_id_fk": {
+          "name": "group_deviantartAccountId_account_id_fk",
+          "tableFrom": "group",
+          "tableTo": "account",
+          "columnsFrom": [
+            "deviantartAccountId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },

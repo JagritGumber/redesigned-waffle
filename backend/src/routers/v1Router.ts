@@ -11,7 +11,8 @@ import {
   users,
   verificationTokens,
 } from "@/schema";
-import {ContextForHono} from "@/types/context";
+import { ContextForHono } from "@/types/context";
+import groupRouter from "./v1/groupRouter";
 
 const v1Router = new Hono<ContextForHono>()
   .use(
@@ -41,12 +42,11 @@ const v1Router = new Hono<ContextForHono>()
           requestTokenUrl: "https://www.deviantart.com/oauth2/token",
           authorizationUrl:
             "https://www.deviantart.com/oauth2/authorize?response_type=code",
-          profileUrl:
-            "https://www.deviantart.com/api/v1/oauth2/user/whoami",
+          profileUrl: "https://www.deviantart.com/api/v1/oauth2/user/whoami",
           async profile(profile, tokens) {
             return {
-              id: profile.userid ,
-              name: profile.username ,
+              id: profile.userid,
+              name: profile.username,
               email: null,
               image: profile.profile.cover_photo,
             };
@@ -71,7 +71,8 @@ const v1Router = new Hono<ContextForHono>()
       },
     }))
   )
+  .route("/group", groupRouter)
   .use("*", verifyAuth())
-  .route("/auth", authRouter)
+  .route("/auth", authRouter);
 
 export default v1Router;

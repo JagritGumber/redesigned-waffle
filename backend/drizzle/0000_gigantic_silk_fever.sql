@@ -1,5 +1,6 @@
 CREATE TABLE `account` (
-	`userId` text NOT NULL,
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`userId` text,
 	`type` text NOT NULL,
 	`provider` text NOT NULL,
 	`providerAccountId` text NOT NULL,
@@ -10,7 +11,6 @@ CREATE TABLE `account` (
 	`scope` text,
 	`id_token` text,
 	`session_state` text,
-	PRIMARY KEY(`provider`, `providerAccountId`),
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -28,6 +28,21 @@ CREATE TABLE `authenticator` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `authenticator_credentialID_unique` ON `authenticator` (`credentialID`);--> statement-breakpoint
+CREATE TABLE `group` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`userId` text,
+	`patreonAccountId` integer,
+	`deviantartAccountId` integer,
+	`createdAt` integer,
+	`updatedAt` integer,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`patreonAccountId`) REFERENCES `account`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`deviantartAccountId`) REFERENCES `account`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `group_patreonAccountId_unique` ON `group` (`patreonAccountId`);--> statement-breakpoint
+CREATE UNIQUE INDEX `group_deviantartAccountId_unique` ON `group` (`deviantartAccountId`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`sessionToken` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,
