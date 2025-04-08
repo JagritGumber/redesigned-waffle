@@ -7,7 +7,8 @@ import { cors } from "hono/cors";
 const app = new Hono<ContextForHono>()
   .use(
     cors({
-      origin: "http://localhost:5173",
+      origin: "*",
+      credentials: true
     })
   )
   .use("*", (c, next) => {

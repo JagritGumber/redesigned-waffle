@@ -3,31 +3,29 @@
     "name": "client",
     "slug": "client",
     "version": "1.0.0",
-    
-    
-      "scheme": "client",
-      "web": {
-        "bundler": "metro",
-        "output": "static",
-        "favicon": "./assets/favicon.png"
-      },
-      "plugins": [
+    "scheme": "client",
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "build": {
+        "cors": {
+          "allowedOrigins": [
+            "https://8082-idx-redesigned-wafflegit-1743873303400.cluster-zumahodzirciuujpqvsniawo3o.cloudworkstations.dev"
+          ]
+        }
+      }
+    },
+    "plugins": [
       "expo-router"
-      
-      
     ],
-      "experiments": {
-        "typedRoutes": true
-        
-          ,"tsconfigPaths": true
-        
-      },
-    
+    "experiments": {
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    
-     "userInterfaceStyle": "light",
-    
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

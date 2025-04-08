@@ -1,16 +1,27 @@
 import { Stack } from 'expo-router';
+import { useCallback, useState } from 'react';
 
 import { StyleSheet, View } from 'react-native';
+import GroupList from '~/components/GroupList';
 
 
-import { ScreenContent } from '~/components/ScreenContent';
 
 export default function Home() {
+  const [refreshGroups, setRefreshGroups] = useState<boolean>(false);
+
+  const handleGroupCreated = useCallback(() => {
+    setRefreshGroups((prev) => !prev);
+  }, []);
+
+  const handleGroupUpdated = useCallback(() => {
+    setRefreshGroups((prev) => !prev);
+  }, []);
+
   return (
     <>
-      <Stack.Screen options={{ title: 'Tab One' }} />
+      <Stack.Screen options={{ title: 'My Groups' }} />
       <View style={styles.container}>
-        <ScreenContent path="app/(tabs)/index.tsx" title="Tab One" />
+        <GroupList onGroupUpdated={handleGroupUpdated} />
       </View>
     </>
   );
@@ -18,9 +29,9 @@ export default function Home() {
 
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 24,
-    },
+  container: {
+    flex: 1,
+    padding: 24,
+  },
 });
 

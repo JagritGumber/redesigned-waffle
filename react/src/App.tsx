@@ -4,7 +4,7 @@ import CreateGroupButton from "./components/CreateGroupButton";
 import "./App.css"; // Ensure you have Tailwind CSS imported here or in your main entry point
 
 function App() {
-  const [refreshGroups, setRefreshGroups] = useState<boolean>(false);
+  const [, setRefreshGroups] = useState<boolean>(false);
 
   const handleGroupCreated = useCallback(() => {
     setRefreshGroups((prev) => !prev);
