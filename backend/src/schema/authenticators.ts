@@ -26,7 +26,7 @@ const authenticators = sqliteTable(
     compositePK: primaryKey({
       columns: [authenticator.userId, authenticator.credentialID],
     }),
-  })
+  }),
 );
 
 export default authenticators;

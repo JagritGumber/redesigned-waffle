@@ -3,16 +3,17 @@ import v1Router from "./routers/v1Router";
 import { ContextForHono } from "./types/context";
 import { drizzle } from "drizzle-orm/d1";
 import { cors } from "hono/cors";
+import * as schema from "@/schema";
 
 const app = new Hono<ContextForHono>()
   .use(
     cors({
       origin: "*",
-      credentials: true
-    })
+      credentials: true,
+    }),
   )
   .use("*", (c, next) => {
-    const db = drizzle(c.env.DB);
+    const db = drizzle(c.env.DB, { schema });
     c.set("db", db);
     return next();
   })

@@ -22,7 +22,7 @@ export const groups = sqliteTable("group", {
     .references(() => accounts.id)
     .unique(),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(
-    () => new Date()
+    () => new Date(),
   ),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())

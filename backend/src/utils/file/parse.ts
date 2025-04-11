@@ -13,7 +13,7 @@ import AdmZip from "adm-zip";
 export async function parseZip(
   file: File,
   extractionFolder: string,
-  key: string
+  key: string,
 ) {
   if (!ZIP_FORMATS.includes(file.type)) {
     console.error("Given file is not a zip");
@@ -46,7 +46,7 @@ export async function parseZip(
 export async function parseTxt(
   file: File,
   extractionFolder: string,
-  key: string
+  key: string,
 ) {
   if (!TXT_FORMATS.includes(file.type)) {
     console.error("Given file is not a txt");

@@ -1,7 +1,8 @@
-import { useCallback } from "react";
-import { Button, Text } from 'tamagui'; // Assuming direct import
-import * as WebBrowser from 'expo-web-browser'; // Another option for web-based auth flows
+import React, { useCallback, useEffect } from 'react';
+import { Button, Text } from 'tamagui';
+import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+import { Linking } from 'react-native';
 
 interface ConnectPatreonButtonProps {
     groupId: string;
@@ -15,36 +16,61 @@ function ConnectPatreonButton({
     isConnected,
 }: ConnectPatreonButtonProps) {
     const initiatePatreonAuth = useCallback(async () => {
-        const patreonAuthUrl = "https://www.patreon.com/oauth2/authorize";
-        const clientId = Constants.expoConfig?.extra?.VITE_ONE_CLIENT_ID as string; // Example for Expo
-        const redirectUri = "your-app-scheme://patreon/callback"; // Replace with your actual deep link or universal link
-        const scope = "identity";
-        const state = groupId;
-
-        const authUrl = `${patreonAuthUrl}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-            redirectUri
-        )}&scope=${encodeURIComponent(scope)}&state=${state}`;
-
-        // Open the authorization URL in the browser
-        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-
-        if (result?.type === 'success' && result?.params?.code) {
-            // Handle the authorization code here (send to your backend)
-            console.log('Patreon authorization code:', result.params.code);
-            // After successful backend processing, you would typically update the state
-            // and then call onConnected. For this simplified button, we'll just log.
-            onConnected(); // You'll need to trigger this based on the backend flow
-        } else {
-            console.log('Patreon authorization failed or was cancelled.');
+        const backendAuthUrlEndpoint = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group/connect/patreon/${groupId}`; // Replace with your backend URL
+        try {
+            const response = await fetch(backendAuthUrlEndpoint);
+            const data = await response.json();
+            if (response.ok && data.authUrl) {
+                const redirectUri = `${Constants.expoConfig?.scheme}://patreon/callback`;
+                await WebBrowser.openAuthSessionAsync(data.authUrl, redirectUri);
+                onConnected()
+            } else {
+                console.error('Failed to get Patreon auth URL:', data);
+                // Handle error
+            }
+        } catch (error) {
+            console.error('Error fetching Patreon auth URL:', error);
+            // Handle error
         }
-    }, [groupId, onConnected]);
+    }, [groupId]);
+
+    useEffect(() => {
+        const handleDeepLink = (event: { url: string | null }) => {
+            if (event.url) {
+                const url = new URL(event.url);
+                if (url.host === 'patreon' && url.pathname === '/callback') {
+                    WebBrowser.dismissAuthSession();
+                    if (url.searchParams.get('success') === 'true') {
+                        console.log('Patreon connected via callback.');
+                        onConnected();
+                    } else if (url.searchParams.get('error')) {
+                        console.error('Patreon connection error:', url.searchParams.get('error'));
+                        // Handle the error (e.g., show an error message)
+                    }
+                }
+            }
+        };
+
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+
+        // Check for initial URL in case the app was opened via the deep link
+        Linking.getInitialURL().then((url) => {
+            if (url) {
+                handleDeepLink({ url });
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, [onConnected]);
 
     if (isConnected) {
-        return <Text color="$color.green500">Patreon Connected</Text>; // Using Tamagui's theme color
+        return <Text className="text-green-500">Patreon Connected</Text>;
     }
 
     return (
-        <Button onPress={initiatePatreonAuth} size="sm">
+        <Button onPress={initiatePatreonAuth} size={"sm"}>
             Connect Patreon
         </Button>
     );

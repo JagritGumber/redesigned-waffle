@@ -8,7 +8,7 @@ type ScreenContentProps = {
   children?: React.ReactNode;
 };
 
-export const ScreenContent = ({ title, path, children}: ScreenContentProps) => {
+export const ScreenContent = ({ title, path, children }: ScreenContentProps) => {
   return (
     <Theme name="light">
       <YStack flex={1} alignItems="center" justifyContent="center">

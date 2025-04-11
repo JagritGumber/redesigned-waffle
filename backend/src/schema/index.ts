@@ -4,3 +4,4 @@ export { default as sessions } from "./sessions";
 export { default as verificationTokens } from "./verificationTokens";
 export { default as authenticators } from "./authenticators";
 export { default as groups } from "./groups";
+export { civitaiModels, civitaiFiles, civitaiModelVersions } from "./models";

@@ -4,8 +4,6 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import GroupList from '~/components/GroupList';
 
-
-
 export default function Home() {
   const [refreshGroups, setRefreshGroups] = useState<boolean>(false);
 
@@ -27,11 +25,8 @@ export default function Home() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
   },
 });
-

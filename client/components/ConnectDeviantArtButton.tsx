@@ -1,8 +1,8 @@
-import React, { useCallback } from "react";
-import { Linking } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
 import { Button, Text } from 'tamagui';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+import { Linking } from 'react-native';
 
 interface ConnectDeviantArtButtonProps {
     groupId: string;
@@ -16,32 +16,62 @@ function ConnectDeviantArtButton({
     isConnected,
 }: ConnectDeviantArtButtonProps) {
     const initiateDeviantArtAuth = useCallback(async () => {
-        const deviantartAuthUrl = "https://www.deviantart.com/oauth2/authorize";
-        const clientId = Constants.expoConfig?.extra?.VITE_TWO_CLIENT_ID as string; // Example for Expo
-        const redirectUri = "your-app-scheme://deviantart/callback"; // Replace with your actual deep link
-        const responseType = "code";
-        const scope = "user";
-        const state = groupId;
-
-        const authUrl = `${deviantartAuthUrl}?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-            redirectUri
-        )}&scope=${encodeURIComponent(scope)}&state=${state}`;
-
-        const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-
-        if (result?.type === 'success' && result?.params?.code) {
-            console.log('DeviantArt authorization code:', result.params.code);
-            onConnected(); // Trigger onConnected after backend processes the code
-        } else {
-            console.log('DeviantArt authorization failed or was cancelled.');
+        const backendAuthUrlEndpoint = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group/connect/deviantart/${groupId}`; // Replace with your backend URL
+        try {
+            const response = await fetch(backendAuthUrlEndpoint);
+            const data = await response.json();
+            if (response.ok && data.authUrl) {
+                const redirectUri = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group/connect/deviantart/callback`;
+                await WebBrowser.openAuthSessionAsync(data.authUrl, redirectUri);
+                // The result of the auth session is handled by the useEffect hook listening for the deep link
+                onConnected()
+            } else {
+                console.error('Failed to get DeviantArt auth URL:', data);
+                // Handle error
+            }
+        } catch (error) {
+            console.error('Error fetching DeviantArt auth URL:', error);
+            // Handle error
         }
-    }, [groupId, onConnected]);
+    }, [groupId]);
+
+    useEffect(() => {
+        const handleDeepLink = (event: { url: string | null }) => {
+            if (event.url) {
+                const url = new URL(event.url);
+                if (url.host === 'deviantart' && url.pathname === '/callback') {
+                    WebBrowser.dismissAuthSession();
+                    if (url.searchParams.get('success') === 'true') {
+                        console.log('DeviantArt connected via callback.');
+                        onConnected();
+                    } else if (url.searchParams.get('error')) {
+                        console.error('DeviantArt connection error:', url.searchParams.get('error'));
+                        // Handle the error (e.g., show an error message)
+                    }
+                }
+            }
+        };
+
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+
+        // Check for initial URL in case the app was opened via the deep link
+        Linking.getInitialURL().then((url) => {
+            if (url) {
+                handleDeepLink({ url });
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, [onConnected]);
 
     if (isConnected) {
         return <Text color="$color.green500">DeviantArt Connected</Text>;
     }
 
     return (
+      
         <Button onPress={initiateDeviantArtAuth} size="sm">
             Connect DeviantArt
         </Button>

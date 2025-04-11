@@ -98,12 +98,8 @@
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -175,9 +171,7 @@
       "indexes": {
         "authenticator_credentialID_unique": {
           "name": "authenticator_credentialID_unique",
-          "columns": [
-            "credentialID"
-          ],
+          "columns": ["credentialID"],
           "isUnique": true
         }
       },
@@ -186,22 +180,15 @@
           "name": "authenticator_userId_user_id_fk",
           "tableFrom": "authenticator",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "authenticator_userId_credentialID_pk": {
-          "columns": [
-            "userId",
-            "credentialID"
-          ],
+          "columns": ["userId", "credentialID"],
           "name": "authenticator_userId_credentialID_pk"
         }
       },
@@ -264,16 +251,12 @@
       "indexes": {
         "group_patreonAccountId_unique": {
           "name": "group_patreonAccountId_unique",
-          "columns": [
-            "patreonAccountId"
-          ],
+          "columns": ["patreonAccountId"],
           "isUnique": true
         },
         "group_deviantartAccountId_unique": {
           "name": "group_deviantartAccountId_unique",
-          "columns": [
-            "deviantartAccountId"
-          ],
+          "columns": ["deviantartAccountId"],
           "isUnique": true
         }
       },
@@ -282,12 +265,8 @@
           "name": "group_userId_user_id_fk",
           "tableFrom": "group",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -295,12 +274,8 @@
           "name": "group_patreonAccountId_account_id_fk",
           "tableFrom": "group",
           "tableTo": "account",
-          "columnsFrom": [
-            "patreonAccountId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["patreonAccountId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -308,12 +283,8 @@
           "name": "group_deviantartAccountId_account_id_fk",
           "tableFrom": "group",
           "tableTo": "account",
-          "columnsFrom": [
-            "deviantartAccountId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deviantartAccountId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -353,12 +324,8 @@
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -416,9 +383,7 @@
       "indexes": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -456,10 +421,7 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "verificationToken_identifier_token_pk": {
-          "columns": [
-            "identifier",
-            "token"
-          ],
+          "columns": ["identifier", "token"],
           "name": "verificationToken_identifier_token_pk"
         }
       },

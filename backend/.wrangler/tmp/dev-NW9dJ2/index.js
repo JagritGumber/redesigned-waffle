@@ -1,5 +1,6 @@
 var __defProp = Object.defineProperty;
-var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __name = (target, value) =>
+  __defProp(target, "name", { value, configurable: true });
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -22,7 +23,7 @@ var compose = /* @__PURE__ */ __name((middleware, onError, onNotFound) => {
         handler = middleware[i4][0][0];
         context.req.routeIndex = i4;
       } else {
-        handler = i4 === middleware.length && next || void 0;
+        handler = (i4 === middleware.length && next) || void 0;
       }
       if (handler) {
         try {
@@ -51,15 +52,22 @@ var compose = /* @__PURE__ */ __name((middleware, onError, onNotFound) => {
 }, "compose");
 
 // node_modules/hono/dist/utils/body.js
-var parseBody = /* @__PURE__ */ __name(async (request, options = /* @__PURE__ */ Object.create(null)) => {
-  const { all = false, dot = false } = options;
-  const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
-  const contentType = headers.get("Content-Type");
-  if (contentType?.startsWith("multipart/form-data") || contentType?.startsWith("application/x-www-form-urlencoded")) {
-    return parseFormData(request, { all, dot });
-  }
-  return {};
-}, "parseBody");
+var parseBody = /* @__PURE__ */ __name(
+  async (request, options = /* @__PURE__ */ Object.create(null)) => {
+    const { all = false, dot = false } = options;
+    const headers =
+      request instanceof HonoRequest ? request.raw.headers : request.headers;
+    const contentType = headers.get("Content-Type");
+    if (
+      contentType?.startsWith("multipart/form-data") ||
+      contentType?.startsWith("application/x-www-form-urlencoded")
+    ) {
+      return parseFormData(request, { all, dot });
+    }
+    return {};
+  },
+  "parseBody",
+);
 async function parseFormData(request, options) {
   const formData = await request.formData();
   if (formData) {
@@ -93,7 +101,6 @@ __name(convertFormDataToBodyData, "convertFormDataToBodyData");
 var handleParsingAllValues = /* @__PURE__ */ __name((form, key, value) => {
   if (form[key] !== void 0) {
     if (Array.isArray(form[key])) {
-      ;
       form[key].push(value);
     } else {
       form[key] = [form[key], value];
@@ -109,7 +116,12 @@ var handleParsingNestedValues = /* @__PURE__ */ __name((form, key, value) => {
     if (index === keys.length - 1) {
       nestedForm[key2] = value;
     } else {
-      if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
+      if (
+        !nestedForm[key2] ||
+        typeof nestedForm[key2] !== "object" ||
+        Array.isArray(nestedForm[key2]) ||
+        nestedForm[key2] instanceof File
+      ) {
         nestedForm[key2] = /* @__PURE__ */ Object.create(null);
       }
       nestedForm = nestedForm[key2];
@@ -161,7 +173,10 @@ var getPattern = /* @__PURE__ */ __name((label, next) => {
     const cacheKey = `${label}#${next}`;
     if (!patternCache[cacheKey]) {
       if (match[2]) {
-        patternCache[cacheKey] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey, match[1], new RegExp(`^${match[2]}(?=/${next})`)] : [label, match[1], new RegExp(`^${match[2]}$`)];
+        patternCache[cacheKey] =
+          next && next[0] !== ":" && next[0] !== "*"
+            ? [cacheKey, match[1], new RegExp(`^${match[2]}(?=/${next})`)]
+            : [label, match[1], new RegExp(`^${match[2]}$`)];
       } else {
         patternCache[cacheKey] = [label, match[1], true];
       }
@@ -183,7 +198,10 @@ var tryDecode = /* @__PURE__ */ __name((str, decoder3) => {
     });
   }
 }, "tryDecode");
-var tryDecodeURI = /* @__PURE__ */ __name((str) => tryDecode(str, decodeURI), "tryDecodeURI");
+var tryDecodeURI = /* @__PURE__ */ __name(
+  (str) => tryDecode(str, decodeURI),
+  "tryDecodeURI",
+);
 var getPath = /* @__PURE__ */ __name((request) => {
   const url = request.url;
   const start = url.indexOf("/", 8);
@@ -193,7 +211,9 @@ var getPath = /* @__PURE__ */ __name((request) => {
     if (charCode === 37) {
       const queryIndex = url.indexOf("?", i4);
       const path = url.slice(start, queryIndex === -1 ? void 0 : queryIndex);
-      return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
+      return tryDecodeURI(
+        path.includes("%25") ? path.replace(/%25/g, "%2525") : path,
+      );
     } else if (charCode === 63) {
       break;
     }
@@ -202,7 +222,9 @@ var getPath = /* @__PURE__ */ __name((request) => {
 }, "getPath");
 var getPathNoStrict = /* @__PURE__ */ __name((request) => {
   const result = getPath(request);
-  return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
+  return result.length > 1 && result.at(-1) === "/"
+    ? result.slice(0, -1)
+    : result;
 }, "getPathNoStrict");
 var mergePath = /* @__PURE__ */ __name((base, sub, ...rest) => {
   if (rest.length) {
@@ -258,7 +280,9 @@ var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
       if (trailingKeyCode === 61) {
         const valueIndex = keyIndex2 + key.length + 2;
         const endIndex2 = url.indexOf("&", valueIndex);
-        return _decodeURI(url.slice(valueIndex, endIndex2 === -1 ? void 0 : endIndex2));
+        return _decodeURI(
+          url.slice(valueIndex, endIndex2 === -1 ? void 0 : endIndex2),
+        );
       } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
         return "";
       }
@@ -280,7 +304,11 @@ var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
     }
     let name = url.slice(
       keyIndex + 1,
-      valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
+      valueIndex === -1
+        ? nextKeyIndex === -1
+          ? void 0
+          : nextKeyIndex
+        : valueIndex,
     );
     if (encoded) {
       name = _decodeURI(name);
@@ -293,7 +321,10 @@ var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
     if (valueIndex === -1) {
       value = "";
     } else {
-      value = url.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
+      value = url.slice(
+        valueIndex + 1,
+        nextKeyIndex === -1 ? void 0 : nextKeyIndex,
+      );
       if (encoded) {
         value = _decodeURI(value);
       }
@@ -302,7 +333,6 @@ var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
       if (!(results[name] && Array.isArray(results[name]))) {
         results[name] = [];
       }
-      ;
       results[name].push(value);
     } else {
       results[name] ??= value;
@@ -317,7 +347,10 @@ var getQueryParams = /* @__PURE__ */ __name((url, key) => {
 var decodeURIComponent_ = decodeURIComponent;
 
 // node_modules/hono/dist/request.js
-var tryDecodeURIComponent = /* @__PURE__ */ __name((str) => tryDecode(str, decodeURIComponent_), "tryDecodeURIComponent");
+var tryDecodeURIComponent = /* @__PURE__ */ __name(
+  (str) => tryDecode(str, decodeURIComponent_),
+  "tryDecodeURIComponent",
+);
 var HonoRequest = class {
   static {
     __name(this, "HonoRequest");
@@ -340,13 +373,19 @@ var HonoRequest = class {
   #getDecodedParam(key) {
     const paramKey = this.#matchResult[0][this.routeIndex][1][key];
     const param = this.#getParamValue(paramKey);
-    return param ? /\%/.test(param) ? tryDecodeURIComponent(param) : param : void 0;
+    return param
+      ? /\%/.test(param)
+        ? tryDecodeURIComponent(param)
+        : param
+      : void 0;
   }
   #getAllDecodedParams() {
     const decoded = {};
     const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
     for (const key of keys) {
-      const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
+      const value = this.#getParamValue(
+        this.#matchResult[0][this.routeIndex][1][key],
+      );
       if (value && typeof value === "string") {
         decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
       }
@@ -373,7 +412,7 @@ var HonoRequest = class {
     return headerData;
   }
   async parseBody(options) {
-    return this.bodyCache.parsedBody ??= await parseBody(this, options);
+    return (this.bodyCache.parsedBody ??= await parseBody(this, options));
   }
   #cachedBody = /* @__PURE__ */ __name((key) => {
     const { bodyCache, raw: raw3 } = this;
@@ -390,7 +429,7 @@ var HonoRequest = class {
         return new Response(body)[key]();
       });
     }
-    return bodyCache[key] = raw3[key]();
+    return (bodyCache[key] = raw3[key]());
   }, "#cachedBody");
   json() {
     return this.#cachedBody("json");
@@ -423,7 +462,8 @@ var HonoRequest = class {
     return this.#matchResult[0].map(([[, route]]) => route);
   }
   get routePath() {
-    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
+    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex]
+      .path;
   }
 };
 
@@ -431,7 +471,7 @@ var HonoRequest = class {
 var HtmlEscapedCallbackPhase = {
   Stringify: 1,
   BeforeStream: 2,
-  Stream: 3
+  Stream: 3,
 };
 var raw = /* @__PURE__ */ __name((value, callbacks) => {
   const escapedString = new String(value);
@@ -439,35 +479,42 @@ var raw = /* @__PURE__ */ __name((value, callbacks) => {
   escapedString.callbacks = callbacks;
   return escapedString;
 }, "raw");
-var resolveCallback = /* @__PURE__ */ __name(async (str, phase, preserveCallbacks, context, buffer) => {
-  if (typeof str === "object" && !(str instanceof String)) {
-    if (!(str instanceof Promise)) {
-      str = str.toString();
+var resolveCallback = /* @__PURE__ */ __name(
+  async (str, phase, preserveCallbacks, context, buffer) => {
+    if (typeof str === "object" && !(str instanceof String)) {
+      if (!(str instanceof Promise)) {
+        str = str.toString();
+      }
+      if (str instanceof Promise) {
+        str = await str;
+      }
     }
-    if (str instanceof Promise) {
-      str = await str;
+    const callbacks = str.callbacks;
+    if (!callbacks?.length) {
+      return Promise.resolve(str);
     }
-  }
-  const callbacks = str.callbacks;
-  if (!callbacks?.length) {
-    return Promise.resolve(str);
-  }
-  if (buffer) {
-    buffer[0] += str;
-  } else {
-    buffer = [str];
-  }
-  const resStr = Promise.all(callbacks.map((c3) => c3({ phase, buffer, context }))).then(
-    (res) => Promise.all(
-      res.filter(Boolean).map((str2) => resolveCallback(str2, phase, false, context, buffer))
-    ).then(() => buffer[0])
-  );
-  if (preserveCallbacks) {
-    return raw(await resStr, callbacks);
-  } else {
-    return resStr;
-  }
-}, "resolveCallback");
+    if (buffer) {
+      buffer[0] += str;
+    } else {
+      buffer = [str];
+    }
+    const resStr = Promise.all(
+      callbacks.map((c3) => c3({ phase, buffer, context })),
+    ).then((res) =>
+      Promise.all(
+        res
+          .filter(Boolean)
+          .map((str2) => resolveCallback(str2, phase, false, context, buffer)),
+      ).then(() => buffer[0]),
+    );
+    if (preserveCallbacks) {
+      return raw(await resStr, callbacks);
+    } else {
+      return resStr;
+    }
+  },
+  "resolveCallback",
+);
 
 // node_modules/hono/dist/context.js
 var TEXT_PLAIN = "text/plain; charset=UTF-8";
@@ -509,7 +556,11 @@ var Context = class {
     }
   }
   get req() {
-    this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
+    this.#req ??= new HonoRequest(
+      this.#rawRequest,
+      this.#path,
+      this.#matchResult,
+    );
     return this.#req;
   }
   get event() {
@@ -528,7 +579,7 @@ var Context = class {
   }
   get res() {
     this.#isFresh = false;
-    return this.#res ||= new Response("404 Not Found", { status: 404 });
+    return (this.#res ||= new Response("404 Not Found", { status: 404 }));
   }
   set res(_res) {
     this.#isFresh = false;
@@ -552,7 +603,7 @@ var Context = class {
         if (e2 instanceof TypeError && e2.message.includes("immutable")) {
           this.res = new Response(_res.body, {
             headers: _res.headers,
-            status: _res.status
+            status: _res.status,
           });
           return;
         } else {
@@ -567,7 +618,10 @@ var Context = class {
     this.#renderer ??= (content) => this.html(content);
     return this.#renderer(...args);
   }, "render");
-  setLayout = /* @__PURE__ */ __name((layout) => this.#layout = layout, "setLayout");
+  setLayout = /* @__PURE__ */ __name(
+    (layout) => (this.#layout = layout),
+    "setLayout",
+  );
   getLayout = /* @__PURE__ */ __name(() => this.#layout, "getLayout");
   setRenderer = /* @__PURE__ */ __name((renderer) => {
     this.#renderer = renderer;
@@ -627,7 +681,7 @@ var Context = class {
   #newResponse(data, arg, headers) {
     if (this.#isFresh && !headers && !arg && this.#status === 200) {
       return new Response(data, {
-        headers: this.#preparedHeaders
+        headers: this.#preparedHeaders,
       });
     }
     if (arg && typeof arg !== "number") {
@@ -644,7 +698,7 @@ var Context = class {
       const headers2 = setHeaders(header, this.#preparedHeaders);
       return new Response(data, {
         headers: headers2,
-        status: arg.status ?? this.#status
+        status: arg.status ?? this.#status,
       });
     }
     const status = typeof arg === "number" ? arg : this.#status;
@@ -674,12 +728,17 @@ var Context = class {
     }
     return new Response(data, {
       status,
-      headers: this.#headers
+      headers: this.#headers,
     });
   }
-  newResponse = /* @__PURE__ */ __name((...args) => this.#newResponse(...args), "newResponse");
+  newResponse = /* @__PURE__ */ __name(
+    (...args) => this.#newResponse(...args),
+    "newResponse",
+  );
   body = /* @__PURE__ */ __name((data, arg, headers) => {
-    return typeof arg === "number" ? this.#newResponse(data, arg, headers) : this.#newResponse(data, arg);
+    return typeof arg === "number"
+      ? this.#newResponse(data, arg, headers)
+      : this.#newResponse(data, arg);
   }, "body");
   text = /* @__PURE__ */ __name((text2, arg, headers) => {
     if (!this.#preparedHeaders) {
@@ -698,17 +757,28 @@ var Context = class {
     const body = JSON.stringify(object);
     this.#preparedHeaders ??= {};
     this.#preparedHeaders["content-type"] = "application/json";
-    return typeof arg === "number" ? this.#newResponse(body, arg, headers) : this.#newResponse(body, arg);
+    return typeof arg === "number"
+      ? this.#newResponse(body, arg, headers)
+      : this.#newResponse(body, arg);
   }, "json");
   html = /* @__PURE__ */ __name((html, arg, headers) => {
     this.#preparedHeaders ??= {};
     this.#preparedHeaders["content-type"] = "text/html; charset=UTF-8";
     if (typeof html === "object") {
-      return resolveCallback(html, HtmlEscapedCallbackPhase.Stringify, false, {}).then((html2) => {
-        return typeof arg === "number" ? this.#newResponse(html2, arg, headers) : this.#newResponse(html2, arg);
+      return resolveCallback(
+        html,
+        HtmlEscapedCallbackPhase.Stringify,
+        false,
+        {},
+      ).then((html2) => {
+        return typeof arg === "number"
+          ? this.#newResponse(html2, arg, headers)
+          : this.#newResponse(html2, arg);
       });
     }
-    return typeof arg === "number" ? this.#newResponse(html, arg, headers) : this.#newResponse(html, arg);
+    return typeof arg === "number"
+      ? this.#newResponse(html, arg, headers)
+      : this.#newResponse(html, arg);
   }, "html");
   redirect = /* @__PURE__ */ __name((location, status) => {
     this.#headers ??= new Headers();
@@ -725,7 +795,8 @@ var Context = class {
 var METHOD_NAME_ALL = "ALL";
 var METHOD_NAME_ALL_LOWERCASE = "all";
 var METHODS = ["get", "post", "put", "delete", "options", "patch"];
-var MESSAGE_MATCHER_IS_ALREADY_BUILT = "Can not add a route since the matcher is already built.";
+var MESSAGE_MATCHER_IS_ALREADY_BUILT =
+  "Can not add a route since the matcher is already built.";
 var UnsupportedPathError = class extends Error {
   static {
     __name(this, "UnsupportedPathError");
@@ -804,12 +875,13 @@ var Hono = class {
     };
     const { strict, ...optionsWithoutStrict } = options;
     Object.assign(this, optionsWithoutStrict);
-    this.getPath = strict ?? true ? options.getPath ?? getPath : getPathNoStrict;
+    this.getPath =
+      (strict ?? true) ? (options.getPath ?? getPath) : getPathNoStrict;
   }
   #clone() {
     const clone = new Hono({
       router: this.router,
-      getPath: this.getPath
+      getPath: this.getPath,
     });
     clone.routes = this.routes;
     return clone;
@@ -823,7 +895,15 @@ var Hono = class {
       if (app2.errorHandler === errorHandler) {
         handler = r3.handler;
       } else {
-        handler = /* @__PURE__ */ __name(async (c3, next) => (await compose([], app2.errorHandler)(c3, () => r3.handler(c3, next))).res, "handler");
+        handler = /* @__PURE__ */ __name(
+          async (c3, next) =>
+            (
+              await compose([], app2.errorHandler)(c3, () =>
+                r3.handler(c3, next),
+              )
+            ).res,
+          "handler",
+        );
         handler[COMPOSED_HANDLER] = r3.handler;
       }
       subApp.#addRoute(r3.method, r3.path, handler);
@@ -854,17 +934,18 @@ var Hono = class {
         replaceRequest = options.replaceRequest;
       }
     }
-    const getOptions = optionHandler ? (c3) => {
-      const options2 = optionHandler(c3);
-      return Array.isArray(options2) ? options2 : [options2];
-    } : (c3) => {
-      let executionContext = void 0;
-      try {
-        executionContext = c3.executionCtx;
-      } catch {
-      }
-      return [c3.env, executionContext];
-    };
+    const getOptions = optionHandler
+      ? (c3) => {
+          const options2 = optionHandler(c3);
+          return Array.isArray(options2) ? options2 : [options2];
+        }
+      : (c3) => {
+          let executionContext = void 0;
+          try {
+            executionContext = c3.executionCtx;
+          } catch {}
+          return [c3.env, executionContext];
+        };
     replaceRequest ||= (() => {
       const mergedPath = mergePath(this._basePath, path);
       const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
@@ -875,7 +956,10 @@ var Hono = class {
       };
     })();
     const handler = /* @__PURE__ */ __name(async (c3, next) => {
-      const res = await applicationHandler(replaceRequest(c3.req.raw), ...getOptions(c3));
+      const res = await applicationHandler(
+        replaceRequest(c3.req.raw),
+        ...getOptions(c3),
+      );
       if (res) {
         return res;
       }
@@ -899,7 +983,11 @@ var Hono = class {
   }
   #dispatch(request, executionCtx, env2, method) {
     if (method === "HEAD") {
-      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env2, "GET")))();
+      return (async () =>
+        new Response(
+          null,
+          await this.#dispatch(request, executionCtx, env2, "GET"),
+        ))();
     }
     const path = this.getPath(request, { env: env2 });
     const matchResult = this.router.match(method, path);
@@ -908,7 +996,7 @@ var Hono = class {
       matchResult,
       env: env2,
       executionCtx,
-      notFoundHandler: this.#notFoundHandler
+      notFoundHandler: this.#notFoundHandler,
     });
     if (matchResult[0].length === 1) {
       let res;
@@ -919,17 +1007,26 @@ var Hono = class {
       } catch (err) {
         return this.#handleError(err, c3);
       }
-      return res instanceof Promise ? res.then(
-        (resolved) => resolved || (c3.finalized ? c3.res : this.#notFoundHandler(c3))
-      ).catch((err) => this.#handleError(err, c3)) : res ?? this.#notFoundHandler(c3);
+      return res instanceof Promise
+        ? res
+            .then(
+              (resolved) =>
+                resolved || (c3.finalized ? c3.res : this.#notFoundHandler(c3)),
+            )
+            .catch((err) => this.#handleError(err, c3))
+        : (res ?? this.#notFoundHandler(c3));
     }
-    const composed = compose(matchResult[0], this.errorHandler, this.#notFoundHandler);
+    const composed = compose(
+      matchResult[0],
+      this.errorHandler,
+      this.#notFoundHandler,
+    );
     return (async () => {
       try {
         const context = await composed(c3);
         if (!context.finalized) {
           throw new Error(
-            "Context is not finalized. Did you forget to return a Response object or `await next()`?"
+            "Context is not finalized. Did you forget to return a Response object or `await next()`?",
           );
         }
         return context.res;
@@ -943,21 +1040,29 @@ var Hono = class {
   }, "fetch");
   request = /* @__PURE__ */ __name((input, requestInit, Env, executionCtx) => {
     if (input instanceof Request) {
-      return this.fetch(requestInit ? new Request(input, requestInit) : input, Env, executionCtx);
+      return this.fetch(
+        requestInit ? new Request(input, requestInit) : input,
+        Env,
+        executionCtx,
+      );
     }
     input = input.toString();
     return this.fetch(
       new Request(
-        /^https?:\/\//.test(input) ? input : `http://localhost${mergePath("/", input)}`,
-        requestInit
+        /^https?:\/\//.test(input)
+          ? input
+          : `http://localhost${mergePath("/", input)}`,
+        requestInit,
       ),
       Env,
-      executionCtx
+      executionCtx,
     );
   }, "request");
   fire = /* @__PURE__ */ __name(() => {
     addEventListener("fetch", (event) => {
-      event.respondWith(this.#dispatch(event.request, event, void 0, event.request.method));
+      event.respondWith(
+        this.#dispatch(event.request, event, void 0, event.request.method),
+      );
     });
   }, "fire");
 };
@@ -970,14 +1075,17 @@ var PATH_ERROR = Symbol();
 var regExpMetaChars = new Set(".\\+*[^]$()");
 function compareKey(a3, b2) {
   if (a3.length === 1) {
-    return b2.length === 1 ? a3 < b2 ? -1 : 1 : -1;
+    return b2.length === 1 ? (a3 < b2 ? -1 : 1) : -1;
   }
   if (b2.length === 1) {
     return 1;
   }
   if (a3 === ONLY_WILDCARD_REG_EXP_STR || a3 === TAIL_WILDCARD_REG_EXP_STR) {
     return 1;
-  } else if (b2 === ONLY_WILDCARD_REG_EXP_STR || b2 === TAIL_WILDCARD_REG_EXP_STR) {
+  } else if (
+    b2 === ONLY_WILDCARD_REG_EXP_STR ||
+    b2 === TAIL_WILDCARD_REG_EXP_STR
+  ) {
     return -1;
   }
   if (a3 === LABEL_REG_EXP_STR) {
@@ -985,7 +1093,7 @@ function compareKey(a3, b2) {
   } else if (b2 === LABEL_REG_EXP_STR) {
     return -1;
   }
-  return a3.length === b2.length ? a3 < b2 ? -1 : 1 : b2.length - a3.length;
+  return a3.length === b2.length ? (a3 < b2 ? -1 : 1) : b2.length - a3.length;
 }
 __name(compareKey, "compareKey");
 var Node = class {
@@ -1007,7 +1115,14 @@ var Node = class {
       return;
     }
     const [token, ...restTokens] = tokens;
-    const pattern = token === "*" ? restTokens.length === 0 ? ["", "", ONLY_WILDCARD_REG_EXP_STR] : ["", "", LABEL_REG_EXP_STR] : token === "/*" ? ["", "", TAIL_WILDCARD_REG_EXP_STR] : token.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+    const pattern =
+      token === "*"
+        ? restTokens.length === 0
+          ? ["", "", ONLY_WILDCARD_REG_EXP_STR]
+          : ["", "", LABEL_REG_EXP_STR]
+        : token === "/*"
+          ? ["", "", TAIL_WILDCARD_REG_EXP_STR]
+          : token.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
     let node;
     if (pattern) {
       const name = pattern[1];
@@ -1020,9 +1135,13 @@ var Node = class {
       }
       node = this.#children[regexpStr];
       if (!node) {
-        if (Object.keys(this.#children).some(
-          (k3) => k3 !== ONLY_WILDCARD_REG_EXP_STR && k3 !== TAIL_WILDCARD_REG_EXP_STR
-        )) {
+        if (
+          Object.keys(this.#children).some(
+            (k3) =>
+              k3 !== ONLY_WILDCARD_REG_EXP_STR &&
+              k3 !== TAIL_WILDCARD_REG_EXP_STR,
+          )
+        ) {
           throw PATH_ERROR;
         }
         if (pathErrorCheckOnly) {
@@ -1039,9 +1158,14 @@ var Node = class {
     } else {
       node = this.#children[token];
       if (!node) {
-        if (Object.keys(this.#children).some(
-          (k3) => k3.length > 1 && k3 !== ONLY_WILDCARD_REG_EXP_STR && k3 !== TAIL_WILDCARD_REG_EXP_STR
-        )) {
+        if (
+          Object.keys(this.#children).some(
+            (k3) =>
+              k3.length > 1 &&
+              k3 !== ONLY_WILDCARD_REG_EXP_STR &&
+              k3 !== TAIL_WILDCARD_REG_EXP_STR,
+          )
+        ) {
           throw PATH_ERROR;
         }
         if (pathErrorCheckOnly) {
@@ -1056,7 +1180,13 @@ var Node = class {
     const childKeys = Object.keys(this.#children).sort(compareKey);
     const strList = childKeys.map((k3) => {
       const c3 = this.#children[k3];
-      return (typeof c3.#varIndex === "number" ? `(${k3})@${c3.#varIndex}` : regExpMetaChars.has(k3) ? `\\${k3}` : k3) + c3.buildRegExpStr();
+      return (
+        (typeof c3.#varIndex === "number"
+          ? `(${k3})@${c3.#varIndex}`
+          : regExpMetaChars.has(k3)
+            ? `\\${k3}`
+            : k3) + c3.buildRegExpStr()
+      );
     });
     if (typeof this.#index === "number") {
       strList.unshift(`#${this.#index}`);
@@ -1104,7 +1234,13 @@ var Trie = class {
         }
       }
     }
-    this.#root.insert(tokens, index, paramAssoc, this.#context, pathErrorCheckOnly);
+    this.#root.insert(
+      tokens,
+      index,
+      paramAssoc,
+      this.#context,
+      pathErrorCheckOnly,
+    );
     return paramAssoc;
   }
   buildRegExp() {
@@ -1115,17 +1251,20 @@ var Trie = class {
     let captureIndex = 0;
     const indexReplacementMap = [];
     const paramReplacementMap = [];
-    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_3, handlerIndex, paramIndex) => {
-      if (handlerIndex !== void 0) {
-        indexReplacementMap[++captureIndex] = Number(handlerIndex);
-        return "$()";
-      }
-      if (paramIndex !== void 0) {
-        paramReplacementMap[Number(paramIndex)] = ++captureIndex;
+    regexp = regexp.replace(
+      /#(\d+)|@(\d+)|\.\*\$/g,
+      (_3, handlerIndex, paramIndex) => {
+        if (handlerIndex !== void 0) {
+          indexReplacementMap[++captureIndex] = Number(handlerIndex);
+          return "$()";
+        }
+        if (paramIndex !== void 0) {
+          paramReplacementMap[Number(paramIndex)] = ++captureIndex;
+          return "";
+        }
         return "";
-      }
-      return "";
-    });
+      },
+    );
     return [new RegExp(`^${regexp}`), indexReplacementMap, paramReplacementMap];
   }
 };
@@ -1135,12 +1274,13 @@ var emptyParam = [];
 var nullMatcher = [/^$/, [], /* @__PURE__ */ Object.create(null)];
 var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
 function buildWildcardRegExp(path) {
-  return wildcardRegExpCache[path] ??= new RegExp(
-    path === "*" ? "" : `^${path.replace(
-      /\/\*$|([.\\+*[^\]$()])/g,
-      (_3, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
-    )}$`
-  );
+  return (wildcardRegExpCache[path] ??= new RegExp(
+    path === "*"
+      ? ""
+      : `^${path.replace(/\/\*$|([.\\+*[^\]$()])/g, (_3, metaChar) =>
+          metaChar ? `\\${metaChar}` : "(?:|/.*)",
+        )}$`,
+  ));
 }
 __name(buildWildcardRegExp, "buildWildcardRegExp");
 function clearWildcardRegExpCache() {
@@ -1153,16 +1293,23 @@ function buildMatcherFromPreprocessedRoutes(routes) {
   if (routes.length === 0) {
     return nullMatcher;
   }
-  const routesWithStaticPathFlag = routes.map(
-    (route) => [!/\*|\/:/.test(route[0]), ...route]
-  ).sort(
-    ([isStaticA, pathA], [isStaticB, pathB]) => isStaticA ? 1 : isStaticB ? -1 : pathA.length - pathB.length
-  );
+  const routesWithStaticPathFlag = routes
+    .map((route) => [!/\*|\/:/.test(route[0]), ...route])
+    .sort(([isStaticA, pathA], [isStaticB, pathB]) =>
+      isStaticA ? 1 : isStaticB ? -1 : pathA.length - pathB.length,
+    );
   const staticMap = /* @__PURE__ */ Object.create(null);
-  for (let i4 = 0, j3 = -1, len = routesWithStaticPathFlag.length; i4 < len; i4++) {
+  for (
+    let i4 = 0, j3 = -1, len = routesWithStaticPathFlag.length;
+    i4 < len;
+    i4++
+  ) {
     const [pathErrorCheckOnly, path, handlers] = routesWithStaticPathFlag[i4];
     if (pathErrorCheckOnly) {
-      staticMap[path] = [handlers.map(([h3]) => [h3, /* @__PURE__ */ Object.create(null)]), emptyParam];
+      staticMap[path] = [
+        handlers.map(([h3]) => [h3, /* @__PURE__ */ Object.create(null)]),
+        emptyParam,
+      ];
     } else {
       j3++;
     }
@@ -1204,12 +1351,17 @@ function buildMatcherFromPreprocessedRoutes(routes) {
   }
   return [regexp, handlerMap, staticMap];
 }
-__name(buildMatcherFromPreprocessedRoutes, "buildMatcherFromPreprocessedRoutes");
+__name(
+  buildMatcherFromPreprocessedRoutes,
+  "buildMatcherFromPreprocessedRoutes",
+);
 function findMiddleware(middleware, path) {
   if (!middleware) {
     return void 0;
   }
-  for (const k3 of Object.keys(middleware).sort((a3, b2) => b2.length - a3.length)) {
+  for (const k3 of Object.keys(middleware).sort(
+    (a3, b2) => b2.length - a3.length,
+  )) {
     if (buildWildcardRegExp(k3).test(path)) {
       return [...middleware[k3]];
     }
@@ -1225,7 +1377,9 @@ var RegExpRouter = class {
   #middleware;
   #routes;
   constructor() {
-    this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+    this.#middleware = {
+      [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null),
+    };
     this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
   }
   add(method, path, handler) {
@@ -1235,7 +1389,6 @@ var RegExpRouter = class {
       throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
     }
     if (!middleware[method]) {
-      ;
       [middleware, routes].forEach((handlerMap) => {
         handlerMap[method] = /* @__PURE__ */ Object.create(null);
         Object.keys(handlerMap[METHOD_NAME_ALL]).forEach((p3) => {
@@ -1251,10 +1404,16 @@ var RegExpRouter = class {
       const re = buildWildcardRegExp(path);
       if (method === METHOD_NAME_ALL) {
         Object.keys(middleware).forEach((m) => {
-          middleware[m][path] ||= findMiddleware(middleware[m], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+          middleware[m][path] ||=
+            findMiddleware(middleware[m], path) ||
+            findMiddleware(middleware[METHOD_NAME_ALL], path) ||
+            [];
         });
       } else {
-        middleware[method][path] ||= findMiddleware(middleware[method], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
+        middleware[method][path] ||=
+          findMiddleware(middleware[method], path) ||
+          findMiddleware(middleware[METHOD_NAME_ALL], path) ||
+          [];
       }
       Object.keys(middleware).forEach((m) => {
         if (method === METHOD_NAME_ALL || method === m) {
@@ -1266,7 +1425,7 @@ var RegExpRouter = class {
       Object.keys(routes).forEach((m) => {
         if (method === METHOD_NAME_ALL || method === m) {
           Object.keys(routes[m]).forEach(
-            (p3) => re.test(p3) && routes[m][p3].push([handler, paramCount])
+            (p3) => re.test(p3) && routes[m][p3].push([handler, paramCount]),
           );
         }
       });
@@ -1278,7 +1437,9 @@ var RegExpRouter = class {
       Object.keys(routes).forEach((m) => {
         if (method === METHOD_NAME_ALL || method === m) {
           routes[m][path2] ||= [
-            ...findMiddleware(middleware[m], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || []
+            ...(findMiddleware(middleware[m], path2) ||
+              findMiddleware(middleware[METHOD_NAME_ALL], path2) ||
+              []),
           ];
           routes[m][path2].push([handler, paramCount - len + i4 + 1]);
         }
@@ -1305,9 +1466,11 @@ var RegExpRouter = class {
   }
   #buildAllMatchers() {
     const matchers = /* @__PURE__ */ Object.create(null);
-    Object.keys(this.#routes).concat(Object.keys(this.#middleware)).forEach((method) => {
-      matchers[method] ||= this.#buildMatcher(method);
-    });
+    Object.keys(this.#routes)
+      .concat(Object.keys(this.#middleware))
+      .forEach((method) => {
+        matchers[method] ||= this.#buildMatcher(method);
+      });
     this.#middleware = this.#routes = void 0;
     return matchers;
   }
@@ -1315,13 +1478,18 @@ var RegExpRouter = class {
     const routes = [];
     let hasOwnRoute = method === METHOD_NAME_ALL;
     [this.#middleware, this.#routes].forEach((r3) => {
-      const ownRoute = r3[method] ? Object.keys(r3[method]).map((path) => [path, r3[method][path]]) : [];
+      const ownRoute = r3[method]
+        ? Object.keys(r3[method]).map((path) => [path, r3[method][path]])
+        : [];
       if (ownRoute.length !== 0) {
         hasOwnRoute ||= true;
         routes.push(...ownRoute);
       } else if (method !== METHOD_NAME_ALL) {
         routes.push(
-          ...Object.keys(r3[METHOD_NAME_ALL]).map((path) => [path, r3[METHOD_NAME_ALL][path]])
+          ...Object.keys(r3[METHOD_NAME_ALL]).map((path) => [
+            path,
+            r3[METHOD_NAME_ALL][path],
+          ]),
         );
       }
     });
@@ -1441,7 +1609,7 @@ var Node2 = class {
     const handlerSet = {
       handler,
       possibleKeys: possibleKeys.filter((v2, i4, a3) => a3.indexOf(v2) === i4),
-      score: this.#order
+      score: this.#order,
     };
     m[method] = handlerSet;
     curNode.#methods.push(m);
@@ -1456,11 +1624,18 @@ var Node2 = class {
       if (handlerSet !== void 0) {
         handlerSet.params = /* @__PURE__ */ Object.create(null);
         handlerSets.push(handlerSet);
-        if (nodeParams !== emptyParams || params && params !== emptyParams) {
-          for (let i22 = 0, len2 = handlerSet.possibleKeys.length; i22 < len2; i22++) {
+        if (nodeParams !== emptyParams || (params && params !== emptyParams)) {
+          for (
+            let i22 = 0, len2 = handlerSet.possibleKeys.length;
+            i22 < len2;
+            i22++
+          ) {
             const key = handlerSet.possibleKeys[i22];
             const processed = processedSet[handlerSet.score];
-            handlerSet.params[key] = params?.[key] && !processed ? params[key] : nodeParams[key] ?? params?.[key];
+            handlerSet.params[key] =
+              params?.[key] && !processed
+                ? params[key]
+                : (nodeParams[key] ?? params?.[key]);
             processedSet[handlerSet.score] = true;
           }
         }
@@ -1487,21 +1662,30 @@ var Node2 = class {
           if (isLast) {
             if (nextNode.#children["*"]) {
               handlerSets.push(
-                ...this.#getHandlerSets(nextNode.#children["*"], method, node.#params)
+                ...this.#getHandlerSets(
+                  nextNode.#children["*"],
+                  method,
+                  node.#params,
+                ),
               );
             }
-            handlerSets.push(...this.#getHandlerSets(nextNode, method, node.#params));
+            handlerSets.push(
+              ...this.#getHandlerSets(nextNode, method, node.#params),
+            );
           } else {
             tempNodes.push(nextNode);
           }
         }
         for (let k3 = 0, len3 = node.#patterns.length; k3 < len3; k3++) {
           const pattern = node.#patterns[k3];
-          const params = node.#params === emptyParams ? {} : { ...node.#params };
+          const params =
+            node.#params === emptyParams ? {} : { ...node.#params };
           if (pattern === "*") {
             const astNode = node.#children["*"];
             if (astNode) {
-              handlerSets.push(...this.#getHandlerSets(astNode, method, node.#params));
+              handlerSets.push(
+                ...this.#getHandlerSets(astNode, method, node.#params),
+              );
               astNode.#params = params;
               tempNodes.push(astNode);
             }
@@ -1517,11 +1701,13 @@ var Node2 = class {
             const m = matcher.exec(restPathString);
             if (m) {
               params[name] = m[0];
-              handlerSets.push(...this.#getHandlerSets(child, method, node.#params, params));
+              handlerSets.push(
+                ...this.#getHandlerSets(child, method, node.#params, params),
+              );
               if (Object.keys(child.#children).length) {
                 child.#params = params;
                 const componentCount = m[0].match(/\//)?.length ?? 0;
-                const targetCurNodes = curNodesQueue[componentCount] ||= [];
+                const targetCurNodes = (curNodesQueue[componentCount] ||= []);
                 targetCurNodes.push(child);
               }
               continue;
@@ -1530,10 +1716,17 @@ var Node2 = class {
           if (matcher === true || matcher.test(part)) {
             params[name] = part;
             if (isLast) {
-              handlerSets.push(...this.#getHandlerSets(child, method, params, node.#params));
+              handlerSets.push(
+                ...this.#getHandlerSets(child, method, params, node.#params),
+              );
               if (child.#children["*"]) {
                 handlerSets.push(
-                  ...this.#getHandlerSets(child.#children["*"], method, params, node.#params)
+                  ...this.#getHandlerSets(
+                    child.#children["*"],
+                    method,
+                    params,
+                    node.#params,
+                  ),
                 );
               }
             } else {
@@ -1586,23 +1779,54 @@ var Hono2 = class extends Hono {
   }
   constructor(options = {}) {
     super(options);
-    this.router = options.router ?? new SmartRouter({
-      routers: [new RegExpRouter(), new TrieRouter()]
-    });
+    this.router =
+      options.router ??
+      new SmartRouter({
+        routers: [new RegExpRouter(), new TrieRouter()],
+      });
   }
 };
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/utils/cookie.js
-var __classPrivateFieldSet = function(receiver, state2, value, kind, f4) {
+var __classPrivateFieldSet = function (receiver, state2, value, kind, f4) {
   if (kind === "m") throw new TypeError("Private method is not writable");
-  if (kind === "a" && !f4) throw new TypeError("Private accessor was defined without a setter");
-  if (typeof state2 === "function" ? receiver !== state2 || !f4 : !state2.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-  return kind === "a" ? f4.call(receiver, value) : f4 ? f4.value = value : state2.set(receiver, value), value;
+  if (kind === "a" && !f4)
+    throw new TypeError("Private accessor was defined without a setter");
+  if (
+    typeof state2 === "function"
+      ? receiver !== state2 || !f4
+      : !state2.has(receiver)
+  )
+    throw new TypeError(
+      "Cannot write private member to an object whose class did not declare it",
+    );
+  return (
+    kind === "a"
+      ? f4.call(receiver, value)
+      : f4
+        ? (f4.value = value)
+        : state2.set(receiver, value),
+    value
+  );
 };
-var __classPrivateFieldGet = function(receiver, state2, kind, f4) {
-  if (kind === "a" && !f4) throw new TypeError("Private accessor was defined without a getter");
-  if (typeof state2 === "function" ? receiver !== state2 || !f4 : !state2.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-  return kind === "m" ? f4 : kind === "a" ? f4.call(receiver) : f4 ? f4.value : state2.get(receiver);
+var __classPrivateFieldGet = function (receiver, state2, kind, f4) {
+  if (kind === "a" && !f4)
+    throw new TypeError("Private accessor was defined without a getter");
+  if (
+    typeof state2 === "function"
+      ? receiver !== state2 || !f4
+      : !state2.has(receiver)
+  )
+    throw new TypeError(
+      "Cannot read private member from an object whose class did not declare it",
+    );
+  return kind === "m"
+    ? f4
+    : kind === "a"
+      ? f4.call(receiver)
+      : f4
+        ? f4.value
+        : state2.get(receiver);
 };
 var _SessionStore_instances;
 var _SessionStore_chunks;
@@ -1623,8 +1847,8 @@ function defaultCookies(useSecureCookies) {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: useSecureCookies
-      }
+        secure: useSecureCookies,
+      },
     },
     callbackUrl: {
       name: `${cookiePrefix}authjs.callback-url`,
@@ -1632,8 +1856,8 @@ function defaultCookies(useSecureCookies) {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: useSecureCookies
-      }
+        secure: useSecureCookies,
+      },
     },
     csrfToken: {
       // Default to __Host- for CSRF token for additional protection if using useSecureCookies
@@ -1643,8 +1867,8 @@ function defaultCookies(useSecureCookies) {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: useSecureCookies
-      }
+        secure: useSecureCookies,
+      },
     },
     pkceCodeVerifier: {
       name: `${cookiePrefix}authjs.pkce.code_verifier`,
@@ -1653,9 +1877,9 @@ function defaultCookies(useSecureCookies) {
         sameSite: "lax",
         path: "/",
         secure: useSecureCookies,
-        maxAge: 60 * 15
+        maxAge: 60 * 15,
         // 15 minutes in seconds
-      }
+      },
     },
     state: {
       name: `${cookiePrefix}authjs.state`,
@@ -1664,9 +1888,9 @@ function defaultCookies(useSecureCookies) {
         sameSite: "lax",
         path: "/",
         secure: useSecureCookies,
-        maxAge: 60 * 15
+        maxAge: 60 * 15,
         // 15 minutes in seconds
-      }
+      },
     },
     nonce: {
       name: `${cookiePrefix}authjs.nonce`,
@@ -1674,8 +1898,8 @@ function defaultCookies(useSecureCookies) {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: useSecureCookies
-      }
+        secure: useSecureCookies,
+      },
     },
     webauthnChallenge: {
       name: `${cookiePrefix}authjs.challenge`,
@@ -1684,10 +1908,10 @@ function defaultCookies(useSecureCookies) {
         sameSite: "lax",
         path: "/",
         secure: useSecureCookies,
-        maxAge: 60 * 15
+        maxAge: 60 * 15,
         // 15 minutes in seconds
-      }
-    }
+      },
+    },
   };
 }
 __name(defaultCookies, "defaultCookies");
@@ -1702,12 +1926,10 @@ var SessionStore = class {
     _SessionStore_logger.set(this, void 0);
     __classPrivateFieldSet(this, _SessionStore_logger, logger, "f");
     __classPrivateFieldSet(this, _SessionStore_option, option, "f");
-    if (!cookies)
-      return;
+    if (!cookies) return;
     const { name: sessionCookiePrefix } = option;
     for (const [name, value] of Object.entries(cookies)) {
-      if (!name.startsWith(sessionCookiePrefix) || !value)
-        continue;
+      if (!name.startsWith(sessionCookiePrefix) || !value) continue;
       __classPrivateFieldGet(this, _SessionStore_chunks, "f")[name] = value;
     }
   }
@@ -1716,12 +1938,18 @@ var SessionStore = class {
    * constructed from the cookie chunks.
    */
   get value() {
-    const sortedKeys = Object.keys(__classPrivateFieldGet(this, _SessionStore_chunks, "f")).sort((a3, b2) => {
+    const sortedKeys = Object.keys(
+      __classPrivateFieldGet(this, _SessionStore_chunks, "f"),
+    ).sort((a3, b2) => {
       const aSuffix = parseInt(a3.split(".").pop() || "0");
       const bSuffix = parseInt(b2.split(".").pop() || "0");
       return aSuffix - bSuffix;
     });
-    return sortedKeys.map((key) => __classPrivateFieldGet(this, _SessionStore_chunks, "f")[key]).join("");
+    return sortedKeys
+      .map(
+        (key) => __classPrivateFieldGet(this, _SessionStore_chunks, "f")[key],
+      )
+      .join("");
   }
   /**
    * Given a cookie value, return new cookies, chunked, to fit the allowed cookie size.
@@ -1729,11 +1957,24 @@ var SessionStore = class {
    * it deletes the old cookies as well.
    */
   chunk(value, options) {
-    const cookies = __classPrivateFieldGet(this, _SessionStore_instances, "m", _SessionStore_clean).call(this);
-    const chunked = __classPrivateFieldGet(this, _SessionStore_instances, "m", _SessionStore_chunk).call(this, {
+    const cookies = __classPrivateFieldGet(
+      this,
+      _SessionStore_instances,
+      "m",
+      _SessionStore_clean,
+    ).call(this);
+    const chunked = __classPrivateFieldGet(
+      this,
+      _SessionStore_instances,
+      "m",
+      _SessionStore_chunk,
+    ).call(this, {
       name: __classPrivateFieldGet(this, _SessionStore_option, "f").name,
       value,
-      options: { ...__classPrivateFieldGet(this, _SessionStore_option, "f").options, ...options }
+      options: {
+        ...__classPrivateFieldGet(this, _SessionStore_option, "f").options,
+        ...options,
+      },
     });
     for (const chunk of chunked) {
       cookies[chunk.name] = chunk;
@@ -1742,41 +1983,71 @@ var SessionStore = class {
   }
   /** Returns a list of cookies that should be cleaned. */
   clean() {
-    return Object.values(__classPrivateFieldGet(this, _SessionStore_instances, "m", _SessionStore_clean).call(this));
+    return Object.values(
+      __classPrivateFieldGet(
+        this,
+        _SessionStore_instances,
+        "m",
+        _SessionStore_clean,
+      ).call(this),
+    );
   }
 };
-_SessionStore_chunks = /* @__PURE__ */ new WeakMap(), _SessionStore_option = /* @__PURE__ */ new WeakMap(), _SessionStore_logger = /* @__PURE__ */ new WeakMap(), _SessionStore_instances = /* @__PURE__ */ new WeakSet(), _SessionStore_chunk = /* @__PURE__ */ __name(function _SessionStore_chunk2(cookie) {
-  const chunkCount = Math.ceil(cookie.value.length / CHUNK_SIZE);
-  if (chunkCount === 1) {
-    __classPrivateFieldGet(this, _SessionStore_chunks, "f")[cookie.name] = cookie.value;
-    return [cookie];
-  }
-  const cookies = [];
-  for (let i4 = 0; i4 < chunkCount; i4++) {
-    const name = `${cookie.name}.${i4}`;
-    const value = cookie.value.substr(i4 * CHUNK_SIZE, CHUNK_SIZE);
-    cookies.push({ ...cookie, name, value });
-    __classPrivateFieldGet(this, _SessionStore_chunks, "f")[name] = value;
-  }
-  __classPrivateFieldGet(this, _SessionStore_logger, "f").debug("CHUNKING_SESSION_COOKIE", {
-    message: `Session cookie exceeds allowed ${ALLOWED_COOKIE_SIZE} bytes.`,
-    emptyCookieSize: ESTIMATED_EMPTY_COOKIE_SIZE,
-    valueSize: cookie.value.length,
-    chunks: cookies.map((c3) => c3.value.length + ESTIMATED_EMPTY_COOKIE_SIZE)
-  });
-  return cookies;
-}, "_SessionStore_chunk"), _SessionStore_clean = /* @__PURE__ */ __name(function _SessionStore_clean2() {
-  const cleanedChunks = {};
-  for (const name in __classPrivateFieldGet(this, _SessionStore_chunks, "f")) {
-    delete __classPrivateFieldGet(this, _SessionStore_chunks, "f")?.[name];
-    cleanedChunks[name] = {
-      name,
-      value: "",
-      options: { ...__classPrivateFieldGet(this, _SessionStore_option, "f").options, maxAge: 0 }
-    };
-  }
-  return cleanedChunks;
-}, "_SessionStore_clean");
+(_SessionStore_chunks = /* @__PURE__ */ new WeakMap()),
+  (_SessionStore_option = /* @__PURE__ */ new WeakMap()),
+  (_SessionStore_logger = /* @__PURE__ */ new WeakMap()),
+  (_SessionStore_instances = /* @__PURE__ */ new WeakSet()),
+  (_SessionStore_chunk = /* @__PURE__ */ __name(function _SessionStore_chunk2(
+    cookie,
+  ) {
+    const chunkCount = Math.ceil(cookie.value.length / CHUNK_SIZE);
+    if (chunkCount === 1) {
+      __classPrivateFieldGet(this, _SessionStore_chunks, "f")[cookie.name] =
+        cookie.value;
+      return [cookie];
+    }
+    const cookies = [];
+    for (let i4 = 0; i4 < chunkCount; i4++) {
+      const name = `${cookie.name}.${i4}`;
+      const value = cookie.value.substr(i4 * CHUNK_SIZE, CHUNK_SIZE);
+      cookies.push({ ...cookie, name, value });
+      __classPrivateFieldGet(this, _SessionStore_chunks, "f")[name] = value;
+    }
+    __classPrivateFieldGet(this, _SessionStore_logger, "f").debug(
+      "CHUNKING_SESSION_COOKIE",
+      {
+        message: `Session cookie exceeds allowed ${ALLOWED_COOKIE_SIZE} bytes.`,
+        emptyCookieSize: ESTIMATED_EMPTY_COOKIE_SIZE,
+        valueSize: cookie.value.length,
+        chunks: cookies.map(
+          (c3) => c3.value.length + ESTIMATED_EMPTY_COOKIE_SIZE,
+        ),
+      },
+    );
+    return cookies;
+  }, "_SessionStore_chunk")),
+  (_SessionStore_clean = /* @__PURE__ */ __name(
+    function _SessionStore_clean2() {
+      const cleanedChunks = {};
+      for (const name in __classPrivateFieldGet(
+        this,
+        _SessionStore_chunks,
+        "f",
+      )) {
+        delete __classPrivateFieldGet(this, _SessionStore_chunks, "f")?.[name];
+        cleanedChunks[name] = {
+          name,
+          value: "",
+          options: {
+            ...__classPrivateFieldGet(this, _SessionStore_option, "f").options,
+            maxAge: 0,
+          },
+        };
+      }
+      return cleanedChunks;
+    },
+    "_SessionStore_clean",
+  ));
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/errors.js
 var AuthError = class extends Error {
@@ -1786,7 +2057,7 @@ var AuthError = class extends Error {
   constructor(message2, errorOptions) {
     if (message2 instanceof Error) {
       super(void 0, {
-        cause: { err: message2, ...message2.cause, ...errorOptions }
+        cause: { err: message2, ...message2.cause, ...errorOptions },
       });
     } else if (typeof message2 === "string") {
       if (errorOptions instanceof Error) {
@@ -1984,11 +2255,10 @@ var clientErrors = /* @__PURE__ */ new Set([
   "Verification",
   "MissingCSRF",
   "AccountNotLinked",
-  "WebAuthnVerificationError"
+  "WebAuthnVerificationError",
 ]);
 function isClientError(error) {
-  if (error instanceof AuthError)
-    return clientErrors.has(error.type);
+  if (error instanceof AuthError) return clientErrors.has(error.type);
   return false;
 }
 __name(isClientError, "isClientError");
@@ -2027,7 +2297,9 @@ ExperimentalFeatureNotEnabled.type = "ExperimentalFeatureNotEnabled";
 var warned = false;
 function isValidHttpUrl(url, baseUrl) {
   try {
-    return /^https?:/.test(new URL(url, url.startsWith("/") ? baseUrl : void 0).protocol);
+    return /^https?:/.test(
+      new URL(url, url.startsWith("/") ? baseUrl : void 0).protocol,
+    );
   } catch {
     return false;
   }
@@ -2043,7 +2315,7 @@ var hasWebAuthn = false;
 var emailMethods = [
   "createVerificationToken",
   "useVerificationToken",
-  "getUserByEmail"
+  "getUserByEmail",
 ];
 var sessionMethods = [
   "createUser",
@@ -2055,7 +2327,7 @@ var sessionMethods = [
   "createSession",
   "getSessionAndUser",
   "updateSession",
-  "deleteSession"
+  "deleteSession",
 ];
 var webauthnMethods = [
   "createUser",
@@ -2065,13 +2337,12 @@ var webauthnMethods = [
   "getAuthenticator",
   "createAuthenticator",
   "listAuthenticatorsByUserId",
-  "updateAuthenticatorCounter"
+  "updateAuthenticatorCounter",
 ];
 function assertConfig(request, options) {
   const { url } = request;
   const warnings = [];
-  if (!warned && options.debug)
-    warnings.push("debug-enabled");
+  if (!warned && options.debug) warnings.push("debug-enabled");
   if (!options.trustHost) {
     return new UntrustedHost(`Host must be trusted. URL was: ${request.url}`);
   }
@@ -2080,67 +2351,99 @@ function assertConfig(request, options) {
   }
   const callbackUrlParam = request.query?.callbackUrl;
   if (callbackUrlParam && !isValidHttpUrl(callbackUrlParam, url.origin)) {
-    return new InvalidCallbackUrl(`Invalid callback URL. Received: ${callbackUrlParam}`);
+    return new InvalidCallbackUrl(
+      `Invalid callback URL. Received: ${callbackUrlParam}`,
+    );
   }
-  const { callbackUrl: defaultCallbackUrl } = defaultCookies(options.useSecureCookies ?? url.protocol === "https:");
-  const callbackUrlCookie = request.cookies?.[options.cookies?.callbackUrl?.name ?? defaultCallbackUrl.name];
+  const { callbackUrl: defaultCallbackUrl } = defaultCookies(
+    options.useSecureCookies ?? url.protocol === "https:",
+  );
+  const callbackUrlCookie =
+    request.cookies?.[
+      options.cookies?.callbackUrl?.name ?? defaultCallbackUrl.name
+    ];
   if (callbackUrlCookie && !isValidHttpUrl(callbackUrlCookie, url.origin)) {
-    return new InvalidCallbackUrl(`Invalid callback URL. Received: ${callbackUrlCookie}`);
+    return new InvalidCallbackUrl(
+      `Invalid callback URL. Received: ${callbackUrlCookie}`,
+    );
   }
   let hasConditionalUIProvider = false;
   for (const p3 of options.providers) {
     const provider = typeof p3 === "function" ? p3() : p3;
-    if ((provider.type === "oauth" || provider.type === "oidc") && !(provider.issuer ?? provider.options?.issuer)) {
+    if (
+      (provider.type === "oauth" || provider.type === "oidc") &&
+      !(provider.issuer ?? provider.options?.issuer)
+    ) {
       const { authorization: a3, token: t2, userinfo: u4 } = provider;
       let key;
-      if (typeof a3 !== "string" && !a3?.url)
-        key = "authorization";
-      else if (typeof t2 !== "string" && !t2?.url)
-        key = "token";
-      else if (typeof u4 !== "string" && !u4?.url)
-        key = "userinfo";
+      if (typeof a3 !== "string" && !a3?.url) key = "authorization";
+      else if (typeof t2 !== "string" && !t2?.url) key = "token";
+      else if (typeof u4 !== "string" && !u4?.url) key = "userinfo";
       if (key) {
-        return new InvalidEndpoints(`Provider "${provider.id}" is missing both \`issuer\` and \`${key}\` endpoint config. At least one of them is required`);
+        return new InvalidEndpoints(
+          `Provider "${provider.id}" is missing both \`issuer\` and \`${key}\` endpoint config. At least one of them is required`,
+        );
       }
     }
-    if (provider.type === "credentials")
-      hasCredentials = true;
-    else if (provider.type === "email")
-      hasEmail = true;
+    if (provider.type === "credentials") hasCredentials = true;
+    else if (provider.type === "email") hasEmail = true;
     else if (provider.type === "webauthn") {
       hasWebAuthn = true;
-      if (provider.simpleWebAuthnBrowserVersion && !isSemverString(provider.simpleWebAuthnBrowserVersion)) {
-        return new AuthError(`Invalid provider config for "${provider.id}": simpleWebAuthnBrowserVersion "${provider.simpleWebAuthnBrowserVersion}" must be a valid semver string.`);
+      if (
+        provider.simpleWebAuthnBrowserVersion &&
+        !isSemverString(provider.simpleWebAuthnBrowserVersion)
+      ) {
+        return new AuthError(
+          `Invalid provider config for "${provider.id}": simpleWebAuthnBrowserVersion "${provider.simpleWebAuthnBrowserVersion}" must be a valid semver string.`,
+        );
       }
       if (provider.enableConditionalUI) {
         if (hasConditionalUIProvider) {
-          return new DuplicateConditionalUI(`Multiple webauthn providers have 'enableConditionalUI' set to True. Only one provider can have this option enabled at a time`);
+          return new DuplicateConditionalUI(
+            `Multiple webauthn providers have 'enableConditionalUI' set to True. Only one provider can have this option enabled at a time`,
+          );
         }
         hasConditionalUIProvider = true;
-        const hasWebauthnFormField = Object.values(provider.formFields).some((f4) => f4.autocomplete && f4.autocomplete.toString().indexOf("webauthn") > -1);
+        const hasWebauthnFormField = Object.values(provider.formFields).some(
+          (f4) =>
+            f4.autocomplete &&
+            f4.autocomplete.toString().indexOf("webauthn") > -1,
+        );
         if (!hasWebauthnFormField) {
-          return new MissingWebAuthnAutocomplete(`Provider "${provider.id}" has 'enableConditionalUI' set to True, but none of its formFields have 'webauthn' in their autocomplete param`);
+          return new MissingWebAuthnAutocomplete(
+            `Provider "${provider.id}" has 'enableConditionalUI' set to True, but none of its formFields have 'webauthn' in their autocomplete param`,
+          );
         }
       }
     }
   }
   if (hasCredentials) {
     const dbStrategy = options.session?.strategy === "database";
-    const onlyCredentials = !options.providers.some((p3) => (typeof p3 === "function" ? p3() : p3).type !== "credentials");
+    const onlyCredentials = !options.providers.some(
+      (p3) => (typeof p3 === "function" ? p3() : p3).type !== "credentials",
+    );
     if (dbStrategy && onlyCredentials) {
-      return new UnsupportedStrategy("Signing in with credentials only supported if JWT strategy is enabled");
+      return new UnsupportedStrategy(
+        "Signing in with credentials only supported if JWT strategy is enabled",
+      );
     }
     const credentialsNoAuthorize = options.providers.some((p3) => {
       const provider = typeof p3 === "function" ? p3() : p3;
       return provider.type === "credentials" && !provider.authorize;
     });
     if (credentialsNoAuthorize) {
-      return new MissingAuthorize("Must define an authorize() handler to use credentials authentication provider");
+      return new MissingAuthorize(
+        "Must define an authorize() handler to use credentials authentication provider",
+      );
     }
   }
   const { adapter, session: session2 } = options;
   const requiredMethods = [];
-  if (hasEmail || session2?.strategy === "database" || !session2?.strategy && adapter) {
+  if (
+    hasEmail ||
+    session2?.strategy === "database" ||
+    (!session2?.strategy && adapter)
+  ) {
     if (hasEmail) {
       if (!adapter)
         return new MissingAdapter("Email login requires an adapter");
@@ -2155,43 +2458,53 @@ function assertConfig(request, options) {
     if (options.experimental?.enableWebAuthn) {
       warnings.push("experimental-webauthn");
     } else {
-      return new ExperimentalFeatureNotEnabled("WebAuthn is an experimental feature. To enable it, set `experimental.enableWebAuthn` to `true` in your config");
+      return new ExperimentalFeatureNotEnabled(
+        "WebAuthn is an experimental feature. To enable it, set `experimental.enableWebAuthn` to `true` in your config",
+      );
     }
-    if (!adapter)
-      return new MissingAdapter("WebAuthn requires an adapter");
+    if (!adapter) return new MissingAdapter("WebAuthn requires an adapter");
     requiredMethods.push(...webauthnMethods);
   }
   if (adapter) {
     const missing = requiredMethods.filter((m) => !(m in adapter));
     if (missing.length) {
-      return new MissingAdapterMethods(`Required adapter methods were missing: ${missing.join(", ")}`);
+      return new MissingAdapterMethods(
+        `Required adapter methods were missing: ${missing.join(", ")}`,
+      );
     }
   }
-  if (!warned)
-    warned = true;
+  if (!warned) warned = true;
   return warnings;
 }
 __name(assertConfig, "assertConfig");
 
 // node_modules/@panva/hkdf/dist/web/runtime/hkdf.js
 var getGlobal = /* @__PURE__ */ __name(() => {
-  if (typeof globalThis !== "undefined")
-    return globalThis;
-  if (typeof self !== "undefined")
-    return self;
-  if (typeof window !== "undefined")
-    return window;
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
   throw new Error("unable to locate global object");
 }, "getGlobal");
-var hkdf_default = /* @__PURE__ */ __name(async (digest, ikm, salt, info, keylen) => {
-  const { crypto: { subtle } } = getGlobal();
-  return new Uint8Array(await subtle.deriveBits({
-    name: "HKDF",
-    hash: `SHA-${digest.substr(3)}`,
-    salt,
-    info
-  }, await subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]), keylen << 3));
-}, "default");
+var hkdf_default = /* @__PURE__ */ __name(
+  async (digest, ikm, salt, info, keylen) => {
+    const {
+      crypto: { subtle },
+    } = getGlobal();
+    return new Uint8Array(
+      await subtle.deriveBits(
+        {
+          name: "HKDF",
+          hash: `SHA-${digest.substr(3)}`,
+          salt,
+          info,
+        },
+        await subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]),
+        keylen << 3,
+      ),
+    );
+  },
+  "default",
+);
 
 // node_modules/@panva/hkdf/dist/web/index.js
 function normalizeDigest(digest) {
@@ -2207,10 +2520,11 @@ function normalizeDigest(digest) {
 }
 __name(normalizeDigest, "normalizeDigest");
 function normalizeUint8Array(input, label) {
-  if (typeof input === "string")
-    return new TextEncoder().encode(input);
+  if (typeof input === "string") return new TextEncoder().encode(input);
   if (!(input instanceof Uint8Array))
-    throw new TypeError(`"${label}"" must be an instance of Uint8Array or a string`);
+    throw new TypeError(
+      `"${label}"" must be an instance of Uint8Array or a string`,
+    );
   return input;
 }
 __name(normalizeUint8Array, "normalizeUint8Array");
@@ -2241,7 +2555,13 @@ function normalizeKeylen(input, digest) {
 }
 __name(normalizeKeylen, "normalizeKeylen");
 async function hkdf(digest, ikm, salt, info, keylen) {
-  return hkdf_default(normalizeDigest(digest), normalizeIkm(ikm), normalizeUint8Array(salt, "salt"), normalizeInfo(info), normalizeKeylen(keylen, digest));
+  return hkdf_default(
+    normalizeDigest(digest),
+    normalizeIkm(ikm),
+    normalizeUint8Array(salt, "salt"),
+    normalizeInfo(info),
+    normalizeKeylen(keylen, digest),
+  );
 }
 __name(hkdf, "hkdf");
 
@@ -2249,7 +2569,7 @@ __name(hkdf, "hkdf");
 var base64url_exports = {};
 __export(base64url_exports, {
   decode: () => decode,
-  encode: () => encode
+  encode: () => encode,
 });
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/buffer_utils.js
@@ -2269,7 +2589,9 @@ function concat(...buffers) {
 __name(concat, "concat");
 function writeUInt32BE(buf2, value, offset) {
   if (value < 0 || value >= MAX_INT32) {
-    throw new RangeError(`value must be >= 0 and <= ${MAX_INT32 - 1}. Received ${value}`);
+    throw new RangeError(
+      `value must be >= 0 and <= ${MAX_INT32 - 1}. Received ${value}`,
+    );
   }
   buf2.set([value >>> 24, value >>> 16, value >>> 8, value & 255], offset);
 }
@@ -2298,7 +2620,9 @@ function encodeBase64(input) {
   const CHUNK_SIZE3 = 32768;
   const arr = [];
   for (let i4 = 0; i4 < input.length; i4 += CHUNK_SIZE3) {
-    arr.push(String.fromCharCode.apply(null, input.subarray(i4, i4 + CHUNK_SIZE3)));
+    arr.push(
+      String.fromCharCode.apply(null, input.subarray(i4, i4 + CHUNK_SIZE3)),
+    );
   }
   return btoa(arr.join(""));
 }
@@ -2319,9 +2643,12 @@ __name(decodeBase64, "decodeBase64");
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/util/base64url.js
 function decode(input) {
   if (Uint8Array.fromBase64) {
-    return Uint8Array.fromBase64(typeof input === "string" ? input : decoder.decode(input), {
-      alphabet: "base64url"
-    });
+    return Uint8Array.fromBase64(
+      typeof input === "string" ? input : decoder.decode(input),
+      {
+        alphabet: "base64url",
+      },
+    );
   }
   let encoded = input;
   if (encoded instanceof Uint8Array) {
@@ -2343,7 +2670,10 @@ function encode(input) {
   if (Uint8Array.prototype.toBase64) {
     return unencoded.toBase64({ alphabet: "base64url", omitPadding: true });
   }
-  return encodeBase64(unencoded).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return encodeBase64(unencoded)
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
 }
 __name(encode, "encode");
 
@@ -2369,7 +2699,12 @@ var JWTClaimValidationFailed = class extends JOSEError {
   claim;
   reason;
   payload;
-  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+  constructor(
+    message2,
+    payload,
+    claim = "unspecified",
+    reason = "unspecified",
+  ) {
     super(message2, { cause: { claim, reason, payload } });
     this.claim = claim;
     this.reason = reason;
@@ -2385,7 +2720,12 @@ var JWTExpired = class extends JOSEError {
   claim;
   reason;
   payload;
-  constructor(message2, payload, claim = "unspecified", reason = "unspecified") {
+  constructor(
+    message2,
+    payload,
+    claim = "unspecified",
+    reason = "unspecified",
+  ) {
     super(message2, { cause: { claim, reason, payload } });
     this.claim = claim;
     this.reason = reason;
@@ -2457,7 +2797,10 @@ function bitLength(alg2) {
   }
 }
 __name(bitLength, "bitLength");
-var iv_default = /* @__PURE__ */ __name((alg2) => crypto.getRandomValues(new Uint8Array(bitLength(alg2) >> 3)), "default");
+var iv_default = /* @__PURE__ */ __name(
+  (alg2) => crypto.getRandomValues(new Uint8Array(bitLength(alg2) >> 3)),
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/check_iv_length.js
 var check_iv_length_default = /* @__PURE__ */ __name((enc2, iv) => {
@@ -2470,13 +2813,17 @@ var check_iv_length_default = /* @__PURE__ */ __name((enc2, iv) => {
 var check_cek_length_default = /* @__PURE__ */ __name((cek, expected) => {
   const actual = cek.byteLength << 3;
   if (actual !== expected) {
-    throw new JWEInvalid(`Invalid Content Encryption Key length. Expected ${expected} bits, got ${actual} bits`);
+    throw new JWEInvalid(
+      `Invalid Content Encryption Key length. Expected ${expected} bits, got ${actual} bits`,
+    );
   }
 }, "default");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/crypto_key.js
 function unusable(name, prop = "algorithm.name") {
-  return new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
+  return new TypeError(
+    `CryptoKey does not support this operation, its ${prop} must be ${name}`,
+  );
 }
 __name(unusable, "unusable");
 function isAlgorithm(algorithm, name) {
@@ -2489,7 +2836,9 @@ function getHashLength(hash) {
 __name(getHashLength, "getHashLength");
 function checkUsage(key, usage) {
   if (usage && !key.usages.includes(usage)) {
-    throw new TypeError(`CryptoKey does not support this operation, its usages must include ${usage}.`);
+    throw new TypeError(
+      `CryptoKey does not support this operation, its usages must include ${usage}.`,
+    );
   }
 }
 __name(checkUsage, "checkUsage");
@@ -2498,23 +2847,19 @@ function checkEncCryptoKey(key, alg2, usage) {
     case "A128GCM":
     case "A192GCM":
     case "A256GCM": {
-      if (!isAlgorithm(key.algorithm, "AES-GCM"))
-        throw unusable("AES-GCM");
+      if (!isAlgorithm(key.algorithm, "AES-GCM")) throw unusable("AES-GCM");
       const expected = parseInt(alg2.slice(1, 4), 10);
       const actual = key.algorithm.length;
-      if (actual !== expected)
-        throw unusable(expected, "algorithm.length");
+      if (actual !== expected) throw unusable(expected, "algorithm.length");
       break;
     }
     case "A128KW":
     case "A192KW":
     case "A256KW": {
-      if (!isAlgorithm(key.algorithm, "AES-KW"))
-        throw unusable("AES-KW");
+      if (!isAlgorithm(key.algorithm, "AES-KW")) throw unusable("AES-KW");
       const expected = parseInt(alg2.slice(1, 4), 10);
       const actual = key.algorithm.length;
-      if (actual !== expected)
-        throw unusable(expected, "algorithm.length");
+      if (actual !== expected) throw unusable(expected, "algorithm.length");
       break;
     }
     case "ECDH": {
@@ -2530,15 +2875,13 @@ function checkEncCryptoKey(key, alg2, usage) {
     case "PBES2-HS256+A128KW":
     case "PBES2-HS384+A192KW":
     case "PBES2-HS512+A256KW":
-      if (!isAlgorithm(key.algorithm, "PBKDF2"))
-        throw unusable("PBKDF2");
+      if (!isAlgorithm(key.algorithm, "PBKDF2")) throw unusable("PBKDF2");
       break;
     case "RSA-OAEP":
     case "RSA-OAEP-256":
     case "RSA-OAEP-384":
     case "RSA-OAEP-512": {
-      if (!isAlgorithm(key.algorithm, "RSA-OAEP"))
-        throw unusable("RSA-OAEP");
+      if (!isAlgorithm(key.algorithm, "RSA-OAEP")) throw unusable("RSA-OAEP");
       const expected = parseInt(alg2.slice(9), 10) || 1;
       const actual = getHashLength(key.algorithm.hash);
       if (actual !== expected)
@@ -2627,26 +2970,40 @@ async function cbcDecrypt(enc2, cek, ciphertext, iv, tag2, aad) {
     throw new TypeError(invalid_key_input_default(cek, "Uint8Array"));
   }
   const keySize = parseInt(enc2.slice(1, 4), 10);
-  const encKey = await crypto.subtle.importKey("raw", cek.subarray(keySize >> 3), "AES-CBC", false, ["decrypt"]);
-  const macKey = await crypto.subtle.importKey("raw", cek.subarray(0, keySize >> 3), {
-    hash: `SHA-${keySize << 1}`,
-    name: "HMAC"
-  }, false, ["sign"]);
+  const encKey = await crypto.subtle.importKey(
+    "raw",
+    cek.subarray(keySize >> 3),
+    "AES-CBC",
+    false,
+    ["decrypt"],
+  );
+  const macKey = await crypto.subtle.importKey(
+    "raw",
+    cek.subarray(0, keySize >> 3),
+    {
+      hash: `SHA-${keySize << 1}`,
+      name: "HMAC",
+    },
+    false,
+    ["sign"],
+  );
   const macData = concat(aad, iv, ciphertext, uint64be(aad.length << 3));
-  const expectedTag = new Uint8Array((await crypto.subtle.sign("HMAC", macKey, macData)).slice(0, keySize >> 3));
+  const expectedTag = new Uint8Array(
+    (await crypto.subtle.sign("HMAC", macKey, macData)).slice(0, keySize >> 3),
+  );
   let macCheckPassed;
   try {
     macCheckPassed = await timingSafeEqual(tag2, expectedTag);
-  } catch {
-  }
+  } catch {}
   if (!macCheckPassed) {
     throw new JWEDecryptionFailed();
   }
   let plaintext;
   try {
-    plaintext = new Uint8Array(await crypto.subtle.decrypt({ iv, name: "AES-CBC" }, encKey, ciphertext));
-  } catch {
-  }
+    plaintext = new Uint8Array(
+      await crypto.subtle.decrypt({ iv, name: "AES-CBC" }, encKey, ciphertext),
+    );
+  } catch {}
   if (!plaintext) {
     throw new JWEDecryptionFailed();
   }
@@ -2656,51 +3013,72 @@ __name(cbcDecrypt, "cbcDecrypt");
 async function gcmDecrypt(enc2, cek, ciphertext, iv, tag2, aad) {
   let encKey;
   if (cek instanceof Uint8Array) {
-    encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["decrypt"]);
+    encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, [
+      "decrypt",
+    ]);
   } else {
     checkEncCryptoKey(cek, enc2, "decrypt");
     encKey = cek;
   }
   try {
-    return new Uint8Array(await crypto.subtle.decrypt({
-      additionalData: aad,
-      iv,
-      name: "AES-GCM",
-      tagLength: 128
-    }, encKey, concat(ciphertext, tag2)));
+    return new Uint8Array(
+      await crypto.subtle.decrypt(
+        {
+          additionalData: aad,
+          iv,
+          name: "AES-GCM",
+          tagLength: 128,
+        },
+        encKey,
+        concat(ciphertext, tag2),
+      ),
+    );
   } catch {
     throw new JWEDecryptionFailed();
   }
 }
 __name(gcmDecrypt, "gcmDecrypt");
-var decrypt_default = /* @__PURE__ */ __name(async (enc2, cek, ciphertext, iv, tag2, aad) => {
-  if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
-    throw new TypeError(invalid_key_input_default(cek, "CryptoKey", "KeyObject", "Uint8Array", "JSON Web Key"));
-  }
-  if (!iv) {
-    throw new JWEInvalid("JWE Initialization Vector missing");
-  }
-  if (!tag2) {
-    throw new JWEInvalid("JWE Authentication Tag missing");
-  }
-  check_iv_length_default(enc2, iv);
-  switch (enc2) {
-    case "A128CBC-HS256":
-    case "A192CBC-HS384":
-    case "A256CBC-HS512":
-      if (cek instanceof Uint8Array)
-        check_cek_length_default(cek, parseInt(enc2.slice(-3), 10));
-      return cbcDecrypt(enc2, cek, ciphertext, iv, tag2, aad);
-    case "A128GCM":
-    case "A192GCM":
-    case "A256GCM":
-      if (cek instanceof Uint8Array)
-        check_cek_length_default(cek, parseInt(enc2.slice(1, 4), 10));
-      return gcmDecrypt(enc2, cek, ciphertext, iv, tag2, aad);
-    default:
-      throw new JOSENotSupported("Unsupported JWE Content Encryption Algorithm");
-  }
-}, "default");
+var decrypt_default = /* @__PURE__ */ __name(
+  async (enc2, cek, ciphertext, iv, tag2, aad) => {
+    if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
+      throw new TypeError(
+        invalid_key_input_default(
+          cek,
+          "CryptoKey",
+          "KeyObject",
+          "Uint8Array",
+          "JSON Web Key",
+        ),
+      );
+    }
+    if (!iv) {
+      throw new JWEInvalid("JWE Initialization Vector missing");
+    }
+    if (!tag2) {
+      throw new JWEInvalid("JWE Authentication Tag missing");
+    }
+    check_iv_length_default(enc2, iv);
+    switch (enc2) {
+      case "A128CBC-HS256":
+      case "A192CBC-HS384":
+      case "A256CBC-HS512":
+        if (cek instanceof Uint8Array)
+          check_cek_length_default(cek, parseInt(enc2.slice(-3), 10));
+        return cbcDecrypt(enc2, cek, ciphertext, iv, tag2, aad);
+      case "A128GCM":
+      case "A192GCM":
+      case "A256GCM":
+        if (cek instanceof Uint8Array)
+          check_cek_length_default(cek, parseInt(enc2.slice(1, 4), 10));
+        return gcmDecrypt(enc2, cek, ciphertext, iv, tag2, aad);
+      default:
+        throw new JOSENotSupported(
+          "Unsupported JWE Content Encryption Algorithm",
+        );
+    }
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/is_disjoint.js
 var is_disjoint_default = /* @__PURE__ */ __name((...headers) => {
@@ -2731,7 +3109,10 @@ function isObjectLike(value) {
 }
 __name(isObjectLike, "isObjectLike");
 var is_object_default = /* @__PURE__ */ __name((input) => {
-  if (!isObjectLike(input) || Object.prototype.toString.call(input) !== "[object Object]") {
+  if (
+    !isObjectLike(input) ||
+    Object.prototype.toString.call(input) !== "[object Object]"
+  ) {
     return false;
   }
   if (Object.getPrototypeOf(input) === null) {
@@ -2762,14 +3143,30 @@ __name(getCryptoKey, "getCryptoKey");
 async function wrap(alg2, key, cek) {
   const cryptoKey = await getCryptoKey(key, alg2, "wrapKey");
   checkKeySize(cryptoKey, alg2);
-  const cryptoKeyCek = await crypto.subtle.importKey("raw", cek, { hash: "SHA-256", name: "HMAC" }, true, ["sign"]);
-  return new Uint8Array(await crypto.subtle.wrapKey("raw", cryptoKeyCek, cryptoKey, "AES-KW"));
+  const cryptoKeyCek = await crypto.subtle.importKey(
+    "raw",
+    cek,
+    { hash: "SHA-256", name: "HMAC" },
+    true,
+    ["sign"],
+  );
+  return new Uint8Array(
+    await crypto.subtle.wrapKey("raw", cryptoKeyCek, cryptoKey, "AES-KW"),
+  );
 }
 __name(wrap, "wrap");
 async function unwrap(alg2, key, encryptedKey) {
   const cryptoKey = await getCryptoKey(key, alg2, "unwrapKey");
   checkKeySize(cryptoKey, alg2);
-  const cryptoKeyCek = await crypto.subtle.unwrapKey("raw", encryptedKey, cryptoKey, "AES-KW", { hash: "SHA-256", name: "HMAC" }, true, ["sign"]);
+  const cryptoKeyCek = await crypto.subtle.unwrapKey(
+    "raw",
+    encryptedKey,
+    cryptoKey,
+    "AES-KW",
+    { hash: "SHA-256", name: "HMAC" },
+    true,
+    ["sign"],
+  );
   return new Uint8Array(await crypto.subtle.exportKey("raw", cryptoKeyCek));
 }
 __name(unwrap, "unwrap");
@@ -2798,20 +3195,40 @@ async function concatKdf(secret, bits, value) {
   return res.slice(0, bits >> 3);
 }
 __name(concatKdf, "concatKdf");
-async function deriveKey(publicKey, privateKey, algorithm, keyLength, apu = new Uint8Array(0), apv = new Uint8Array(0)) {
+async function deriveKey(
+  publicKey,
+  privateKey,
+  algorithm,
+  keyLength,
+  apu = new Uint8Array(0),
+  apv = new Uint8Array(0),
+) {
   checkEncCryptoKey(publicKey, "ECDH");
   checkEncCryptoKey(privateKey, "ECDH", "deriveBits");
-  const value = concat(lengthAndInput(encoder.encode(algorithm)), lengthAndInput(apu), lengthAndInput(apv), uint32be(keyLength));
+  const value = concat(
+    lengthAndInput(encoder.encode(algorithm)),
+    lengthAndInput(apu),
+    lengthAndInput(apv),
+    uint32be(keyLength),
+  );
   let length;
   if (publicKey.algorithm.name === "X25519") {
     length = 256;
   } else {
-    length = Math.ceil(parseInt(publicKey.algorithm.namedCurve.slice(-3), 10) / 8) << 3;
+    length =
+      Math.ceil(parseInt(publicKey.algorithm.namedCurve.slice(-3), 10) / 8) <<
+      3;
   }
-  const sharedSecret = new Uint8Array(await crypto.subtle.deriveBits({
-    name: publicKey.algorithm.name,
-    public: publicKey
-  }, privateKey, length));
+  const sharedSecret = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      {
+        name: publicKey.algorithm.name,
+        public: publicKey,
+      },
+      privateKey,
+      length,
+    ),
+  );
   return concatKdf(sharedSecret, keyLength, value);
 }
 __name(deriveKey, "deriveKey");
@@ -2836,7 +3253,11 @@ function getCryptoKey2(key, alg2) {
   return key;
 }
 __name(getCryptoKey2, "getCryptoKey");
-var concatSalt = /* @__PURE__ */ __name((alg2, p2sInput) => concat(encoder.encode(alg2), new Uint8Array([0]), p2sInput), "concatSalt");
+var concatSalt = /* @__PURE__ */ __name(
+  (alg2, p2sInput) =>
+    concat(encoder.encode(alg2), new Uint8Array([0]), p2sInput),
+  "concatSalt",
+);
 async function deriveKey2(p2s, alg2, p2c, key) {
   if (!(p2s instanceof Uint8Array) || p2s.length < 8) {
     throw new JWEInvalid("PBES2 Salt Input must be 8 or more octets");
@@ -2847,13 +3268,21 @@ async function deriveKey2(p2s, alg2, p2c, key) {
     hash: `SHA-${alg2.slice(8, 11)}`,
     iterations: p2c,
     name: "PBKDF2",
-    salt
+    salt,
   };
   const cryptoKey = await getCryptoKey2(key, alg2);
-  return new Uint8Array(await crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen));
+  return new Uint8Array(
+    await crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen),
+  );
 }
 __name(deriveKey2, "deriveKey");
-async function wrap2(alg2, key, cek, p2c = 2048, p2s = crypto.getRandomValues(new Uint8Array(16))) {
+async function wrap2(
+  alg2,
+  key,
+  cek,
+  p2c = 2048,
+  p2s = crypto.getRandomValues(new Uint8Array(16)),
+) {
   const derived = await deriveKey2(p2s, alg2, p2c, key);
   const encryptedKey = await wrap(alg2.slice(-6), derived, cek);
   return { encryptedKey, p2c, p2s: encode(p2s) };
@@ -2870,7 +3299,9 @@ var check_key_length_default = /* @__PURE__ */ __name((alg2, key) => {
   if (alg2.startsWith("RS") || alg2.startsWith("PS")) {
     const { modulusLength } = key.algorithm;
     if (typeof modulusLength !== "number" || modulusLength < 2048) {
-      throw new TypeError(`${alg2} requires key modulusLength to be 2048 bits or larger`);
+      throw new TypeError(
+        `${alg2} requires key modulusLength to be 2048 bits or larger`,
+      );
     }
   }
 }, "default");
@@ -2884,19 +3315,25 @@ var subtleAlgorithm = /* @__PURE__ */ __name((alg2) => {
     case "RSA-OAEP-512":
       return "RSA-OAEP";
     default:
-      throw new JOSENotSupported(`alg ${alg2} is not supported either by JOSE or your javascript runtime`);
+      throw new JOSENotSupported(
+        `alg ${alg2} is not supported either by JOSE or your javascript runtime`,
+      );
   }
 }, "subtleAlgorithm");
 async function encrypt(alg2, key, cek) {
   checkEncCryptoKey(key, alg2, "encrypt");
   check_key_length_default(alg2, key);
-  return new Uint8Array(await crypto.subtle.encrypt(subtleAlgorithm(alg2), key, cek));
+  return new Uint8Array(
+    await crypto.subtle.encrypt(subtleAlgorithm(alg2), key, cek),
+  );
 }
 __name(encrypt, "encrypt");
 async function decrypt(alg2, key, encryptedKey) {
   checkEncCryptoKey(key, alg2, "decrypt");
   check_key_length_default(alg2, key);
-  return new Uint8Array(await crypto.subtle.decrypt(subtleAlgorithm(alg2), key, encryptedKey));
+  return new Uint8Array(
+    await crypto.subtle.decrypt(subtleAlgorithm(alg2), key, encryptedKey),
+  );
 }
 __name(decrypt, "decrypt");
 
@@ -2919,7 +3356,10 @@ function bitLength2(alg2) {
   }
 }
 __name(bitLength2, "bitLength");
-var cek_default = /* @__PURE__ */ __name((alg2) => crypto.getRandomValues(new Uint8Array(bitLength2(alg2) >> 3)), "default");
+var cek_default = /* @__PURE__ */ __name(
+  (alg2) => crypto.getRandomValues(new Uint8Array(bitLength2(alg2) >> 3)),
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/jwk_to_key.js
 function subtleMapping(jwk) {
@@ -2937,7 +3377,10 @@ function subtleMapping(jwk) {
         case "RS256":
         case "RS384":
         case "RS512":
-          algorithm = { name: "RSASSA-PKCS1-v1_5", hash: `SHA-${jwk.alg.slice(-3)}` };
+          algorithm = {
+            name: "RSASSA-PKCS1-v1_5",
+            hash: `SHA-${jwk.alg.slice(-3)}`,
+          };
           keyUsages = jwk.d ? ["sign"] : ["verify"];
           break;
         case "RSA-OAEP":
@@ -2946,12 +3389,14 @@ function subtleMapping(jwk) {
         case "RSA-OAEP-512":
           algorithm = {
             name: "RSA-OAEP",
-            hash: `SHA-${parseInt(jwk.alg.slice(-3), 10) || 1}`
+            hash: `SHA-${parseInt(jwk.alg.slice(-3), 10) || 1}`,
           };
           keyUsages = jwk.d ? ["decrypt", "unwrapKey"] : ["encrypt", "wrapKey"];
           break;
         default:
-          throw new JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+          throw new JOSENotSupported(
+            'Invalid or unsupported JWK "alg" (Algorithm) Parameter value',
+          );
       }
       break;
     }
@@ -2977,7 +3422,9 @@ function subtleMapping(jwk) {
           keyUsages = jwk.d ? ["deriveBits"] : [];
           break;
         default:
-          throw new JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+          throw new JOSENotSupported(
+            'Invalid or unsupported JWK "alg" (Algorithm) Parameter value',
+          );
       }
       break;
     }
@@ -2996,25 +3443,37 @@ function subtleMapping(jwk) {
           keyUsages = jwk.d ? ["deriveBits"] : [];
           break;
         default:
-          throw new JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+          throw new JOSENotSupported(
+            'Invalid or unsupported JWK "alg" (Algorithm) Parameter value',
+          );
       }
       break;
     }
     default:
-      throw new JOSENotSupported('Invalid or unsupported JWK "kty" (Key Type) Parameter value');
+      throw new JOSENotSupported(
+        'Invalid or unsupported JWK "kty" (Key Type) Parameter value',
+      );
   }
   return { algorithm, keyUsages };
 }
 __name(subtleMapping, "subtleMapping");
 var jwk_to_key_default = /* @__PURE__ */ __name(async (jwk) => {
   if (!jwk.alg) {
-    throw new TypeError('"alg" argument is required when "jwk.alg" is not present');
+    throw new TypeError(
+      '"alg" argument is required when "jwk.alg" is not present',
+    );
   }
   const { algorithm, keyUsages } = subtleMapping(jwk);
   const keyData = { ...jwk };
   delete keyData.alg;
   delete keyData.use;
-  return crypto.subtle.importKey("jwk", keyData, algorithm, jwk.ext ?? (jwk.d ? false : true), jwk.key_ops ?? keyUsages);
+  return crypto.subtle.importKey(
+    "jwk",
+    keyData,
+    algorithm,
+    jwk.ext ?? (jwk.d ? false : true),
+    jwk.key_ops ?? keyUsages,
+  );
 }, "default");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/key/import.js
@@ -3033,13 +3492,17 @@ async function importJWK(jwk, alg2, options) {
       return decode(jwk.k);
     case "RSA":
       if ("oth" in jwk && jwk.oth !== void 0) {
-        throw new JOSENotSupported('RSA JWK "oth" (Other Primes Info) Parameter value is not supported');
+        throw new JOSENotSupported(
+          'RSA JWK "oth" (Other Primes Info) Parameter value is not supported',
+        );
       }
     case "EC":
     case "OKP":
       return jwk_to_key_default({ ...jwk, alg: alg2, ext });
     default:
-      throw new JOSENotSupported('Unsupported "kty" (Key Type) Parameter value');
+      throw new JOSENotSupported(
+        'Unsupported "kty" (Key Type) Parameter value',
+      );
   }
 }
 __name(importJWK, "importJWK");
@@ -3050,239 +3513,351 @@ async function cbcEncrypt(enc2, plaintext, cek, iv, aad) {
     throw new TypeError(invalid_key_input_default(cek, "Uint8Array"));
   }
   const keySize = parseInt(enc2.slice(1, 4), 10);
-  const encKey = await crypto.subtle.importKey("raw", cek.subarray(keySize >> 3), "AES-CBC", false, ["encrypt"]);
-  const macKey = await crypto.subtle.importKey("raw", cek.subarray(0, keySize >> 3), {
-    hash: `SHA-${keySize << 1}`,
-    name: "HMAC"
-  }, false, ["sign"]);
-  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
-    iv,
-    name: "AES-CBC"
-  }, encKey, plaintext));
+  const encKey = await crypto.subtle.importKey(
+    "raw",
+    cek.subarray(keySize >> 3),
+    "AES-CBC",
+    false,
+    ["encrypt"],
+  );
+  const macKey = await crypto.subtle.importKey(
+    "raw",
+    cek.subarray(0, keySize >> 3),
+    {
+      hash: `SHA-${keySize << 1}`,
+      name: "HMAC",
+    },
+    false,
+    ["sign"],
+  );
+  const ciphertext = new Uint8Array(
+    await crypto.subtle.encrypt(
+      {
+        iv,
+        name: "AES-CBC",
+      },
+      encKey,
+      plaintext,
+    ),
+  );
   const macData = concat(aad, iv, ciphertext, uint64be(aad.length << 3));
-  const tag2 = new Uint8Array((await crypto.subtle.sign("HMAC", macKey, macData)).slice(0, keySize >> 3));
+  const tag2 = new Uint8Array(
+    (await crypto.subtle.sign("HMAC", macKey, macData)).slice(0, keySize >> 3),
+  );
   return { ciphertext, tag: tag2, iv };
 }
 __name(cbcEncrypt, "cbcEncrypt");
 async function gcmEncrypt(enc2, plaintext, cek, iv, aad) {
   let encKey;
   if (cek instanceof Uint8Array) {
-    encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["encrypt"]);
+    encKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, [
+      "encrypt",
+    ]);
   } else {
     checkEncCryptoKey(cek, enc2, "encrypt");
     encKey = cek;
   }
-  const encrypted = new Uint8Array(await crypto.subtle.encrypt({
-    additionalData: aad,
-    iv,
-    name: "AES-GCM",
-    tagLength: 128
-  }, encKey, plaintext));
+  const encrypted = new Uint8Array(
+    await crypto.subtle.encrypt(
+      {
+        additionalData: aad,
+        iv,
+        name: "AES-GCM",
+        tagLength: 128,
+      },
+      encKey,
+      plaintext,
+    ),
+  );
   const tag2 = encrypted.slice(-16);
   const ciphertext = encrypted.slice(0, -16);
   return { ciphertext, tag: tag2, iv };
 }
 __name(gcmEncrypt, "gcmEncrypt");
-var encrypt_default = /* @__PURE__ */ __name(async (enc2, plaintext, cek, iv, aad) => {
-  if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
-    throw new TypeError(invalid_key_input_default(cek, "CryptoKey", "KeyObject", "Uint8Array", "JSON Web Key"));
-  }
-  if (iv) {
-    check_iv_length_default(enc2, iv);
-  } else {
-    iv = iv_default(enc2);
-  }
-  switch (enc2) {
-    case "A128CBC-HS256":
-    case "A192CBC-HS384":
-    case "A256CBC-HS512":
-      if (cek instanceof Uint8Array) {
-        check_cek_length_default(cek, parseInt(enc2.slice(-3), 10));
-      }
-      return cbcEncrypt(enc2, plaintext, cek, iv, aad);
-    case "A128GCM":
-    case "A192GCM":
-    case "A256GCM":
-      if (cek instanceof Uint8Array) {
-        check_cek_length_default(cek, parseInt(enc2.slice(1, 4), 10));
-      }
-      return gcmEncrypt(enc2, plaintext, cek, iv, aad);
-    default:
-      throw new JOSENotSupported("Unsupported JWE Content Encryption Algorithm");
-  }
-}, "default");
+var encrypt_default = /* @__PURE__ */ __name(
+  async (enc2, plaintext, cek, iv, aad) => {
+    if (!isCryptoKey(cek) && !(cek instanceof Uint8Array)) {
+      throw new TypeError(
+        invalid_key_input_default(
+          cek,
+          "CryptoKey",
+          "KeyObject",
+          "Uint8Array",
+          "JSON Web Key",
+        ),
+      );
+    }
+    if (iv) {
+      check_iv_length_default(enc2, iv);
+    } else {
+      iv = iv_default(enc2);
+    }
+    switch (enc2) {
+      case "A128CBC-HS256":
+      case "A192CBC-HS384":
+      case "A256CBC-HS512":
+        if (cek instanceof Uint8Array) {
+          check_cek_length_default(cek, parseInt(enc2.slice(-3), 10));
+        }
+        return cbcEncrypt(enc2, plaintext, cek, iv, aad);
+      case "A128GCM":
+      case "A192GCM":
+      case "A256GCM":
+        if (cek instanceof Uint8Array) {
+          check_cek_length_default(cek, parseInt(enc2.slice(1, 4), 10));
+        }
+        return gcmEncrypt(enc2, plaintext, cek, iv, aad);
+      default:
+        throw new JOSENotSupported(
+          "Unsupported JWE Content Encryption Algorithm",
+        );
+    }
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/aesgcmkw.js
 async function wrap3(alg2, key, cek, iv) {
   const jweAlgorithm = alg2.slice(0, 7);
-  const wrapped = await encrypt_default(jweAlgorithm, cek, key, iv, new Uint8Array(0));
+  const wrapped = await encrypt_default(
+    jweAlgorithm,
+    cek,
+    key,
+    iv,
+    new Uint8Array(0),
+  );
   return {
     encryptedKey: wrapped.ciphertext,
     iv: encode(wrapped.iv),
-    tag: encode(wrapped.tag)
+    tag: encode(wrapped.tag),
   };
 }
 __name(wrap3, "wrap");
 async function unwrap3(alg2, key, encryptedKey, iv, tag2) {
   const jweAlgorithm = alg2.slice(0, 7);
-  return decrypt_default(jweAlgorithm, key, encryptedKey, iv, tag2, new Uint8Array(0));
+  return decrypt_default(
+    jweAlgorithm,
+    key,
+    encryptedKey,
+    iv,
+    tag2,
+    new Uint8Array(0),
+  );
 }
 __name(unwrap3, "unwrap");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/decrypt_key_management.js
-var decrypt_key_management_default = /* @__PURE__ */ __name(async (alg2, key, encryptedKey, joseHeader, options) => {
-  switch (alg2) {
-    case "dir": {
-      if (encryptedKey !== void 0)
-        throw new JWEInvalid("Encountered unexpected JWE Encrypted Key");
-      return key;
-    }
-    case "ECDH-ES":
-      if (encryptedKey !== void 0)
-        throw new JWEInvalid("Encountered unexpected JWE Encrypted Key");
-    case "ECDH-ES+A128KW":
-    case "ECDH-ES+A192KW":
-    case "ECDH-ES+A256KW": {
-      if (!is_object_default(joseHeader.epk))
-        throw new JWEInvalid(`JOSE Header "epk" (Ephemeral Public Key) missing or invalid`);
-      assertCryptoKey(key);
-      if (!allowed(key))
-        throw new JOSENotSupported("ECDH with the provided key is not allowed or not supported by your javascript runtime");
-      const epk = await importJWK(joseHeader.epk, alg2);
-      assertCryptoKey(epk);
-      let partyUInfo;
-      let partyVInfo;
-      if (joseHeader.apu !== void 0) {
-        if (typeof joseHeader.apu !== "string")
-          throw new JWEInvalid(`JOSE Header "apu" (Agreement PartyUInfo) invalid`);
-        try {
-          partyUInfo = decode(joseHeader.apu);
-        } catch {
-          throw new JWEInvalid("Failed to base64url decode the apu");
+var decrypt_key_management_default = /* @__PURE__ */ __name(
+  async (alg2, key, encryptedKey, joseHeader, options) => {
+    switch (alg2) {
+      case "dir": {
+        if (encryptedKey !== void 0)
+          throw new JWEInvalid("Encountered unexpected JWE Encrypted Key");
+        return key;
+      }
+      case "ECDH-ES":
+        if (encryptedKey !== void 0)
+          throw new JWEInvalid("Encountered unexpected JWE Encrypted Key");
+      case "ECDH-ES+A128KW":
+      case "ECDH-ES+A192KW":
+      case "ECDH-ES+A256KW": {
+        if (!is_object_default(joseHeader.epk))
+          throw new JWEInvalid(
+            `JOSE Header "epk" (Ephemeral Public Key) missing or invalid`,
+          );
+        assertCryptoKey(key);
+        if (!allowed(key))
+          throw new JOSENotSupported(
+            "ECDH with the provided key is not allowed or not supported by your javascript runtime",
+          );
+        const epk = await importJWK(joseHeader.epk, alg2);
+        assertCryptoKey(epk);
+        let partyUInfo;
+        let partyVInfo;
+        if (joseHeader.apu !== void 0) {
+          if (typeof joseHeader.apu !== "string")
+            throw new JWEInvalid(
+              `JOSE Header "apu" (Agreement PartyUInfo) invalid`,
+            );
+          try {
+            partyUInfo = decode(joseHeader.apu);
+          } catch {
+            throw new JWEInvalid("Failed to base64url decode the apu");
+          }
         }
-      }
-      if (joseHeader.apv !== void 0) {
-        if (typeof joseHeader.apv !== "string")
-          throw new JWEInvalid(`JOSE Header "apv" (Agreement PartyVInfo) invalid`);
-        try {
-          partyVInfo = decode(joseHeader.apv);
-        } catch {
-          throw new JWEInvalid("Failed to base64url decode the apv");
+        if (joseHeader.apv !== void 0) {
+          if (typeof joseHeader.apv !== "string")
+            throw new JWEInvalid(
+              `JOSE Header "apv" (Agreement PartyVInfo) invalid`,
+            );
+          try {
+            partyVInfo = decode(joseHeader.apv);
+          } catch {
+            throw new JWEInvalid("Failed to base64url decode the apv");
+          }
         }
+        const sharedSecret = await deriveKey(
+          epk,
+          key,
+          alg2 === "ECDH-ES" ? joseHeader.enc : alg2,
+          alg2 === "ECDH-ES"
+            ? bitLength2(joseHeader.enc)
+            : parseInt(alg2.slice(-5, -2), 10),
+          partyUInfo,
+          partyVInfo,
+        );
+        if (alg2 === "ECDH-ES") return sharedSecret;
+        if (encryptedKey === void 0)
+          throw new JWEInvalid("JWE Encrypted Key missing");
+        return unwrap(alg2.slice(-6), sharedSecret, encryptedKey);
       }
-      const sharedSecret = await deriveKey(epk, key, alg2 === "ECDH-ES" ? joseHeader.enc : alg2, alg2 === "ECDH-ES" ? bitLength2(joseHeader.enc) : parseInt(alg2.slice(-5, -2), 10), partyUInfo, partyVInfo);
-      if (alg2 === "ECDH-ES")
-        return sharedSecret;
-      if (encryptedKey === void 0)
-        throw new JWEInvalid("JWE Encrypted Key missing");
-      return unwrap(alg2.slice(-6), sharedSecret, encryptedKey);
-    }
-    case "RSA-OAEP":
-    case "RSA-OAEP-256":
-    case "RSA-OAEP-384":
-    case "RSA-OAEP-512": {
-      if (encryptedKey === void 0)
-        throw new JWEInvalid("JWE Encrypted Key missing");
-      assertCryptoKey(key);
-      return decrypt(alg2, key, encryptedKey);
-    }
-    case "PBES2-HS256+A128KW":
-    case "PBES2-HS384+A192KW":
-    case "PBES2-HS512+A256KW": {
-      if (encryptedKey === void 0)
-        throw new JWEInvalid("JWE Encrypted Key missing");
-      if (typeof joseHeader.p2c !== "number")
-        throw new JWEInvalid(`JOSE Header "p2c" (PBES2 Count) missing or invalid`);
-      const p2cLimit = options?.maxPBES2Count || 1e4;
-      if (joseHeader.p2c > p2cLimit)
-        throw new JWEInvalid(`JOSE Header "p2c" (PBES2 Count) out is of acceptable bounds`);
-      if (typeof joseHeader.p2s !== "string")
-        throw new JWEInvalid(`JOSE Header "p2s" (PBES2 Salt) missing or invalid`);
-      let p2s;
-      try {
-        p2s = decode(joseHeader.p2s);
-      } catch {
-        throw new JWEInvalid("Failed to base64url decode the p2s");
+      case "RSA-OAEP":
+      case "RSA-OAEP-256":
+      case "RSA-OAEP-384":
+      case "RSA-OAEP-512": {
+        if (encryptedKey === void 0)
+          throw new JWEInvalid("JWE Encrypted Key missing");
+        assertCryptoKey(key);
+        return decrypt(alg2, key, encryptedKey);
       }
-      return unwrap2(alg2, key, encryptedKey, joseHeader.p2c, p2s);
-    }
-    case "A128KW":
-    case "A192KW":
-    case "A256KW": {
-      if (encryptedKey === void 0)
-        throw new JWEInvalid("JWE Encrypted Key missing");
-      return unwrap(alg2, key, encryptedKey);
-    }
-    case "A128GCMKW":
-    case "A192GCMKW":
-    case "A256GCMKW": {
-      if (encryptedKey === void 0)
-        throw new JWEInvalid("JWE Encrypted Key missing");
-      if (typeof joseHeader.iv !== "string")
-        throw new JWEInvalid(`JOSE Header "iv" (Initialization Vector) missing or invalid`);
-      if (typeof joseHeader.tag !== "string")
-        throw new JWEInvalid(`JOSE Header "tag" (Authentication Tag) missing or invalid`);
-      let iv;
-      try {
-        iv = decode(joseHeader.iv);
-      } catch {
-        throw new JWEInvalid("Failed to base64url decode the iv");
+      case "PBES2-HS256+A128KW":
+      case "PBES2-HS384+A192KW":
+      case "PBES2-HS512+A256KW": {
+        if (encryptedKey === void 0)
+          throw new JWEInvalid("JWE Encrypted Key missing");
+        if (typeof joseHeader.p2c !== "number")
+          throw new JWEInvalid(
+            `JOSE Header "p2c" (PBES2 Count) missing or invalid`,
+          );
+        const p2cLimit = options?.maxPBES2Count || 1e4;
+        if (joseHeader.p2c > p2cLimit)
+          throw new JWEInvalid(
+            `JOSE Header "p2c" (PBES2 Count) out is of acceptable bounds`,
+          );
+        if (typeof joseHeader.p2s !== "string")
+          throw new JWEInvalid(
+            `JOSE Header "p2s" (PBES2 Salt) missing or invalid`,
+          );
+        let p2s;
+        try {
+          p2s = decode(joseHeader.p2s);
+        } catch {
+          throw new JWEInvalid("Failed to base64url decode the p2s");
+        }
+        return unwrap2(alg2, key, encryptedKey, joseHeader.p2c, p2s);
       }
-      let tag2;
-      try {
-        tag2 = decode(joseHeader.tag);
-      } catch {
-        throw new JWEInvalid("Failed to base64url decode the tag");
+      case "A128KW":
+      case "A192KW":
+      case "A256KW": {
+        if (encryptedKey === void 0)
+          throw new JWEInvalid("JWE Encrypted Key missing");
+        return unwrap(alg2, key, encryptedKey);
       }
-      return unwrap3(alg2, key, encryptedKey, iv, tag2);
+      case "A128GCMKW":
+      case "A192GCMKW":
+      case "A256GCMKW": {
+        if (encryptedKey === void 0)
+          throw new JWEInvalid("JWE Encrypted Key missing");
+        if (typeof joseHeader.iv !== "string")
+          throw new JWEInvalid(
+            `JOSE Header "iv" (Initialization Vector) missing or invalid`,
+          );
+        if (typeof joseHeader.tag !== "string")
+          throw new JWEInvalid(
+            `JOSE Header "tag" (Authentication Tag) missing or invalid`,
+          );
+        let iv;
+        try {
+          iv = decode(joseHeader.iv);
+        } catch {
+          throw new JWEInvalid("Failed to base64url decode the iv");
+        }
+        let tag2;
+        try {
+          tag2 = decode(joseHeader.tag);
+        } catch {
+          throw new JWEInvalid("Failed to base64url decode the tag");
+        }
+        return unwrap3(alg2, key, encryptedKey, iv, tag2);
+      }
+      default: {
+        throw new JOSENotSupported(
+          'Invalid or unsupported "alg" (JWE Algorithm) header value',
+        );
+      }
     }
-    default: {
-      throw new JOSENotSupported('Invalid or unsupported "alg" (JWE Algorithm) header value');
-    }
-  }
-}, "default");
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/validate_crit.js
-var validate_crit_default = /* @__PURE__ */ __name((Err, recognizedDefault, recognizedOption, protectedHeader, joseHeader) => {
-  if (joseHeader.crit !== void 0 && protectedHeader?.crit === void 0) {
-    throw new Err('"crit" (Critical) Header Parameter MUST be integrity protected');
-  }
-  if (!protectedHeader || protectedHeader.crit === void 0) {
-    return /* @__PURE__ */ new Set();
-  }
-  if (!Array.isArray(protectedHeader.crit) || protectedHeader.crit.length === 0 || protectedHeader.crit.some((input) => typeof input !== "string" || input.length === 0)) {
-    throw new Err('"crit" (Critical) Header Parameter MUST be an array of non-empty strings when present');
-  }
-  let recognized;
-  if (recognizedOption !== void 0) {
-    recognized = new Map([...Object.entries(recognizedOption), ...recognizedDefault.entries()]);
-  } else {
-    recognized = recognizedDefault;
-  }
-  for (const parameter of protectedHeader.crit) {
-    if (!recognized.has(parameter)) {
-      throw new JOSENotSupported(`Extension Header Parameter "${parameter}" is not recognized`);
+var validate_crit_default = /* @__PURE__ */ __name(
+  (Err, recognizedDefault, recognizedOption, protectedHeader, joseHeader) => {
+    if (joseHeader.crit !== void 0 && protectedHeader?.crit === void 0) {
+      throw new Err(
+        '"crit" (Critical) Header Parameter MUST be integrity protected',
+      );
     }
-    if (joseHeader[parameter] === void 0) {
-      throw new Err(`Extension Header Parameter "${parameter}" is missing`);
+    if (!protectedHeader || protectedHeader.crit === void 0) {
+      return /* @__PURE__ */ new Set();
     }
-    if (recognized.get(parameter) && protectedHeader[parameter] === void 0) {
-      throw new Err(`Extension Header Parameter "${parameter}" MUST be integrity protected`);
+    if (
+      !Array.isArray(protectedHeader.crit) ||
+      protectedHeader.crit.length === 0 ||
+      protectedHeader.crit.some(
+        (input) => typeof input !== "string" || input.length === 0,
+      )
+    ) {
+      throw new Err(
+        '"crit" (Critical) Header Parameter MUST be an array of non-empty strings when present',
+      );
     }
-  }
-  return new Set(protectedHeader.crit);
-}, "default");
+    let recognized;
+    if (recognizedOption !== void 0) {
+      recognized = new Map([
+        ...Object.entries(recognizedOption),
+        ...recognizedDefault.entries(),
+      ]);
+    } else {
+      recognized = recognizedDefault;
+    }
+    for (const parameter of protectedHeader.crit) {
+      if (!recognized.has(parameter)) {
+        throw new JOSENotSupported(
+          `Extension Header Parameter "${parameter}" is not recognized`,
+        );
+      }
+      if (joseHeader[parameter] === void 0) {
+        throw new Err(`Extension Header Parameter "${parameter}" is missing`);
+      }
+      if (recognized.get(parameter) && protectedHeader[parameter] === void 0) {
+        throw new Err(
+          `Extension Header Parameter "${parameter}" MUST be integrity protected`,
+        );
+      }
+    }
+    return new Set(protectedHeader.crit);
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/validate_algorithms.js
-var validate_algorithms_default = /* @__PURE__ */ __name((option, algorithms) => {
-  if (algorithms !== void 0 && (!Array.isArray(algorithms) || algorithms.some((s3) => typeof s3 !== "string"))) {
-    throw new TypeError(`"${option}" option must be an array of strings`);
-  }
-  if (!algorithms) {
-    return void 0;
-  }
-  return new Set(algorithms);
-}, "default");
+var validate_algorithms_default = /* @__PURE__ */ __name(
+  (option, algorithms) => {
+    if (
+      algorithms !== void 0 &&
+      (!Array.isArray(algorithms) ||
+        algorithms.some((s3) => typeof s3 !== "string"))
+    ) {
+      throw new TypeError(`"${option}" option must be an array of strings`);
+    }
+    if (!algorithms) {
+      return void 0;
+    }
+    return new Set(algorithms);
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/is_jwk.js
 function isJWK(key) {
@@ -3304,22 +3879,24 @@ __name(isSecretJWK, "isSecretJWK");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/normalize_key.js
 var cache;
-var handleJWK = /* @__PURE__ */ __name(async (key, jwk, alg2, freeze = false) => {
-  cache ||= /* @__PURE__ */ new WeakMap();
-  let cached = cache.get(key);
-  if (cached?.[alg2]) {
-    return cached[alg2];
-  }
-  const cryptoKey = await jwk_to_key_default({ ...jwk, alg: alg2 });
-  if (freeze)
-    Object.freeze(key);
-  if (!cached) {
-    cache.set(key, { [alg2]: cryptoKey });
-  } else {
-    cached[alg2] = cryptoKey;
-  }
-  return cryptoKey;
-}, "handleJWK");
+var handleJWK = /* @__PURE__ */ __name(
+  async (key, jwk, alg2, freeze = false) => {
+    cache ||= /* @__PURE__ */ new WeakMap();
+    let cached = cache.get(key);
+    if (cached?.[alg2]) {
+      return cached[alg2];
+    }
+    const cryptoKey = await jwk_to_key_default({ ...jwk, alg: alg2 });
+    if (freeze) Object.freeze(key);
+    if (!cached) {
+      cache.set(key, { [alg2]: cryptoKey });
+    } else {
+      cached[alg2] = cryptoKey;
+    }
+    return cryptoKey;
+  },
+  "handleJWK",
+);
 var handleKeyObject = /* @__PURE__ */ __name((keyObject, alg2) => {
   cache ||= /* @__PURE__ */ new WeakMap();
   let cached = cache.get(keyObject);
@@ -3337,17 +3914,27 @@ var handleKeyObject = /* @__PURE__ */ __name((keyObject, alg2) => {
       case "ECDH-ES+A256KW":
         break;
       default:
-        throw new TypeError("given KeyObject instance cannot be used for this algorithm");
+        throw new TypeError(
+          "given KeyObject instance cannot be used for this algorithm",
+        );
     }
-    cryptoKey = keyObject.toCryptoKey(keyObject.asymmetricKeyType, extractable, isPublic ? [] : ["deriveBits"]);
+    cryptoKey = keyObject.toCryptoKey(
+      keyObject.asymmetricKeyType,
+      extractable,
+      isPublic ? [] : ["deriveBits"],
+    );
   }
   if (keyObject.asymmetricKeyType === "ed25519") {
     if (alg2 !== "EdDSA" && alg2 !== "Ed25519") {
-      throw new TypeError("given KeyObject instance cannot be used for this algorithm");
+      throw new TypeError(
+        "given KeyObject instance cannot be used for this algorithm",
+      );
     }
-    cryptoKey = keyObject.toCryptoKey(keyObject.asymmetricKeyType, extractable, [
-      isPublic ? "verify" : "sign"
-    ]);
+    cryptoKey = keyObject.toCryptoKey(
+      keyObject.asymmetricKeyType,
+      extractable,
+      [isPublic ? "verify" : "sign"],
+    );
   }
   if (keyObject.asymmetricKeyType === "rsa") {
     let hash;
@@ -3371,56 +3958,86 @@ var handleKeyObject = /* @__PURE__ */ __name((keyObject, alg2) => {
         hash = "SHA-512";
         break;
       default:
-        throw new TypeError("given KeyObject instance cannot be used for this algorithm");
+        throw new TypeError(
+          "given KeyObject instance cannot be used for this algorithm",
+        );
     }
     if (alg2.startsWith("RSA-OAEP")) {
-      return keyObject.toCryptoKey({
-        name: "RSA-OAEP",
-        hash
-      }, extractable, isPublic ? ["encrypt"] : ["decrypt"]);
+      return keyObject.toCryptoKey(
+        {
+          name: "RSA-OAEP",
+          hash,
+        },
+        extractable,
+        isPublic ? ["encrypt"] : ["decrypt"],
+      );
     }
-    cryptoKey = keyObject.toCryptoKey({
-      name: alg2.startsWith("PS") ? "RSA-PSS" : "RSASSA-PKCS1-v1_5",
-      hash
-    }, extractable, [isPublic ? "verify" : "sign"]);
+    cryptoKey = keyObject.toCryptoKey(
+      {
+        name: alg2.startsWith("PS") ? "RSA-PSS" : "RSASSA-PKCS1-v1_5",
+        hash,
+      },
+      extractable,
+      [isPublic ? "verify" : "sign"],
+    );
   }
   if (keyObject.asymmetricKeyType === "ec") {
     const nist = /* @__PURE__ */ new Map([
       ["prime256v1", "P-256"],
       ["secp384r1", "P-384"],
-      ["secp521r1", "P-521"]
+      ["secp521r1", "P-521"],
     ]);
     const namedCurve = nist.get(keyObject.asymmetricKeyDetails?.namedCurve);
     if (!namedCurve) {
-      throw new TypeError("given KeyObject instance cannot be used for this algorithm");
+      throw new TypeError(
+        "given KeyObject instance cannot be used for this algorithm",
+      );
     }
     if (alg2 === "ES256" && namedCurve === "P-256") {
-      cryptoKey = keyObject.toCryptoKey({
-        name: "ECDSA",
-        namedCurve
-      }, extractable, [isPublic ? "verify" : "sign"]);
+      cryptoKey = keyObject.toCryptoKey(
+        {
+          name: "ECDSA",
+          namedCurve,
+        },
+        extractable,
+        [isPublic ? "verify" : "sign"],
+      );
     }
     if (alg2 === "ES384" && namedCurve === "P-384") {
-      cryptoKey = keyObject.toCryptoKey({
-        name: "ECDSA",
-        namedCurve
-      }, extractable, [isPublic ? "verify" : "sign"]);
+      cryptoKey = keyObject.toCryptoKey(
+        {
+          name: "ECDSA",
+          namedCurve,
+        },
+        extractable,
+        [isPublic ? "verify" : "sign"],
+      );
     }
     if (alg2 === "ES512" && namedCurve === "P-521") {
-      cryptoKey = keyObject.toCryptoKey({
-        name: "ECDSA",
-        namedCurve
-      }, extractable, [isPublic ? "verify" : "sign"]);
+      cryptoKey = keyObject.toCryptoKey(
+        {
+          name: "ECDSA",
+          namedCurve,
+        },
+        extractable,
+        [isPublic ? "verify" : "sign"],
+      );
     }
     if (alg2.startsWith("ECDH-ES")) {
-      cryptoKey = keyObject.toCryptoKey({
-        name: "ECDH",
-        namedCurve
-      }, extractable, isPublic ? [] : ["deriveBits"]);
+      cryptoKey = keyObject.toCryptoKey(
+        {
+          name: "ECDH",
+          namedCurve,
+        },
+        extractable,
+        isPublic ? [] : ["deriveBits"],
+      );
     }
   }
   if (!cryptoKey) {
-    throw new TypeError("given KeyObject instance cannot be used for this algorithm");
+    throw new TypeError(
+      "given KeyObject instance cannot be used for this algorithm",
+    );
   }
   if (!cached) {
     cache.set(keyObject, { [alg2]: cryptoKey });
@@ -3477,16 +4094,20 @@ var jwkMatchesOp = /* @__PURE__ */ __name((alg2, key, usage) => {
         break;
     }
     if (key.use !== expected) {
-      throw new TypeError(`Invalid key for this operation, its "use" must be "${expected}" when present`);
+      throw new TypeError(
+        `Invalid key for this operation, its "use" must be "${expected}" when present`,
+      );
     }
   }
   if (key.alg !== void 0 && key.alg !== alg2) {
-    throw new TypeError(`Invalid key for this operation, its "alg" must be "${alg2}" when present`);
+    throw new TypeError(
+      `Invalid key for this operation, its "alg" must be "${alg2}" when present`,
+    );
   }
   if (Array.isArray(key.key_ops)) {
     let expectedKeyOp;
     switch (true) {
-      case (usage === "sign" || usage === "verify"):
+      case usage === "sign" || usage === "verify":
       case alg2 === "dir":
       case alg2.includes("CBC-HS"):
         expectedKeyOp = usage;
@@ -3501,7 +4122,7 @@ var jwkMatchesOp = /* @__PURE__ */ __name((alg2, key, usage) => {
           expectedKeyOp = usage;
         }
         break;
-      case (usage === "encrypt" && alg2.startsWith("RSA")):
+      case usage === "encrypt" && alg2.startsWith("RSA"):
         expectedKeyOp = "wrapKey";
         break;
       case usage === "decrypt":
@@ -3509,24 +4130,37 @@ var jwkMatchesOp = /* @__PURE__ */ __name((alg2, key, usage) => {
         break;
     }
     if (expectedKeyOp && key.key_ops?.includes?.(expectedKeyOp) === false) {
-      throw new TypeError(`Invalid key for this operation, its "key_ops" must include "${expectedKeyOp}" when present`);
+      throw new TypeError(
+        `Invalid key for this operation, its "key_ops" must include "${expectedKeyOp}" when present`,
+      );
     }
   }
   return true;
 }, "jwkMatchesOp");
 var symmetricTypeCheck = /* @__PURE__ */ __name((alg2, key, usage) => {
-  if (key instanceof Uint8Array)
-    return;
+  if (key instanceof Uint8Array) return;
   if (isJWK(key)) {
-    if (isSecretJWK(key) && jwkMatchesOp(alg2, key, usage))
-      return;
-    throw new TypeError(`JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present`);
+    if (isSecretJWK(key) && jwkMatchesOp(alg2, key, usage)) return;
+    throw new TypeError(
+      `JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present`,
+    );
   }
   if (!is_key_like_default(key)) {
-    throw new TypeError(withAlg(alg2, key, "CryptoKey", "KeyObject", "JSON Web Key", "Uint8Array"));
+    throw new TypeError(
+      withAlg(
+        alg2,
+        key,
+        "CryptoKey",
+        "KeyObject",
+        "JSON Web Key",
+        "Uint8Array",
+      ),
+    );
   }
   if (key.type !== "secret") {
-    throw new TypeError(`${tag(key)} instances for symmetric algorithms must be of type "secret"`);
+    throw new TypeError(
+      `${tag(key)} instances for symmetric algorithms must be of type "secret"`,
+    );
   }
 }, "symmetricTypeCheck");
 var asymmetricTypeCheck = /* @__PURE__ */ __name((alg2, key, usage) => {
@@ -3534,28 +4168,34 @@ var asymmetricTypeCheck = /* @__PURE__ */ __name((alg2, key, usage) => {
     switch (usage) {
       case "decrypt":
       case "sign":
-        if (isPrivateJWK(key) && jwkMatchesOp(alg2, key, usage))
-          return;
+        if (isPrivateJWK(key) && jwkMatchesOp(alg2, key, usage)) return;
         throw new TypeError(`JSON Web Key for this operation be a private JWK`);
       case "encrypt":
       case "verify":
-        if (isPublicJWK(key) && jwkMatchesOp(alg2, key, usage))
-          return;
+        if (isPublicJWK(key) && jwkMatchesOp(alg2, key, usage)) return;
         throw new TypeError(`JSON Web Key for this operation be a public JWK`);
     }
   }
   if (!is_key_like_default(key)) {
-    throw new TypeError(withAlg(alg2, key, "CryptoKey", "KeyObject", "JSON Web Key"));
+    throw new TypeError(
+      withAlg(alg2, key, "CryptoKey", "KeyObject", "JSON Web Key"),
+    );
   }
   if (key.type === "secret") {
-    throw new TypeError(`${tag(key)} instances for asymmetric algorithms must not be of type "secret"`);
+    throw new TypeError(
+      `${tag(key)} instances for asymmetric algorithms must not be of type "secret"`,
+    );
   }
   if (key.type === "public") {
     switch (usage) {
       case "sign":
-        throw new TypeError(`${tag(key)} instances for asymmetric algorithm signing must be of type "private"`);
+        throw new TypeError(
+          `${tag(key)} instances for asymmetric algorithm signing must be of type "private"`,
+        );
       case "decrypt":
-        throw new TypeError(`${tag(key)} instances for asymmetric algorithm decryption must be of type "private"`);
+        throw new TypeError(
+          `${tag(key)} instances for asymmetric algorithm decryption must be of type "private"`,
+        );
       default:
         break;
     }
@@ -3563,16 +4203,25 @@ var asymmetricTypeCheck = /* @__PURE__ */ __name((alg2, key, usage) => {
   if (key.type === "private") {
     switch (usage) {
       case "verify":
-        throw new TypeError(`${tag(key)} instances for asymmetric algorithm verifying must be of type "public"`);
+        throw new TypeError(
+          `${tag(key)} instances for asymmetric algorithm verifying must be of type "public"`,
+        );
       case "encrypt":
-        throw new TypeError(`${tag(key)} instances for asymmetric algorithm encryption must be of type "public"`);
+        throw new TypeError(
+          `${tag(key)} instances for asymmetric algorithm encryption must be of type "public"`,
+        );
       default:
         break;
     }
   }
 }, "asymmetricTypeCheck");
 var check_key_type_default = /* @__PURE__ */ __name((alg2, key, usage) => {
-  const symmetric = alg2.startsWith("HS") || alg2 === "dir" || alg2.startsWith("PBES2") || /^A(?:128|192|256)(?:GCM)?(?:KW)?$/.test(alg2) || /^A(?:128|192|256)CBC-HS(?:256|384|512)$/.test(alg2);
+  const symmetric =
+    alg2.startsWith("HS") ||
+    alg2 === "dir" ||
+    alg2.startsWith("PBES2") ||
+    /^A(?:128|192|256)(?:GCM)?(?:KW)?$/.test(alg2) ||
+    /^A(?:128|192|256)CBC-HS(?:256|384|512)$/.test(alg2);
   if (symmetric) {
     symmetricTypeCheck(alg2, key, usage);
   } else {
@@ -3585,7 +4234,11 @@ async function flattenedDecrypt(jwe, key, options) {
   if (!is_object_default(jwe)) {
     throw new JWEInvalid("Flattened JWE must be an object");
   }
-  if (jwe.protected === void 0 && jwe.header === void 0 && jwe.unprotected === void 0) {
+  if (
+    jwe.protected === void 0 &&
+    jwe.header === void 0 &&
+    jwe.unprotected === void 0
+  ) {
     throw new JWEInvalid("JOSE Header missing");
   }
   if (jwe.iv !== void 0 && typeof jwe.iv !== "string") {
@@ -3622,31 +4275,60 @@ async function flattenedDecrypt(jwe, key, options) {
     }
   }
   if (!is_disjoint_default(parsedProt, jwe.header, jwe.unprotected)) {
-    throw new JWEInvalid("JWE Protected, JWE Unprotected Header, and JWE Per-Recipient Unprotected Header Parameter names must be disjoint");
+    throw new JWEInvalid(
+      "JWE Protected, JWE Unprotected Header, and JWE Per-Recipient Unprotected Header Parameter names must be disjoint",
+    );
   }
   const joseHeader = {
     ...parsedProt,
     ...jwe.header,
-    ...jwe.unprotected
+    ...jwe.unprotected,
   };
-  validate_crit_default(JWEInvalid, /* @__PURE__ */ new Map(), options?.crit, parsedProt, joseHeader);
+  validate_crit_default(
+    JWEInvalid,
+    /* @__PURE__ */ new Map(),
+    options?.crit,
+    parsedProt,
+    joseHeader,
+  );
   if (joseHeader.zip !== void 0) {
-    throw new JOSENotSupported('JWE "zip" (Compression Algorithm) Header Parameter is not supported.');
+    throw new JOSENotSupported(
+      'JWE "zip" (Compression Algorithm) Header Parameter is not supported.',
+    );
   }
   const { alg: alg2, enc: enc2 } = joseHeader;
   if (typeof alg2 !== "string" || !alg2) {
     throw new JWEInvalid("missing JWE Algorithm (alg) in JWE Header");
   }
   if (typeof enc2 !== "string" || !enc2) {
-    throw new JWEInvalid("missing JWE Encryption Algorithm (enc) in JWE Header");
+    throw new JWEInvalid(
+      "missing JWE Encryption Algorithm (enc) in JWE Header",
+    );
   }
-  const keyManagementAlgorithms = options && validate_algorithms_default("keyManagementAlgorithms", options.keyManagementAlgorithms);
-  const contentEncryptionAlgorithms = options && validate_algorithms_default("contentEncryptionAlgorithms", options.contentEncryptionAlgorithms);
-  if (keyManagementAlgorithms && !keyManagementAlgorithms.has(alg2) || !keyManagementAlgorithms && alg2.startsWith("PBES2")) {
-    throw new JOSEAlgNotAllowed('"alg" (Algorithm) Header Parameter value not allowed');
+  const keyManagementAlgorithms =
+    options &&
+    validate_algorithms_default(
+      "keyManagementAlgorithms",
+      options.keyManagementAlgorithms,
+    );
+  const contentEncryptionAlgorithms =
+    options &&
+    validate_algorithms_default(
+      "contentEncryptionAlgorithms",
+      options.contentEncryptionAlgorithms,
+    );
+  if (
+    (keyManagementAlgorithms && !keyManagementAlgorithms.has(alg2)) ||
+    (!keyManagementAlgorithms && alg2.startsWith("PBES2"))
+  ) {
+    throw new JOSEAlgNotAllowed(
+      '"alg" (Algorithm) Header Parameter value not allowed',
+    );
   }
   if (contentEncryptionAlgorithms && !contentEncryptionAlgorithms.has(enc2)) {
-    throw new JOSEAlgNotAllowed('"enc" (Encryption Algorithm) Header Parameter value not allowed');
+    throw new JOSEAlgNotAllowed(
+      '"enc" (Encryption Algorithm) Header Parameter value not allowed',
+    );
   }
   let encryptedKey;
   if (jwe.encrypted_key !== void 0) {
@@ -3665,9 +4347,19 @@ async function flattenedDecrypt(jwe, key, options) {
   const k3 = await normalize_key_default(key, alg2);
   let cek;
   try {
-    cek = await decrypt_key_management_default(alg2, k3, encryptedKey, joseHeader, options);
+    cek = await decrypt_key_management_default(
+      alg2,
+      k3,
+      encryptedKey,
+      joseHeader,
+      options,
+    );
   } catch (err) {
-    if (err instanceof TypeError || err instanceof JWEInvalid || err instanceof JOSENotSupported) {
+    if (
+      err instanceof TypeError ||
+      err instanceof JWEInvalid ||
+      err instanceof JOSENotSupported
+    ) {
       throw err;
     }
     cek = cek_default(enc2);
@@ -3691,7 +4383,11 @@ async function flattenedDecrypt(jwe, key, options) {
   const protectedHeader = encoder.encode(jwe.protected ?? "");
   let additionalData;
   if (jwe.aad !== void 0) {
-    additionalData = concat(protectedHeader, encoder.encode("."), encoder.encode(jwe.aad));
+    additionalData = concat(
+      protectedHeader,
+      encoder.encode("."),
+      encoder.encode(jwe.aad),
+    );
   } else {
     additionalData = protectedHeader;
   }
@@ -3701,7 +4397,14 @@ async function flattenedDecrypt(jwe, key, options) {
   } catch {
     throw new JWEInvalid("Failed to base64url decode the ciphertext");
   }
-  const plaintext = await decrypt_default(enc2, cek, ciphertext, iv, tag2, additionalData);
+  const plaintext = await decrypt_default(
+    enc2,
+    cek,
+    ciphertext,
+    iv,
+    tag2,
+    additionalData,
+  );
   const result = { plaintext };
   if (jwe.protected !== void 0) {
     result.protectedHeader = parsedProt;
@@ -3734,18 +4437,32 @@ async function compactDecrypt(jwe, key, options) {
   if (typeof jwe !== "string") {
     throw new JWEInvalid("Compact JWE must be a string or Uint8Array");
   }
-  const { 0: protectedHeader, 1: encryptedKey, 2: iv, 3: ciphertext, 4: tag2, length } = jwe.split(".");
+  const {
+    0: protectedHeader,
+    1: encryptedKey,
+    2: iv,
+    3: ciphertext,
+    4: tag2,
+    length,
+  } = jwe.split(".");
   if (length !== 5) {
     throw new JWEInvalid("Invalid Compact JWE");
   }
-  const decrypted = await flattenedDecrypt({
-    ciphertext,
-    iv: iv || void 0,
-    protected: protectedHeader,
-    tag: tag2 || void 0,
-    encrypted_key: encryptedKey || void 0
-  }, key, options);
-  const result = { plaintext: decrypted.plaintext, protectedHeader: decrypted.protectedHeader };
+  const decrypted = await flattenedDecrypt(
+    {
+      ciphertext,
+      iv: iv || void 0,
+      protected: protectedHeader,
+      tag: tag2 || void 0,
+      encrypted_key: encryptedKey || void 0,
+    },
+    key,
+    options,
+  );
+  const result = {
+    plaintext: decrypted.plaintext,
+    protectedHeader: decrypted.protectedHeader,
+  };
   if (typeof key === "function") {
     return { ...result, key: decrypted.key };
   }
@@ -3768,16 +4485,26 @@ async function keyToJWK(key) {
   if (key instanceof Uint8Array) {
     return {
       kty: "oct",
-      k: encode(key)
+      k: encode(key),
     };
   }
   if (!isCryptoKey(key)) {
-    throw new TypeError(invalid_key_input_default(key, "CryptoKey", "KeyObject", "Uint8Array"));
+    throw new TypeError(
+      invalid_key_input_default(key, "CryptoKey", "KeyObject", "Uint8Array"),
+    );
   }
   if (!key.extractable) {
-    throw new TypeError("non-extractable CryptoKey cannot be exported as a JWK");
+    throw new TypeError(
+      "non-extractable CryptoKey cannot be exported as a JWK",
+    );
   }
-  const { ext, key_ops, alg: alg2, use, ...jwk } = await crypto.subtle.exportKey("jwk", key);
+  const {
+    ext,
+    key_ops,
+    alg: alg2,
+    use,
+    ...jwk
+  } = await crypto.subtle.exportKey("jwk", key);
   return jwk;
 }
 __name(keyToJWK, "keyToJWK");
@@ -3789,86 +4516,110 @@ async function exportJWK(key) {
 __name(exportJWK, "exportJWK");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/encrypt_key_management.js
-var encrypt_key_management_default = /* @__PURE__ */ __name(async (alg2, enc2, key, providedCek, providedParameters = {}) => {
-  let encryptedKey;
-  let parameters;
-  let cek;
-  switch (alg2) {
-    case "dir": {
-      cek = key;
-      break;
-    }
-    case "ECDH-ES":
-    case "ECDH-ES+A128KW":
-    case "ECDH-ES+A192KW":
-    case "ECDH-ES+A256KW": {
-      assertCryptoKey(key);
-      if (!allowed(key)) {
-        throw new JOSENotSupported("ECDH with the provided key is not allowed or not supported by your javascript runtime");
-      }
-      const { apu, apv } = providedParameters;
-      let ephemeralKey;
-      if (providedParameters.epk) {
-        ephemeralKey = await normalize_key_default(providedParameters.epk, alg2);
-      } else {
-        ephemeralKey = (await crypto.subtle.generateKey(key.algorithm, true, ["deriveBits"])).privateKey;
-      }
-      const { x: x3, y: y2, crv, kty } = await exportJWK(ephemeralKey);
-      const sharedSecret = await deriveKey(key, ephemeralKey, alg2 === "ECDH-ES" ? enc2 : alg2, alg2 === "ECDH-ES" ? bitLength2(enc2) : parseInt(alg2.slice(-5, -2), 10), apu, apv);
-      parameters = { epk: { x: x3, crv, kty } };
-      if (kty === "EC")
-        parameters.epk.y = y2;
-      if (apu)
-        parameters.apu = encode(apu);
-      if (apv)
-        parameters.apv = encode(apv);
-      if (alg2 === "ECDH-ES") {
-        cek = sharedSecret;
+var encrypt_key_management_default = /* @__PURE__ */ __name(
+  async (alg2, enc2, key, providedCek, providedParameters = {}) => {
+    let encryptedKey;
+    let parameters;
+    let cek;
+    switch (alg2) {
+      case "dir": {
+        cek = key;
         break;
       }
-      cek = providedCek || cek_default(enc2);
-      const kwAlg = alg2.slice(-6);
-      encryptedKey = await wrap(kwAlg, sharedSecret, cek);
-      break;
+      case "ECDH-ES":
+      case "ECDH-ES+A128KW":
+      case "ECDH-ES+A192KW":
+      case "ECDH-ES+A256KW": {
+        assertCryptoKey(key);
+        if (!allowed(key)) {
+          throw new JOSENotSupported(
+            "ECDH with the provided key is not allowed or not supported by your javascript runtime",
+          );
+        }
+        const { apu, apv } = providedParameters;
+        let ephemeralKey;
+        if (providedParameters.epk) {
+          ephemeralKey = await normalize_key_default(
+            providedParameters.epk,
+            alg2,
+          );
+        } else {
+          ephemeralKey = (
+            await crypto.subtle.generateKey(key.algorithm, true, ["deriveBits"])
+          ).privateKey;
+        }
+        const { x: x3, y: y2, crv, kty } = await exportJWK(ephemeralKey);
+        const sharedSecret = await deriveKey(
+          key,
+          ephemeralKey,
+          alg2 === "ECDH-ES" ? enc2 : alg2,
+          alg2 === "ECDH-ES"
+            ? bitLength2(enc2)
+            : parseInt(alg2.slice(-5, -2), 10),
+          apu,
+          apv,
+        );
+        parameters = { epk: { x: x3, crv, kty } };
+        if (kty === "EC") parameters.epk.y = y2;
+        if (apu) parameters.apu = encode(apu);
+        if (apv) parameters.apv = encode(apv);
+        if (alg2 === "ECDH-ES") {
+          cek = sharedSecret;
+          break;
+        }
+        cek = providedCek || cek_default(enc2);
+        const kwAlg = alg2.slice(-6);
+        encryptedKey = await wrap(kwAlg, sharedSecret, cek);
+        break;
+      }
+      case "RSA-OAEP":
+      case "RSA-OAEP-256":
+      case "RSA-OAEP-384":
+      case "RSA-OAEP-512": {
+        cek = providedCek || cek_default(enc2);
+        assertCryptoKey(key);
+        encryptedKey = await encrypt(alg2, key, cek);
+        break;
+      }
+      case "PBES2-HS256+A128KW":
+      case "PBES2-HS384+A192KW":
+      case "PBES2-HS512+A256KW": {
+        cek = providedCek || cek_default(enc2);
+        const { p2c, p2s } = providedParameters;
+        ({ encryptedKey, ...parameters } = await wrap2(
+          alg2,
+          key,
+          cek,
+          p2c,
+          p2s,
+        ));
+        break;
+      }
+      case "A128KW":
+      case "A192KW":
+      case "A256KW": {
+        cek = providedCek || cek_default(enc2);
+        encryptedKey = await wrap(alg2, key, cek);
+        break;
+      }
+      case "A128GCMKW":
+      case "A192GCMKW":
+      case "A256GCMKW": {
+        cek = providedCek || cek_default(enc2);
+        const { iv } = providedParameters;
+        ({ encryptedKey, ...parameters } = await wrap3(alg2, key, cek, iv));
+        break;
+      }
+      default: {
+        throw new JOSENotSupported(
+          'Invalid or unsupported "alg" (JWE Algorithm) header value',
+        );
+      }
     }
-    case "RSA-OAEP":
-    case "RSA-OAEP-256":
-    case "RSA-OAEP-384":
-    case "RSA-OAEP-512": {
-      cek = providedCek || cek_default(enc2);
-      assertCryptoKey(key);
-      encryptedKey = await encrypt(alg2, key, cek);
-      break;
-    }
-    case "PBES2-HS256+A128KW":
-    case "PBES2-HS384+A192KW":
-    case "PBES2-HS512+A256KW": {
-      cek = providedCek || cek_default(enc2);
-      const { p2c, p2s } = providedParameters;
-      ({ encryptedKey, ...parameters } = await wrap2(alg2, key, cek, p2c, p2s));
-      break;
-    }
-    case "A128KW":
-    case "A192KW":
-    case "A256KW": {
-      cek = providedCek || cek_default(enc2);
-      encryptedKey = await wrap(alg2, key, cek);
-      break;
-    }
-    case "A128GCMKW":
-    case "A192GCMKW":
-    case "A256GCMKW": {
-      cek = providedCek || cek_default(enc2);
-      const { iv } = providedParameters;
-      ({ encryptedKey, ...parameters } = await wrap3(alg2, key, cek, iv));
-      break;
-    }
-    default: {
-      throw new JOSENotSupported('Invalid or unsupported "alg" (JWE Algorithm) header value');
-    }
-  }
-  return { cek, encryptedKey, parameters };
-}, "default");
+    return { cek, encryptedKey, parameters };
+  },
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/jwe/flattened/encrypt.js
 var FlattenedEncrypt = class {
@@ -3936,44 +4687,81 @@ var FlattenedEncrypt = class {
     return this;
   }
   async encrypt(key, options) {
-    if (!this.#protectedHeader && !this.#unprotectedHeader && !this.#sharedUnprotectedHeader) {
-      throw new JWEInvalid("either setProtectedHeader, setUnprotectedHeader, or sharedUnprotectedHeader must be called before #encrypt()");
+    if (
+      !this.#protectedHeader &&
+      !this.#unprotectedHeader &&
+      !this.#sharedUnprotectedHeader
+    ) {
+      throw new JWEInvalid(
+        "either setProtectedHeader, setUnprotectedHeader, or sharedUnprotectedHeader must be called before #encrypt()",
+      );
     }
-    if (!is_disjoint_default(this.#protectedHeader, this.#unprotectedHeader, this.#sharedUnprotectedHeader)) {
-      throw new JWEInvalid("JWE Protected, JWE Shared Unprotected and JWE Per-Recipient Header Parameter names must be disjoint");
+    if (
+      !is_disjoint_default(
+        this.#protectedHeader,
+        this.#unprotectedHeader,
+        this.#sharedUnprotectedHeader,
+      )
+    ) {
+      throw new JWEInvalid(
+        "JWE Protected, JWE Shared Unprotected and JWE Per-Recipient Header Parameter names must be disjoint",
+      );
     }
     const joseHeader = {
       ...this.#protectedHeader,
       ...this.#unprotectedHeader,
-      ...this.#sharedUnprotectedHeader
+      ...this.#sharedUnprotectedHeader,
     };
-    validate_crit_default(JWEInvalid, /* @__PURE__ */ new Map(), options?.crit, this.#protectedHeader, joseHeader);
+    validate_crit_default(
+      JWEInvalid,
+      /* @__PURE__ */ new Map(),
+      options?.crit,
+      this.#protectedHeader,
+      joseHeader,
+    );
     if (joseHeader.zip !== void 0) {
-      throw new JOSENotSupported('JWE "zip" (Compression Algorithm) Header Parameter is not supported.');
+      throw new JOSENotSupported(
+        'JWE "zip" (Compression Algorithm) Header Parameter is not supported.',
+      );
     }
     const { alg: alg2, enc: enc2 } = joseHeader;
     if (typeof alg2 !== "string" || !alg2) {
-      throw new JWEInvalid('JWE "alg" (Algorithm) Header Parameter missing or invalid');
+      throw new JWEInvalid(
+        'JWE "alg" (Algorithm) Header Parameter missing or invalid',
+      );
     }
     if (typeof enc2 !== "string" || !enc2) {
-      throw new JWEInvalid('JWE "enc" (Encryption Algorithm) Header Parameter missing or invalid');
+      throw new JWEInvalid(
+        'JWE "enc" (Encryption Algorithm) Header Parameter missing or invalid',
+      );
     }
     let encryptedKey;
     if (this.#cek && (alg2 === "dir" || alg2 === "ECDH-ES")) {
-      throw new TypeError(`setContentEncryptionKey cannot be called with JWE "alg" (Algorithm) Header ${alg2}`);
+      throw new TypeError(
+        `setContentEncryptionKey cannot be called with JWE "alg" (Algorithm) Header ${alg2}`,
+      );
     }
     check_key_type_default(alg2 === "dir" ? enc2 : alg2, key, "encrypt");
     let cek;
     {
       let parameters;
       const k3 = await normalize_key_default(key, alg2);
-      ({ cek, encryptedKey, parameters } = await encrypt_key_management_default(alg2, enc2, k3, this.#cek, this.#keyManagementParameters));
+      ({ cek, encryptedKey, parameters } = await encrypt_key_management_default(
+        alg2,
+        enc2,
+        k3,
+        this.#cek,
+        this.#keyManagementParameters,
+      ));
       if (parameters) {
         if (options && unprotected in options) {
           if (!this.#unprotectedHeader) {
             this.setUnprotectedHeader(parameters);
           } else {
-            this.#unprotectedHeader = { ...this.#unprotectedHeader, ...parameters };
+            this.#unprotectedHeader = {
+              ...this.#unprotectedHeader,
+              ...parameters,
+            };
           }
         } else if (!this.#protectedHeader) {
           this.setProtectedHeader(parameters);
@@ -3986,19 +4774,35 @@ var FlattenedEncrypt = class {
     let protectedHeader;
     let aadMember;
     if (this.#protectedHeader) {
-      protectedHeader = encoder.encode(encode(JSON.stringify(this.#protectedHeader)));
+      protectedHeader = encoder.encode(
+        encode(JSON.stringify(this.#protectedHeader)),
+      );
     } else {
       protectedHeader = encoder.encode("");
     }
     if (this.#aad) {
       aadMember = encode(this.#aad);
-      additionalData = concat(protectedHeader, encoder.encode("."), encoder.encode(aadMember));
+      additionalData = concat(
+        protectedHeader,
+        encoder.encode("."),
+        encoder.encode(aadMember),
+      );
     } else {
       additionalData = protectedHeader;
     }
-    const { ciphertext, tag: tag2, iv } = await encrypt_default(enc2, this.#plaintext, cek, this.#iv, additionalData);
+    const {
+      ciphertext,
+      tag: tag2,
+      iv,
+    } = await encrypt_default(
+      enc2,
+      this.#plaintext,
+      cek,
+      this.#iv,
+      additionalData,
+    );
     const jwe = {
-      ciphertext: encode(ciphertext)
+      ciphertext: encode(ciphertext),
     };
     if (iv) {
       jwe.iv = encode(iv);
@@ -4026,7 +4830,10 @@ var FlattenedEncrypt = class {
 };
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/epoch.js
-var epoch_default = /* @__PURE__ */ __name((date) => Math.floor(date.getTime() / 1e3), "default");
+var epoch_default = /* @__PURE__ */ __name(
+  (date) => Math.floor(date.getTime() / 1e3),
+  "default",
+);
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/lib/secs.js
 var minute = 60;
@@ -4034,10 +4841,11 @@ var hour = minute * 60;
 var day = hour * 24;
 var week = day * 7;
 var year = day * 365.25;
-var REGEX = /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
+var REGEX =
+  /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
 var secs_default = /* @__PURE__ */ __name((str) => {
   const matched = REGEX.exec(str);
-  if (!matched || matched[4] && matched[1]) {
+  if (!matched || (matched[4] && matched[1])) {
     throw new TypeError("Invalid time period format");
   }
   const value = parseFloat(matched[2]);
@@ -4093,7 +4901,10 @@ function validateInput(label, input) {
   return input;
 }
 __name(validateInput, "validateInput");
-var normalizeTyp = /* @__PURE__ */ __name((value) => value.toLowerCase().replace(/^application\//, ""), "normalizeTyp");
+var normalizeTyp = /* @__PURE__ */ __name(
+  (value) => value.toLowerCase().replace(/^application\//, ""),
+  "normalizeTyp",
+);
 var checkAudiencePresence = /* @__PURE__ */ __name((audPayload, audOption) => {
   if (typeof audPayload === "string") {
     return audOption.includes(audPayload);
@@ -4107,38 +4918,77 @@ function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
   let payload;
   try {
     payload = JSON.parse(decoder.decode(encodedPayload));
-  } catch {
-  }
+  } catch {}
   if (!is_object_default(payload)) {
     throw new JWTInvalid("JWT Claims Set must be a top-level JSON object");
   }
   const { typ } = options;
-  if (typ && (typeof protectedHeader.typ !== "string" || normalizeTyp(protectedHeader.typ) !== normalizeTyp(typ))) {
-    throw new JWTClaimValidationFailed('unexpected "typ" JWT header value', payload, "typ", "check_failed");
+  if (
+    typ &&
+    (typeof protectedHeader.typ !== "string" ||
+      normalizeTyp(protectedHeader.typ) !== normalizeTyp(typ))
+  ) {
+    throw new JWTClaimValidationFailed(
+      'unexpected "typ" JWT header value',
+      payload,
+      "typ",
+      "check_failed",
+    );
   }
-  const { requiredClaims = [], issuer, subject, audience, maxTokenAge } = options;
+  const {
+    requiredClaims = [],
+    issuer,
+    subject,
+    audience,
+    maxTokenAge,
+  } = options;
   const presenceCheck = [...requiredClaims];
-  if (maxTokenAge !== void 0)
-    presenceCheck.push("iat");
-  if (audience !== void 0)
-    presenceCheck.push("aud");
-  if (subject !== void 0)
-    presenceCheck.push("sub");
-  if (issuer !== void 0)
-    presenceCheck.push("iss");
+  if (maxTokenAge !== void 0) presenceCheck.push("iat");
+  if (audience !== void 0) presenceCheck.push("aud");
+  if (subject !== void 0) presenceCheck.push("sub");
+  if (issuer !== void 0) presenceCheck.push("iss");
   for (const claim of new Set(presenceCheck.reverse())) {
     if (!(claim in payload)) {
-      throw new JWTClaimValidationFailed(`missing required "${claim}" claim`, payload, claim, "missing");
+      throw new JWTClaimValidationFailed(
+        `missing required "${claim}" claim`,
+        payload,
+        claim,
+        "missing",
+      );
     }
   }
-  if (issuer && !(Array.isArray(issuer) ? issuer : [issuer]).includes(payload.iss)) {
-    throw new JWTClaimValidationFailed('unexpected "iss" claim value', payload, "iss", "check_failed");
+  if (
+    issuer &&
+    !(Array.isArray(issuer) ? issuer : [issuer]).includes(payload.iss)
+  ) {
+    throw new JWTClaimValidationFailed(
+      'unexpected "iss" claim value',
+      payload,
+      "iss",
+      "check_failed",
+    );
   }
   if (subject && payload.sub !== subject) {
-    throw new JWTClaimValidationFailed('unexpected "sub" claim value', payload, "sub", "check_failed");
+    throw new JWTClaimValidationFailed(
+      'unexpected "sub" claim value',
+      payload,
+      "sub",
+      "check_failed",
+    );
   }
-  if (audience && !checkAudiencePresence(payload.aud, typeof audience === "string" ? [audience] : audience)) {
-    throw new JWTClaimValidationFailed('unexpected "aud" claim value', payload, "aud", "check_failed");
+  if (
+    audience &&
+    !checkAudiencePresence(
+      payload.aud,
+      typeof audience === "string" ? [audience] : audience,
+    )
+  ) {
+    throw new JWTClaimValidationFailed(
+      'unexpected "aud" claim value',
+      payload,
+      "aud",
+      "check_failed",
+    );
   }
   let tolerance;
   switch (typeof options.clockTolerance) {
@@ -4156,33 +5006,72 @@ function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
   }
   const { currentDate } = options;
   const now2 = epoch_default(currentDate || /* @__PURE__ */ new Date());
-  if ((payload.iat !== void 0 || maxTokenAge) && typeof payload.iat !== "number") {
-    throw new JWTClaimValidationFailed('"iat" claim must be a number', payload, "iat", "invalid");
+  if (
+    (payload.iat !== void 0 || maxTokenAge) &&
+    typeof payload.iat !== "number"
+  ) {
+    throw new JWTClaimValidationFailed(
+      '"iat" claim must be a number',
+      payload,
+      "iat",
+      "invalid",
+    );
   }
   if (payload.nbf !== void 0) {
     if (typeof payload.nbf !== "number") {
-      throw new JWTClaimValidationFailed('"nbf" claim must be a number', payload, "nbf", "invalid");
+      throw new JWTClaimValidationFailed(
+        '"nbf" claim must be a number',
+        payload,
+        "nbf",
+        "invalid",
+      );
     }
     if (payload.nbf > now2 + tolerance) {
-      throw new JWTClaimValidationFailed('"nbf" claim timestamp check failed', payload, "nbf", "check_failed");
+      throw new JWTClaimValidationFailed(
+        '"nbf" claim timestamp check failed',
+        payload,
+        "nbf",
+        "check_failed",
+      );
     }
   }
   if (payload.exp !== void 0) {
     if (typeof payload.exp !== "number") {
-      throw new JWTClaimValidationFailed('"exp" claim must be a number', payload, "exp", "invalid");
+      throw new JWTClaimValidationFailed(
+        '"exp" claim must be a number',
+        payload,
+        "exp",
+        "invalid",
+      );
     }
     if (payload.exp <= now2 - tolerance) {
-      throw new JWTExpired('"exp" claim timestamp check failed', payload, "exp", "check_failed");
+      throw new JWTExpired(
+        '"exp" claim timestamp check failed',
+        payload,
+        "exp",
+        "check_failed",
+      );
     }
   }
   if (maxTokenAge) {
     const age = now2 - payload.iat;
-    const max = typeof maxTokenAge === "number" ? maxTokenAge : secs_default(maxTokenAge);
+    const max =
+      typeof maxTokenAge === "number" ? maxTokenAge : secs_default(maxTokenAge);
     if (age - tolerance > max) {
-      throw new JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", "check_failed");
+      throw new JWTExpired(
+        '"iat" claim timestamp check failed (too far in the past)',
+        payload,
+        "iat",
+        "check_failed",
+      );
     }
     if (age < 0 - tolerance) {
-      throw new JWTClaimValidationFailed('"iat" claim timestamp check failed (it should be in the past)', payload, "iat", "check_failed");
+      throw new JWTClaimValidationFailed(
+        '"iat" claim timestamp check failed (it should be in the past)',
+        payload,
+        "iat",
+        "check_failed",
+      );
     }
   }
   return payload;
@@ -4229,16 +5118,21 @@ var JWTClaimsBuilder = class {
     } else if (value instanceof Date) {
       this.#payload.nbf = validateInput("setNotBefore", epoch_default(value));
     } else {
-      this.#payload.nbf = epoch_default(/* @__PURE__ */ new Date()) + secs_default(value);
+      this.#payload.nbf =
+        epoch_default(/* @__PURE__ */ new Date()) + secs_default(value);
     }
   }
   set exp(value) {
     if (typeof value === "number") {
       this.#payload.exp = validateInput("setExpirationTime", value);
     } else if (value instanceof Date) {
-      this.#payload.exp = validateInput("setExpirationTime", epoch_default(value));
+      this.#payload.exp = validateInput(
+        "setExpirationTime",
+        epoch_default(value),
+      );
     } else {
-      this.#payload.exp = epoch_default(/* @__PURE__ */ new Date()) + secs_default(value);
+      this.#payload.exp =
+        epoch_default(/* @__PURE__ */ new Date()) + secs_default(value);
     }
   }
   set iat(value) {
@@ -4247,7 +5141,10 @@ var JWTClaimsBuilder = class {
     } else if (value instanceof Date) {
       this.#payload.iat = validateInput("setIssuedAt", epoch_default(value));
     } else if (typeof value === "string") {
-      this.#payload.iat = validateInput("setIssuedAt", epoch_default(/* @__PURE__ */ new Date()) + secs_default(value));
+      this.#payload.iat = validateInput(
+        "setIssuedAt",
+        epoch_default(/* @__PURE__ */ new Date()) + secs_default(value),
+      );
     } else {
       this.#payload.iat = validateInput("setIssuedAt", value);
     }
@@ -4257,16 +5154,38 @@ var JWTClaimsBuilder = class {
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/jwt/decrypt.js
 async function jwtDecrypt(jwt, key, options) {
   const decrypted = await compactDecrypt(jwt, key, options);
-  const payload = validateClaimsSet(decrypted.protectedHeader, decrypted.plaintext, options);
+  const payload = validateClaimsSet(
+    decrypted.protectedHeader,
+    decrypted.plaintext,
+    options,
+  );
   const { protectedHeader } = decrypted;
   if (protectedHeader.iss !== void 0 && protectedHeader.iss !== payload.iss) {
-    throw new JWTClaimValidationFailed('replicated "iss" claim header parameter mismatch', payload, "iss", "mismatch");
+    throw new JWTClaimValidationFailed(
+      'replicated "iss" claim header parameter mismatch',
+      payload,
+      "iss",
+      "mismatch",
+    );
   }
   if (protectedHeader.sub !== void 0 && protectedHeader.sub !== payload.sub) {
-    throw new JWTClaimValidationFailed('replicated "sub" claim header parameter mismatch', payload, "sub", "mismatch");
+    throw new JWTClaimValidationFailed(
+      'replicated "sub" claim header parameter mismatch',
+      payload,
+      "sub",
+      "mismatch",
+    );
   }
-  if (protectedHeader.aud !== void 0 && JSON.stringify(protectedHeader.aud) !== JSON.stringify(payload.aud)) {
-    throw new JWTClaimValidationFailed('replicated "aud" claim header parameter mismatch', payload, "aud", "mismatch");
+  if (
+    protectedHeader.aud !== void 0 &&
+    JSON.stringify(protectedHeader.aud) !== JSON.stringify(payload.aud)
+  ) {
+    throw new JWTClaimValidationFailed(
+      'replicated "aud" claim header parameter mismatch',
+      payload,
+      "aud",
+      "mismatch",
+    );
   }
   const result = { payload, protectedHeader };
   if (typeof key === "function") {
@@ -4303,7 +5222,13 @@ var CompactEncrypt = class {
   }
   async encrypt(key, options) {
     const jwe = await this.#flattened.encrypt(key, options);
-    return [jwe.protected, jwe.encrypted_key, jwe.iv, jwe.ciphertext, jwe.tag].join(".");
+    return [
+      jwe.protected,
+      jwe.encrypted_key,
+      jwe.iv,
+      jwe.ciphertext,
+      jwe.tag,
+    ].join(".");
   }
 };
 
@@ -4393,12 +5318,17 @@ var EncryptJWT = class {
   }
   async encrypt(key, options) {
     const enc2 = new CompactEncrypt(this.#jwt.data());
-    if (this.#protectedHeader && (this.#replicateIssuerAsHeader || this.#replicateSubjectAsHeader || this.#replicateAudienceAsHeader)) {
+    if (
+      this.#protectedHeader &&
+      (this.#replicateIssuerAsHeader ||
+        this.#replicateSubjectAsHeader ||
+        this.#replicateAudienceAsHeader)
+    ) {
       this.#protectedHeader = {
         ...this.#protectedHeader,
         iss: this.#replicateIssuerAsHeader ? this.#jwt.iss : void 0,
         sub: this.#replicateSubjectAsHeader ? this.#jwt.sub : void 0,
-        aud: this.#replicateAudienceAsHeader ? this.#jwt.aud : void 0
+        aud: this.#replicateAudienceAsHeader ? this.#jwt.aud : void 0,
       };
     }
     enc2.setProtectedHeader(this.#protectedHeader);
@@ -4428,11 +5358,19 @@ async function calculateJwkThumbprint(key, digestAlgorithm) {
   } else if (is_key_like_default(key)) {
     jwk = await exportJWK(key);
   } else {
-    throw new TypeError(invalid_key_input_default(key, "CryptoKey", "KeyObject", "JSON Web Key"));
+    throw new TypeError(
+      invalid_key_input_default(key, "CryptoKey", "KeyObject", "JSON Web Key"),
+    );
   }
   digestAlgorithm ??= "sha256";
-  if (digestAlgorithm !== "sha256" && digestAlgorithm !== "sha384" && digestAlgorithm !== "sha512") {
-    throw new TypeError('digestAlgorithm must one of "sha256", "sha384", or "sha512"');
+  if (
+    digestAlgorithm !== "sha256" &&
+    digestAlgorithm !== "sha384" &&
+    digestAlgorithm !== "sha512"
+  ) {
+    throw new TypeError(
+      'digestAlgorithm must one of "sha256", "sha384", or "sha512"',
+    );
   }
   let components;
   switch (jwk.kty) {
@@ -4457,7 +5395,9 @@ async function calculateJwkThumbprint(key, digestAlgorithm) {
       components = { k: jwk.k, kty: jwk.kty };
       break;
     default:
-      throw new JOSENotSupported('"kty" (Key Type) Parameter missing or unsupported');
+      throw new JOSENotSupported(
+        '"kty" (Key Type) Parameter missing or unsupported',
+      );
   }
   const data = encoder.encode(JSON.stringify(components));
   return encode(await digest_default(digestAlgorithm, data));
@@ -4467,14 +5407,16 @@ __name(calculateJwkThumbprint, "calculateJwkThumbprint");
 // node_modules/@hono/auth-js/node_modules/@auth/core/node_modules/jose/dist/webapi/util/decode_jwt.js
 function decodeJwt(jwt) {
   if (typeof jwt !== "string")
-    throw new JWTInvalid("JWTs must use Compact JWS serialization, JWT must be a string");
+    throw new JWTInvalid(
+      "JWTs must use Compact JWS serialization, JWT must be a string",
+    );
   const { 1: payload, length } = jwt.split(".");
   if (length === 5)
-    throw new JWTInvalid("Only JWTs using Compact JWS serialization can be decoded");
-  if (length !== 3)
-    throw new JWTInvalid("Invalid JWT");
-  if (!payload)
-    throw new JWTInvalid("JWTs must contain a payload");
+    throw new JWTInvalid(
+      "Only JWTs using Compact JWS serialization can be decoded",
+    );
+  if (length !== 3) throw new JWTInvalid("Invalid JWT");
+  if (!payload) throw new JWTInvalid("JWTs must contain a payload");
   let decoded;
   try {
     decoded = decode(payload);
@@ -4497,30 +5439,29 @@ __name(decodeJwt, "decodeJwt");
 var cookie_exports = {};
 __export(cookie_exports, {
   parse: () => parse,
-  serialize: () => serialize
+  serialize: () => serialize,
 });
 var cookieNameRegExp = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
-var cookieValueRegExp = /^("?)[\u0021\u0023-\u002B\u002D-\u003A\u003C-\u005B\u005D-\u007E]*\1$/;
-var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+var cookieValueRegExp =
+  /^("?)[\u0021\u0023-\u002B\u002D-\u003A\u003C-\u005B\u005D-\u007E]*\1$/;
+var domainValueRegExp =
+  /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
 var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
 var __toString = Object.prototype.toString;
 var NullObject = /* @__PURE__ */ (() => {
-  const C3 = /* @__PURE__ */ __name(function() {
-  }, "C");
+  const C3 = /* @__PURE__ */ __name(function () {}, "C");
   C3.prototype = /* @__PURE__ */ Object.create(null);
   return C3;
 })();
 function parse(str, options) {
   const obj = new NullObject();
   const len = str.length;
-  if (len < 2)
-    return obj;
+  if (len < 2) return obj;
   const dec = options?.decode || decode2;
   let index = 0;
   do {
     const eqIdx = str.indexOf("=", index);
-    if (eqIdx === -1)
-      break;
+    if (eqIdx === -1) break;
     const colonIdx = str.indexOf(";", index);
     const endIdx = colonIdx === -1 ? len : colonIdx;
     if (eqIdx > endIdx) {
@@ -4544,8 +5485,7 @@ __name(parse, "parse");
 function startIndex(str, index, max) {
   do {
     const code = str.charCodeAt(index);
-    if (code !== 32 && code !== 9)
-      return index;
+    if (code !== 32 && code !== 9) return index;
   } while (++index < max);
   return max;
 }
@@ -4553,8 +5493,7 @@ __name(startIndex, "startIndex");
 function endIndex(str, index, min) {
   while (index > min) {
     const code = str.charCodeAt(--index);
-    if (code !== 32 && code !== 9)
-      return index + 1;
+    if (code !== 32 && code !== 9) return index + 1;
   }
   return min;
 }
@@ -4569,8 +5508,7 @@ function serialize(name, val, options) {
     throw new TypeError(`argument val is invalid: ${val}`);
   }
   let str = name + "=" + value;
-  if (!options)
-    return str;
+  if (!options) return str;
   if (options.maxAge !== void 0) {
     if (!Number.isInteger(options.maxAge)) {
       throw new TypeError(`option maxAge is invalid: ${options.maxAge}`);
@@ -4590,7 +5528,10 @@ function serialize(name, val, options) {
     str += "; Path=" + options.path;
   }
   if (options.expires) {
-    if (!isDate(options.expires) || !Number.isFinite(options.expires.valueOf())) {
+    if (
+      !isDate(options.expires) ||
+      !Number.isFinite(options.expires.valueOf())
+    ) {
       throw new TypeError(`option expires is invalid: ${options.expires}`);
     }
     str += "; Expires=" + options.expires.toUTCString();
@@ -4605,7 +5546,10 @@ function serialize(name, val, options) {
     str += "; Partitioned";
   }
   if (options.priority) {
-    const priority = typeof options.priority === "string" ? options.priority.toLowerCase() : void 0;
+    const priority =
+      typeof options.priority === "string"
+        ? options.priority.toLowerCase()
+        : void 0;
     switch (priority) {
       case "low":
         str += "; Priority=Low";
@@ -4621,7 +5565,10 @@ function serialize(name, val, options) {
     }
   }
   if (options.sameSite) {
-    const sameSite = typeof options.sameSite === "string" ? options.sameSite.toLowerCase() : options.sameSite;
+    const sameSite =
+      typeof options.sameSite === "string"
+        ? options.sameSite.toLowerCase()
+        : options.sameSite;
     switch (sameSite) {
       case true:
       case "strict":
@@ -4641,8 +5588,7 @@ function serialize(name, val, options) {
 }
 __name(serialize, "serialize");
 function decode2(str) {
-  if (str.indexOf("%") === -1)
-    return str;
+  if (str.indexOf("%") === -1) return str;
   try {
     return decodeURIComponent(str);
   } catch (e2) {
@@ -4658,37 +5604,53 @@ __name(isDate, "isDate");
 // node_modules/@hono/auth-js/node_modules/@auth/core/jwt.js
 var { parse: parseCookie } = cookie_exports;
 var DEFAULT_MAX_AGE = 30 * 24 * 60 * 60;
-var now = /* @__PURE__ */ __name(() => Date.now() / 1e3 | 0, "now");
+var now = /* @__PURE__ */ __name(() => (Date.now() / 1e3) | 0, "now");
 var alg = "dir";
 var enc = "A256CBC-HS512";
 async function encode2(params) {
   const { token = {}, secret, maxAge = DEFAULT_MAX_AGE, salt } = params;
   const secrets = Array.isArray(secret) ? secret : [secret];
   const encryptionSecret = await getDerivedEncryptionKey(enc, secrets[0], salt);
-  const thumbprint = await calculateJwkThumbprint({ kty: "oct", k: base64url_exports.encode(encryptionSecret) }, `sha${encryptionSecret.byteLength << 3}`);
-  return await new EncryptJWT(token).setProtectedHeader({ alg, enc, kid: thumbprint }).setIssuedAt().setExpirationTime(now() + maxAge).setJti(crypto.randomUUID()).encrypt(encryptionSecret);
+  const thumbprint = await calculateJwkThumbprint(
+    { kty: "oct", k: base64url_exports.encode(encryptionSecret) },
+    `sha${encryptionSecret.byteLength << 3}`,
+  );
+  return await new EncryptJWT(token)
+    .setProtectedHeader({ alg, enc, kid: thumbprint })
+    .setIssuedAt()
+    .setExpirationTime(now() + maxAge)
+    .setJti(crypto.randomUUID())
+    .encrypt(encryptionSecret);
 }
 __name(encode2, "encode");
 async function decode3(params) {
   const { token, secret, salt } = params;
   const secrets = Array.isArray(secret) ? secret : [secret];
-  if (!token)
-    return null;
-  const { payload } = await jwtDecrypt(token, async ({ kid, enc: enc2 }) => {
-    for (const secret2 of secrets) {
-      const encryptionSecret = await getDerivedEncryptionKey(enc2, secret2, salt);
-      if (kid === void 0)
-        return encryptionSecret;
-      const thumbprint = await calculateJwkThumbprint({ kty: "oct", k: base64url_exports.encode(encryptionSecret) }, `sha${encryptionSecret.byteLength << 3}`);
-      if (kid === thumbprint)
-        return encryptionSecret;
-    }
-    throw new Error("no matching decryption secret");
-  }, {
-    clockTolerance: 15,
-    keyManagementAlgorithms: [alg],
-    contentEncryptionAlgorithms: [enc, "A256GCM"]
-  });
+  if (!token) return null;
+  const { payload } = await jwtDecrypt(
+    token,
+    async ({ kid, enc: enc2 }) => {
+      for (const secret2 of secrets) {
+        const encryptionSecret = await getDerivedEncryptionKey(
+          enc2,
+          secret2,
+          salt,
+        );
+        if (kid === void 0) return encryptionSecret;
+        const thumbprint = await calculateJwkThumbprint(
+          { kty: "oct", k: base64url_exports.encode(encryptionSecret) },
+          `sha${encryptionSecret.byteLength << 3}`,
+        );
+        if (kid === thumbprint) return encryptionSecret;
+      }
+      throw new Error("no matching decryption secret");
+    },
+    {
+      clockTolerance: 15,
+      keyManagementAlgorithms: [alg],
+      contentEncryptionAlgorithms: [enc, "A256GCM"],
+    },
+  );
   return payload;
 }
 __name(decode3, "decode");
@@ -4704,7 +5666,13 @@ async function getDerivedEncryptionKey(enc2, keyMaterial, salt) {
     default:
       throw new Error("Unsupported JWT Content Encryption Algorithm");
   }
-  return await hkdf("sha256", keyMaterial, salt, `Auth.js Generated Encryption Key (${salt})`, length);
+  return await hkdf(
+    "sha256",
+    keyMaterial,
+    salt,
+    `Auth.js Generated Encryption Key (${salt})`,
+    length,
+  );
 }
 __name(getDerivedEncryptionKey, "getDerivedEncryptionKey");
 
@@ -4715,18 +5683,18 @@ async function createCallbackUrl({ options, paramValue, cookieValue }) {
   if (paramValue) {
     callbackUrl = await callbacks.redirect({
       url: paramValue,
-      baseUrl: url.origin
+      baseUrl: url.origin,
     });
   } else if (cookieValue) {
     callbackUrl = await callbacks.redirect({
       url: cookieValue,
-      baseUrl: url.origin
+      baseUrl: url.origin,
     });
   }
   return {
     callbackUrl,
     // Save callback URL in a cookie so that it can be used for subsequent requests in signin/signout/callback flow
-    callbackUrlCookie: callbackUrl !== cookieValue ? callbackUrl : void 0
+    callbackUrlCookie: callbackUrl !== cookieValue ? callbackUrl : void 0,
   };
 }
 __name(createCallbackUrl, "createCallbackUrl");
@@ -4740,11 +5708,19 @@ var defaultLogger = {
   error(error) {
     const name = error instanceof AuthError ? error.type : error.name;
     console.error(`${red}[auth][error]${reset} ${name}: ${error.message}`);
-    if (error.cause && typeof error.cause === "object" && "err" in error.cause && error.cause.err instanceof Error) {
+    if (
+      error.cause &&
+      typeof error.cause === "object" &&
+      "err" in error.cause &&
+      error.cause.err instanceof Error
+    ) {
       const { err, ...data } = error.cause;
       console.error(`${red}[auth][cause]${reset}:`, err.stack);
       if (data)
-        console.error(`${red}[auth][details]${reset}:`, JSON.stringify(data, null, 2));
+        console.error(
+          `${red}[auth][details]${reset}:`,
+          JSON.stringify(data, null, 2),
+        );
     } else if (error.stack) {
       console.error(error.stack.replace(/.*/, "").substring(1));
     }
@@ -4754,22 +5730,20 @@ var defaultLogger = {
     console.warn(`${yellow}[auth][warn][${code}]${reset}`, `Read more: ${url}`);
   },
   debug(message2, metadata) {
-    console.log(`${grey}[auth][debug]:${reset} ${message2}`, JSON.stringify(metadata, null, 2));
-  }
+    console.log(
+      `${grey}[auth][debug]:${reset} ${message2}`,
+      JSON.stringify(metadata, null, 2),
+    );
+  },
 };
 function setLogger(config) {
   const newLogger = {
-    ...defaultLogger
+    ...defaultLogger,
   };
-  if (!config.debug)
-    newLogger.debug = () => {
-    };
-  if (config.logger?.error)
-    newLogger.error = config.logger.error;
-  if (config.logger?.warn)
-    newLogger.warn = config.logger.warn;
-  if (config.logger?.debug)
-    newLogger.debug = config.logger.debug;
+  if (!config.debug) newLogger.debug = () => {};
+  if (config.logger?.error) newLogger.error = config.logger.error;
+  if (config.logger?.warn) newLogger.warn = config.logger.warn;
+  if (config.logger?.debug) newLogger.debug = config.logger.debug;
   config.logger ?? (config.logger = newLogger);
   return newLogger;
 }
@@ -4785,7 +5759,7 @@ var actions = [
   "callback",
   "verify-request",
   "error",
-  "webauthn-options"
+  "webauthn-options",
 ];
 function isAuthAction(action) {
   return actions.includes(action);
@@ -4795,8 +5769,7 @@ __name(isAuthAction, "isAuthAction");
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/utils/web.js
 var { parse: parseCookie2, serialize: serializeCookie } = cookie_exports;
 async function getBody(req) {
-  if (!("body" in req) || !req.body || req.method !== "POST")
-    return;
+  if (!("body" in req) || !req.body || req.method !== "POST") return;
   const contentType = req.headers.get("content-type");
   if (contentType?.includes("application/json")) {
     return await req.json();
@@ -4812,7 +5785,10 @@ async function toInternalRequest(req, config) {
       throw new UnknownAction("Only GET and POST requests are supported");
     config.basePath ?? (config.basePath = "/auth");
     const url = new URL(req.url);
-    const { action, providerId } = parseActionAndProviderId(url.pathname, config.basePath);
+    const { action, providerId } = parseActionAndProviderId(
+      url.pathname,
+      config.basePath,
+    );
     return {
       url,
       action,
@@ -4822,7 +5798,7 @@ async function toInternalRequest(req, config) {
       body: req.body ? await getBody(req) : void 0,
       cookies: parseCookie2(req.headers.get("cookie") ?? "") ?? {},
       error: url.searchParams.get("error") ?? void 0,
-      query: Object.fromEntries(url.searchParams)
+      query: Object.fromEntries(url.searchParams),
     };
   } catch (e2) {
     const logger = setLogger(config);
@@ -4835,7 +5811,8 @@ function toRequest(request) {
   return new Request(request.url, {
     headers: request.headers,
     method: request.method,
-    body: request.method === "POST" ? JSON.stringify(request.body ?? {}) : void 0
+    body:
+      request.method === "POST" ? JSON.stringify(request.body ?? {}) : void 0,
   });
 }
 __name(toRequest, "toRequest");
@@ -4844,31 +5821,34 @@ function toResponse(res) {
   res.cookies?.forEach((cookie) => {
     const { name, value, options } = cookie;
     const cookieHeader = serializeCookie(name, value, options);
-    if (headers.has("Set-Cookie"))
-      headers.append("Set-Cookie", cookieHeader);
-    else
-      headers.set("Set-Cookie", cookieHeader);
+    if (headers.has("Set-Cookie")) headers.append("Set-Cookie", cookieHeader);
+    else headers.set("Set-Cookie", cookieHeader);
   });
   let body = res.body;
   if (headers.get("content-type") === "application/json")
     body = JSON.stringify(res.body);
   else if (headers.get("content-type") === "application/x-www-form-urlencoded")
     body = new URLSearchParams(res.body).toString();
-  const status = res.redirect ? 302 : res.status ?? 200;
+  const status = res.redirect ? 302 : (res.status ?? 200);
   const response = new Response(body, { headers, status });
-  if (res.redirect)
-    response.headers.set("Location", res.redirect);
+  if (res.redirect) response.headers.set("Location", res.redirect);
   return response;
 }
 __name(toResponse, "toResponse");
 async function createHash(message2) {
   const data = new TextEncoder().encode(message2);
   const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash)).map((b2) => b2.toString(16).padStart(2, "0")).join("").toString();
+  return Array.from(new Uint8Array(hash))
+    .map((b2) => b2.toString(16).padStart(2, "0"))
+    .join("")
+    .toString();
 }
 __name(createHash, "createHash");
 function randomString(size) {
-  const i2hex = /* @__PURE__ */ __name((i4) => ("0" + i4.toString(16)).slice(-2), "i2hex");
+  const i2hex = /* @__PURE__ */ __name(
+    (i4) => ("0" + i4.toString(16)).slice(-2),
+    "i2hex",
+  );
   const r3 = /* @__PURE__ */ __name((a3, i4) => a3 + i2hex(i4), "r");
   const bytes = crypto.getRandomValues(new Uint8Array(size));
   return Array.from(bytes).reduce(r3, "");
@@ -4885,7 +5865,10 @@ function parseActionAndProviderId(pathname, base) {
   const [action, providerId] = b2;
   if (!isAuthAction(action))
     throw new UnknownAction(`Cannot parse action at ${pathname}`);
-  if (providerId && !["signin", "callback", "webauthn-options"].includes(action))
+  if (
+    providerId &&
+    !["signin", "callback", "webauthn-options"].includes(action)
+  )
     throw new UnknownAction(`Cannot parse action at ${pathname}`);
   return { action, providerId };
 }
@@ -4895,7 +5878,9 @@ __name(parseActionAndProviderId, "parseActionAndProviderId");
 async function createCSRFToken({ options, cookieValue, isPost, bodyValue }) {
   if (cookieValue) {
     const [csrfToken2, csrfTokenHash2] = cookieValue.split("|");
-    const expectedCsrfTokenHash = await createHash(`${csrfToken2}${options.secret}`);
+    const expectedCsrfTokenHash = await createHash(
+      `${csrfToken2}${options.secret}`,
+    );
     if (csrfTokenHash2 === expectedCsrfTokenHash) {
       const csrfTokenVerified = isPost && csrfToken2 === bodyValue;
       return { csrfTokenVerified, csrfToken: csrfToken2 };
@@ -4908,8 +5893,7 @@ async function createCSRFToken({ options, cookieValue, isPost, bodyValue }) {
 }
 __name(createCSRFToken, "createCSRFToken");
 function validateCSRF(action, verified) {
-  if (verified)
-    return;
+  if (verified) return;
   throw new MissingCSRF(`CSRF token was missing during an action ${action}`);
 }
 __name(validateCSRF, "validateCSRF");
@@ -4920,8 +5904,7 @@ function isObject(item) {
 }
 __name(isObject, "isObject");
 function merge(target, ...sources) {
-  if (!sources.length)
-    return target;
+  if (!sources.length) return target;
   const source = sources.shift();
   if (isObject(target) && isObject(source)) {
     for (const key in source) {
@@ -4929,8 +5912,7 @@ function merge(target, ...sources) {
         if (!isObject(target[key]))
           target[key] = Array.isArray(source[key]) ? [] : {};
         merge(target[key], source[key]);
-      } else if (source[key] !== void 0)
-        target[key] = source[key];
+      } else if (source[key] !== void 0) target[key] = source[key];
     }
   }
   return merge(target, ...sources);
@@ -4953,15 +5935,21 @@ function parseProviders(params) {
     const id = userOptions?.id ?? defaults.id;
     const merged = merge(defaults, userOptions, {
       signinUrl: `${url}/signin/${id}`,
-      callbackUrl: `${url}/callback/${id}`
+      callbackUrl: `${url}/callback/${id}`,
     });
     if (provider2.type === "oauth" || provider2.type === "oidc") {
-      merged.redirectProxyUrl ?? (merged.redirectProxyUrl = userOptions?.redirectProxyUrl ?? config.redirectProxyUrl);
+      merged.redirectProxyUrl ??
+        (merged.redirectProxyUrl =
+          userOptions?.redirectProxyUrl ?? config.redirectProxyUrl);
       const normalized = normalizeOAuth(merged);
-      if (normalized.authorization?.url.searchParams.get("response_mode") === "form_post") {
+      if (
+        normalized.authorization?.url.searchParams.get("response_mode") ===
+        "form_post"
+      ) {
         delete normalized.redirectProxyUrl;
       }
-      normalized[customFetch] ?? (normalized[customFetch] = userOptions?.[customFetch]);
+      normalized[customFetch] ??
+        (normalized[customFetch] = userOptions?.[customFetch]);
       return normalized;
     }
     return merged;
@@ -4969,14 +5957,17 @@ function parseProviders(params) {
   const provider = providers.find(({ id }) => id === providerId);
   if (providerId && !provider) {
     const availableProviders = providers.map((p3) => p3.id).join(", ");
-    throw new Error(`Provider with id "${providerId}" not found. Available providers: [${availableProviders}].`);
+    throw new Error(
+      `Provider with id "${providerId}" not found. Available providers: [${availableProviders}].`,
+    );
   }
   return { providers, provider };
 }
 __name(parseProviders, "parseProviders");
 function normalizeOAuth(c3) {
   if (c3.issuer)
-    c3.wellKnown ?? (c3.wellKnown = `${c3.issuer}/.well-known/openid-configuration`);
+    c3.wellKnown ??
+      (c3.wellKnown = `${c3.issuer}/.well-known/openid-configuration`);
   const authorization = normalizeEndpoint(c3.authorization, c3.issuer);
   if (authorization && !authorization.url?.searchParams.has("scope")) {
     authorization.url.searchParams.set("scope", "openid profile email");
@@ -4985,8 +5976,7 @@ function normalizeOAuth(c3) {
   const userinfo = normalizeEndpoint(c3.userinfo, c3.issuer);
   const checks = c3.checks ?? ["pkce"];
   if (c3.redirectProxyUrl) {
-    if (!checks.includes("state"))
-      checks.push("state");
+    if (!checks.includes("state")) checks.push("state");
     c3.redirectProxyUrl = `${c3.redirectProxyUrl}/callback/${c3.id}`;
   }
   return {
@@ -4996,7 +5986,7 @@ function normalizeOAuth(c3) {
     checks,
     userinfo,
     profile: c3.profile ?? defaultProfile,
-    account: c3.account ?? defaultAccount
+    account: c3.account ?? defaultAccount,
   };
 }
 __name(normalizeOAuth, "normalizeOAuth");
@@ -5005,7 +5995,7 @@ var defaultProfile = /* @__PURE__ */ __name((profile) => {
     id: profile.sub ?? profile.id ?? crypto.randomUUID(),
     name: profile.name ?? profile.nickname ?? profile.preferred_username,
     email: profile.email,
-    image: profile.picture
+    image: profile.picture,
   });
 }, "defaultProfile");
 var defaultAccount = /* @__PURE__ */ __name((account) => {
@@ -5016,21 +6006,19 @@ var defaultAccount = /* @__PURE__ */ __name((account) => {
     expires_at: account.expires_at,
     scope: account.scope,
     token_type: account.token_type,
-    session_state: account.session_state
+    session_state: account.session_state,
   });
 }, "defaultAccount");
 function stripUndefined(o3) {
   const result = {};
   for (const [k3, v2] of Object.entries(o3)) {
-    if (v2 !== void 0)
-      result[k3] = v2;
+    if (v2 !== void 0) result[k3] = v2;
   }
   return result;
 }
 __name(stripUndefined, "stripUndefined");
 function normalizeEndpoint(e2, issuer) {
-  if (!e2 && issuer)
-    return;
+  if (!e2 && issuer) return;
   if (typeof e2 === "string") {
     return { url: new URL(e2) };
   }
@@ -5047,7 +6035,9 @@ function normalizeEndpoint(e2, issuer) {
     url,
     request: e2?.request,
     conform: e2?.conform,
-    ...e2?.clientPrivateKey ? { clientPrivateKey: e2?.clientPrivateKey } : null
+    ...(e2?.clientPrivateKey
+      ? { clientPrivateKey: e2?.clientPrivateKey }
+      : null),
   };
 }
 __name(normalizeEndpoint, "normalizeEndpoint");
@@ -5062,10 +6052,8 @@ var defaultCallbacks = {
     return true;
   },
   redirect({ url, baseUrl }) {
-    if (url.startsWith("/"))
-      return `${baseUrl}${url}`;
-    else if (new URL(url).origin === baseUrl)
-      return url;
+    if (url.startsWith("/")) return `${baseUrl}${url}`;
+    else if (new URL(url).origin === baseUrl) return url;
     return baseUrl;
   },
   session({ session: session2 }) {
@@ -5073,25 +6061,41 @@ var defaultCallbacks = {
       user: {
         name: session2.user?.name,
         email: session2.user?.email,
-        image: session2.user?.image
+        image: session2.user?.image,
       },
-      expires: session2.expires?.toISOString?.() ?? session2.expires
+      expires: session2.expires?.toISOString?.() ?? session2.expires,
     };
   },
   jwt({ token }) {
     return token;
-  }
+  },
 };
-async function init({ authOptions: config, providerId, action, url, cookies: reqCookies, callbackUrl: reqCallbackUrl, csrfToken: reqCsrfToken, csrfDisabled, isPost }) {
+async function init({
+  authOptions: config,
+  providerId,
+  action,
+  url,
+  cookies: reqCookies,
+  callbackUrl: reqCallbackUrl,
+  csrfToken: reqCsrfToken,
+  csrfDisabled,
+  isPost,
+}) {
   const logger = setLogger(config);
   const { providers, provider } = parseProviders({ url, providerId, config });
   const maxAge = 30 * 24 * 60 * 60;
   let isOnRedirectProxy = false;
-  if ((provider?.type === "oauth" || provider?.type === "oidc") && provider.redirectProxyUrl) {
+  if (
+    (provider?.type === "oauth" || provider?.type === "oidc") &&
+    provider.redirectProxyUrl
+  ) {
     try {
-      isOnRedirectProxy = new URL(provider.redirectProxyUrl).origin === url.origin;
+      isOnRedirectProxy =
+        new URL(provider.redirectProxyUrl).origin === url.origin;
     } catch {
-      throw new TypeError(`redirectProxyUrl must be a valid URL. Received: ${provider.redirectProxyUrl}`);
+      throw new TypeError(
+        `redirectProxyUrl must be a valid URL. Received: ${provider.redirectProxyUrl}`,
+      );
     }
   }
   const options = {
@@ -5101,7 +6105,7 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
       colorScheme: "auto",
       logo: "",
       brandColor: "",
-      buttonText: ""
+      buttonText: "",
     },
     // Custom options override defaults
     ...config,
@@ -5111,7 +6115,10 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
     action,
     // @ts-expect-errors
     provider,
-    cookies: merge(defaultCookies(config.useSecureCookies ?? url.protocol === "https:"), config.cookies),
+    cookies: merge(
+      defaultCookies(config.useSecureCookies ?? url.protocol === "https:"),
+      config.cookies,
+    ),
     providers,
     // Session options
     session: {
@@ -5119,8 +6126,11 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
       strategy: config.adapter ? "database" : "jwt",
       maxAge,
       updateAge: 24 * 60 * 60,
-      generateSessionToken: /* @__PURE__ */ __name(() => crypto.randomUUID(), "generateSessionToken"),
-      ...config.session
+      generateSessionToken: /* @__PURE__ */ __name(
+        () => crypto.randomUUID(),
+        "generateSessionToken",
+      ),
+      ...config.session,
     },
     // JWT options
     jwt: {
@@ -5130,7 +6140,7 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
       // default to same as `session.maxAge`
       encode: encode2,
       decode: decode3,
-      ...config.jwt
+      ...config.jwt,
     },
     // Event messages
     events: eventsErrorHandler(config.events ?? {}, logger),
@@ -5141,18 +6151,22 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
     callbackUrl: url.origin,
     isOnRedirectProxy,
     experimental: {
-      ...config.experimental
-    }
+      ...config.experimental,
+    },
   };
   const cookies = [];
   if (csrfDisabled) {
     options.csrfTokenVerified = true;
   } else {
-    const { csrfToken, cookie: csrfCookie, csrfTokenVerified } = await createCSRFToken({
+    const {
+      csrfToken,
+      cookie: csrfCookie,
+      csrfTokenVerified,
+    } = await createCSRFToken({
       options,
       cookieValue: reqCookies?.[options.cookies.csrfToken.name],
       isPost,
-      bodyValue: reqCsrfToken
+      bodyValue: reqCsrfToken,
     });
     options.csrfToken = csrfToken;
     options.csrfTokenVerified = csrfTokenVerified;
@@ -5160,21 +6174,21 @@ async function init({ authOptions: config, providerId, action, url, cookies: req
       cookies.push({
         name: options.cookies.csrfToken.name,
         value: csrfCookie,
-        options: options.cookies.csrfToken.options
+        options: options.cookies.csrfToken.options,
       });
     }
   }
   const { callbackUrl, callbackUrlCookie } = await createCallbackUrl({
     options,
     cookieValue: reqCookies?.[options.cookies.callbackUrl.name],
-    paramValue: reqCallbackUrl
+    paramValue: reqCallbackUrl,
   });
   options.callbackUrl = callbackUrl;
   if (callbackUrlCookie) {
     cookies.push({
       name: options.cookies.callbackUrl.name,
       value: callbackUrlCookie,
-      options: options.cookies.callbackUrl.options
+      options: options.cookies.callbackUrl.options,
     });
   }
   return { options, cookies };
@@ -5195,8 +6209,7 @@ function eventsErrorHandler(methods, logger) {
 }
 __name(eventsErrorHandler, "eventsErrorHandler");
 function adapterErrorHandler(adapter, logger) {
-  if (!adapter)
-    return;
+  if (!adapter) return;
   return Object.keys(adapter).reduce((acc, name) => {
     acc[name] = async (...args) => {
       try {
@@ -5241,14 +6254,43 @@ function w(n2) {
 }
 __name(w, "w");
 function _(l3, u4, t2) {
-  var i4, o3, r3, f4 = {};
-  for (r3 in u4) "key" == r3 ? i4 = u4[r3] : "ref" == r3 ? o3 = u4[r3] : f4[r3] = u4[r3];
-  if (arguments.length > 2 && (f4.children = arguments.length > 3 ? n.call(arguments, 2) : t2), "function" == typeof l3 && null != l3.defaultProps) for (r3 in l3.defaultProps) void 0 === f4[r3] && (f4[r3] = l3.defaultProps[r3]);
+  var i4,
+    o3,
+    r3,
+    f4 = {};
+  for (r3 in u4)
+    "key" == r3
+      ? (i4 = u4[r3])
+      : "ref" == r3
+        ? (o3 = u4[r3])
+        : (f4[r3] = u4[r3]);
+  if (
+    (arguments.length > 2 &&
+      (f4.children = arguments.length > 3 ? n.call(arguments, 2) : t2),
+    "function" == typeof l3 && null != l3.defaultProps)
+  )
+    for (r3 in l3.defaultProps)
+      void 0 === f4[r3] && (f4[r3] = l3.defaultProps[r3]);
   return g(l3, f4, i4, o3, null);
 }
 __name(_, "_");
 function g(n2, t2, i4, o3, r3) {
-  var f4 = { type: n2, props: t2, key: i4, ref: o3, __k: null, __: null, __b: 0, __e: null, __d: void 0, __c: null, constructor: void 0, __v: null == r3 ? ++u : r3, __i: -1, __u: 0 };
+  var f4 = {
+    type: n2,
+    props: t2,
+    key: i4,
+    ref: o3,
+    __k: null,
+    __: null,
+    __b: 0,
+    __e: null,
+    __d: void 0,
+    __c: null,
+    constructor: void 0,
+    __v: null == r3 ? ++u : r3,
+    __i: -1,
+    __u: 0,
+  };
   return null == r3 && null != l.vnode && l.vnode(f4), f4;
 }
 __name(g, "g");
@@ -5257,55 +6299,150 @@ function b(n2) {
 }
 __name(b, "b");
 function k(n2, l3) {
-  this.props = n2, this.context = l3;
+  (this.props = n2), (this.context = l3);
 }
 __name(k, "k");
 function x(n2, l3) {
   if (null == l3) return n2.__ ? x(n2.__, n2.__i + 1) : null;
-  for (var u4; l3 < n2.__k.length; l3++) if (null != (u4 = n2.__k[l3]) && null != u4.__e) return u4.__e;
+  for (var u4; l3 < n2.__k.length; l3++)
+    if (null != (u4 = n2.__k[l3]) && null != u4.__e) return u4.__e;
   return "function" == typeof n2.type ? x(n2) : null;
 }
 __name(x, "x");
 function C(n2) {
   var l3, u4;
   if (null != (n2 = n2.__) && null != n2.__c) {
-    for (n2.__e = n2.__c.base = null, l3 = 0; l3 < n2.__k.length; l3++) if (null != (u4 = n2.__k[l3]) && null != u4.__e) {
-      n2.__e = n2.__c.base = u4.__e;
-      break;
-    }
+    for (n2.__e = n2.__c.base = null, l3 = 0; l3 < n2.__k.length; l3++)
+      if (null != (u4 = n2.__k[l3]) && null != u4.__e) {
+        n2.__e = n2.__c.base = u4.__e;
+        break;
+      }
     return C(n2);
   }
 }
 __name(C, "C");
 function S(n2) {
-  (!n2.__d && (n2.__d = true) && i.push(n2) && !M.__r++ || o !== l.debounceRendering) && ((o = l.debounceRendering) || r)(M);
+  ((!n2.__d && (n2.__d = true) && i.push(n2) && !M.__r++) ||
+    o !== l.debounceRendering) &&
+    ((o = l.debounceRendering) || r)(M);
 }
 __name(S, "S");
 function M() {
   var n2, u4, t2, o3, r3, e2, c3, s3;
-  for (i.sort(f); n2 = i.shift(); ) n2.__d && (u4 = i.length, o3 = void 0, e2 = (r3 = (t2 = n2).__v).__e, c3 = [], s3 = [], t2.__P && ((o3 = d({}, r3)).__v = r3.__v + 1, l.vnode && l.vnode(o3), O(t2.__P, o3, r3, t2.__n, t2.__P.namespaceURI, 32 & r3.__u ? [e2] : null, c3, null == e2 ? x(r3) : e2, !!(32 & r3.__u), s3), o3.__v = r3.__v, o3.__.__k[o3.__i] = o3, j(c3, o3, s3), o3.__e != e2 && C(o3)), i.length > u4 && i.sort(f));
+  for (i.sort(f); (n2 = i.shift()); )
+    n2.__d &&
+      ((u4 = i.length),
+      (o3 = void 0),
+      (e2 = (r3 = (t2 = n2).__v).__e),
+      (c3 = []),
+      (s3 = []),
+      t2.__P &&
+        (((o3 = d({}, r3)).__v = r3.__v + 1),
+        l.vnode && l.vnode(o3),
+        O(
+          t2.__P,
+          o3,
+          r3,
+          t2.__n,
+          t2.__P.namespaceURI,
+          32 & r3.__u ? [e2] : null,
+          c3,
+          null == e2 ? x(r3) : e2,
+          !!(32 & r3.__u),
+          s3,
+        ),
+        (o3.__v = r3.__v),
+        (o3.__.__k[o3.__i] = o3),
+        j(c3, o3, s3),
+        o3.__e != e2 && C(o3)),
+      i.length > u4 && i.sort(f));
   M.__r = 0;
 }
 __name(M, "M");
 function P(n2, l3, u4, t2, i4, o3, r3, f4, e2, c3, s3) {
-  var a3, p3, y2, d3, w3, _3 = t2 && t2.__k || v, g2 = l3.length;
-  for (u4.__d = e2, $(u4, l3, _3), e2 = u4.__d, a3 = 0; a3 < g2; a3++) null != (y2 = u4.__k[a3]) && (p3 = -1 === y2.__i ? h : _3[y2.__i] || h, y2.__i = a3, O(n2, y2, p3, i4, o3, r3, f4, e2, c3, s3), d3 = y2.__e, y2.ref && p3.ref != y2.ref && (p3.ref && N(p3.ref, null, y2), s3.push(y2.ref, y2.__c || d3, y2)), null == w3 && null != d3 && (w3 = d3), 65536 & y2.__u || p3.__k === y2.__k ? e2 = I(y2, e2, n2) : "function" == typeof y2.type && void 0 !== y2.__d ? e2 = y2.__d : d3 && (e2 = d3.nextSibling), y2.__d = void 0, y2.__u &= -196609);
-  u4.__d = e2, u4.__e = w3;
+  var a3,
+    p3,
+    y2,
+    d3,
+    w3,
+    _3 = (t2 && t2.__k) || v,
+    g2 = l3.length;
+  for (u4.__d = e2, $(u4, l3, _3), e2 = u4.__d, a3 = 0; a3 < g2; a3++)
+    null != (y2 = u4.__k[a3]) &&
+      ((p3 = -1 === y2.__i ? h : _3[y2.__i] || h),
+      (y2.__i = a3),
+      O(n2, y2, p3, i4, o3, r3, f4, e2, c3, s3),
+      (d3 = y2.__e),
+      y2.ref &&
+        p3.ref != y2.ref &&
+        (p3.ref && N(p3.ref, null, y2), s3.push(y2.ref, y2.__c || d3, y2)),
+      null == w3 && null != d3 && (w3 = d3),
+      65536 & y2.__u || p3.__k === y2.__k
+        ? (e2 = I(y2, e2, n2))
+        : "function" == typeof y2.type && void 0 !== y2.__d
+          ? (e2 = y2.__d)
+          : d3 && (e2 = d3.nextSibling),
+      (y2.__d = void 0),
+      (y2.__u &= -196609));
+  (u4.__d = e2), (u4.__e = w3);
 }
 __name(P, "P");
 function $(n2, l3, u4) {
-  var t2, i4, o3, r3, f4, e2 = l3.length, c3 = u4.length, s3 = c3, a3 = 0;
-  for (n2.__k = [], t2 = 0; t2 < e2; t2++) null != (i4 = l3[t2]) && "boolean" != typeof i4 && "function" != typeof i4 ? (r3 = t2 + a3, (i4 = n2.__k[t2] = "string" == typeof i4 || "number" == typeof i4 || "bigint" == typeof i4 || i4.constructor == String ? g(null, i4, null, null, null) : y(i4) ? g(b, { children: i4 }, null, null, null) : void 0 === i4.constructor && i4.__b > 0 ? g(i4.type, i4.props, i4.key, i4.ref ? i4.ref : null, i4.__v) : i4).__ = n2, i4.__b = n2.__b + 1, o3 = null, -1 !== (f4 = i4.__i = L(i4, u4, r3, s3)) && (s3--, (o3 = u4[f4]) && (o3.__u |= 131072)), null == o3 || null === o3.__v ? (-1 == f4 && a3--, "function" != typeof i4.type && (i4.__u |= 65536)) : f4 !== r3 && (f4 == r3 - 1 ? a3-- : f4 == r3 + 1 ? a3++ : (f4 > r3 ? a3-- : a3++, i4.__u |= 65536))) : i4 = n2.__k[t2] = null;
-  if (s3) for (t2 = 0; t2 < c3; t2++) null != (o3 = u4[t2]) && 0 == (131072 & o3.__u) && (o3.__e == n2.__d && (n2.__d = x(o3)), V(o3, o3));
+  var t2,
+    i4,
+    o3,
+    r3,
+    f4,
+    e2 = l3.length,
+    c3 = u4.length,
+    s3 = c3,
+    a3 = 0;
+  for (n2.__k = [], t2 = 0; t2 < e2; t2++)
+    null != (i4 = l3[t2]) && "boolean" != typeof i4 && "function" != typeof i4
+      ? ((r3 = t2 + a3),
+        ((i4 = n2.__k[t2] =
+          "string" == typeof i4 ||
+          "number" == typeof i4 ||
+          "bigint" == typeof i4 ||
+          i4.constructor == String
+            ? g(null, i4, null, null, null)
+            : y(i4)
+              ? g(b, { children: i4 }, null, null, null)
+              : void 0 === i4.constructor && i4.__b > 0
+                ? g(i4.type, i4.props, i4.key, i4.ref ? i4.ref : null, i4.__v)
+                : i4).__ = n2),
+        (i4.__b = n2.__b + 1),
+        (o3 = null),
+        -1 !== (f4 = i4.__i = L(i4, u4, r3, s3)) &&
+          (s3--, (o3 = u4[f4]) && (o3.__u |= 131072)),
+        null == o3 || null === o3.__v
+          ? (-1 == f4 && a3--,
+            "function" != typeof i4.type && (i4.__u |= 65536))
+          : f4 !== r3 &&
+            (f4 == r3 - 1
+              ? a3--
+              : f4 == r3 + 1
+                ? a3++
+                : (f4 > r3 ? a3-- : a3++, (i4.__u |= 65536))))
+      : (i4 = n2.__k[t2] = null);
+  if (s3)
+    for (t2 = 0; t2 < c3; t2++)
+      null != (o3 = u4[t2]) &&
+        0 == (131072 & o3.__u) &&
+        (o3.__e == n2.__d && (n2.__d = x(o3)), V(o3, o3));
 }
 __name($, "$");
 function I(n2, l3, u4) {
   var t2, i4;
   if ("function" == typeof n2.type) {
-    for (t2 = n2.__k, i4 = 0; t2 && i4 < t2.length; i4++) t2[i4] && (t2[i4].__ = n2, l3 = I(t2[i4], l3, u4));
+    for (t2 = n2.__k, i4 = 0; t2 && i4 < t2.length; i4++)
+      t2[i4] && ((t2[i4].__ = n2), (l3 = I(t2[i4], l3, u4)));
     return l3;
   }
-  n2.__e != l3 && (l3 && n2.type && !u4.contains(l3) && (l3 = x(n2)), u4.insertBefore(n2.__e, l3 || null), l3 = n2.__e);
+  n2.__e != l3 &&
+    (l3 && n2.type && !u4.contains(l3) && (l3 = x(n2)),
+    u4.insertBefore(n2.__e, l3 || null),
+    (l3 = n2.__e));
   do {
     l3 = l3 && l3.nextSibling;
   } while (null != l3 && 8 === l3.nodeType);
@@ -5313,46 +6450,102 @@ function I(n2, l3, u4) {
 }
 __name(I, "I");
 function L(n2, l3, u4, t2) {
-  var i4 = n2.key, o3 = n2.type, r3 = u4 - 1, f4 = u4 + 1, e2 = l3[u4];
-  if (null === e2 || e2 && i4 == e2.key && o3 === e2.type && 0 == (131072 & e2.__u)) return u4;
-  if (t2 > (null != e2 && 0 == (131072 & e2.__u) ? 1 : 0)) for (; r3 >= 0 || f4 < l3.length; ) {
-    if (r3 >= 0) {
-      if ((e2 = l3[r3]) && 0 == (131072 & e2.__u) && i4 == e2.key && o3 === e2.type) return r3;
-      r3--;
+  var i4 = n2.key,
+    o3 = n2.type,
+    r3 = u4 - 1,
+    f4 = u4 + 1,
+    e2 = l3[u4];
+  if (
+    null === e2 ||
+    (e2 && i4 == e2.key && o3 === e2.type && 0 == (131072 & e2.__u))
+  )
+    return u4;
+  if (t2 > (null != e2 && 0 == (131072 & e2.__u) ? 1 : 0))
+    for (; r3 >= 0 || f4 < l3.length; ) {
+      if (r3 >= 0) {
+        if (
+          (e2 = l3[r3]) &&
+          0 == (131072 & e2.__u) &&
+          i4 == e2.key &&
+          o3 === e2.type
+        )
+          return r3;
+        r3--;
+      }
+      if (f4 < l3.length) {
+        if (
+          (e2 = l3[f4]) &&
+          0 == (131072 & e2.__u) &&
+          i4 == e2.key &&
+          o3 === e2.type
+        )
+          return f4;
+        f4++;
+      }
     }
-    if (f4 < l3.length) {
-      if ((e2 = l3[f4]) && 0 == (131072 & e2.__u) && i4 == e2.key && o3 === e2.type) return f4;
-      f4++;
-    }
-  }
   return -1;
 }
 __name(L, "L");
 function T(n2, l3, u4) {
-  "-" === l3[0] ? n2.setProperty(l3, null == u4 ? "" : u4) : n2[l3] = null == u4 ? "" : "number" != typeof u4 || p.test(l3) ? u4 : u4 + "px";
+  "-" === l3[0]
+    ? n2.setProperty(l3, null == u4 ? "" : u4)
+    : (n2[l3] =
+        null == u4 ? "" : "number" != typeof u4 || p.test(l3) ? u4 : u4 + "px");
 }
 __name(T, "T");
 function A(n2, l3, u4, t2, i4) {
   var o3;
-  n: if ("style" === l3) if ("string" == typeof u4) n2.style.cssText = u4;
-  else {
-    if ("string" == typeof t2 && (n2.style.cssText = t2 = ""), t2) for (l3 in t2) u4 && l3 in u4 || T(n2.style, l3, "");
-    if (u4) for (l3 in u4) t2 && u4[l3] === t2[l3] || T(n2.style, l3, u4[l3]);
-  }
-  else if ("o" === l3[0] && "n" === l3[1]) o3 = l3 !== (l3 = l3.replace(/(PointerCapture)$|Capture$/i, "$1")), l3 = l3.toLowerCase() in n2 || "onFocusOut" === l3 || "onFocusIn" === l3 ? l3.toLowerCase().slice(2) : l3.slice(2), n2.l || (n2.l = {}), n2.l[l3 + o3] = u4, u4 ? t2 ? u4.u = t2.u : (u4.u = e, n2.addEventListener(l3, o3 ? s : c, o3)) : n2.removeEventListener(l3, o3 ? s : c, o3);
-  else {
-    if ("http://www.w3.org/2000/svg" == i4) l3 = l3.replace(/xlink(H|:h)/, "h").replace(/sName$/, "s");
-    else if ("width" != l3 && "height" != l3 && "href" != l3 && "list" != l3 && "form" != l3 && "tabIndex" != l3 && "download" != l3 && "rowSpan" != l3 && "colSpan" != l3 && "role" != l3 && "popover" != l3 && l3 in n2) try {
-      n2[l3] = null == u4 ? "" : u4;
-      break n;
-    } catch (n3) {
+  n: if ("style" === l3)
+    if ("string" == typeof u4) n2.style.cssText = u4;
+    else {
+      if (("string" == typeof t2 && (n2.style.cssText = t2 = ""), t2))
+        for (l3 in t2) (u4 && l3 in u4) || T(n2.style, l3, "");
+      if (u4)
+        for (l3 in u4) (t2 && u4[l3] === t2[l3]) || T(n2.style, l3, u4[l3]);
     }
-    "function" == typeof u4 || (null == u4 || false === u4 && "-" !== l3[4] ? n2.removeAttribute(l3) : n2.setAttribute(l3, "popover" == l3 && 1 == u4 ? "" : u4));
+  else if ("o" === l3[0] && "n" === l3[1])
+    (o3 = l3 !== (l3 = l3.replace(/(PointerCapture)$|Capture$/i, "$1"))),
+      (l3 =
+        l3.toLowerCase() in n2 || "onFocusOut" === l3 || "onFocusIn" === l3
+          ? l3.toLowerCase().slice(2)
+          : l3.slice(2)),
+      n2.l || (n2.l = {}),
+      (n2.l[l3 + o3] = u4),
+      u4
+        ? t2
+          ? (u4.u = t2.u)
+          : ((u4.u = e), n2.addEventListener(l3, o3 ? s : c, o3))
+        : n2.removeEventListener(l3, o3 ? s : c, o3);
+  else {
+    if ("http://www.w3.org/2000/svg" == i4)
+      l3 = l3.replace(/xlink(H|:h)/, "h").replace(/sName$/, "s");
+    else if (
+      "width" != l3 &&
+      "height" != l3 &&
+      "href" != l3 &&
+      "list" != l3 &&
+      "form" != l3 &&
+      "tabIndex" != l3 &&
+      "download" != l3 &&
+      "rowSpan" != l3 &&
+      "colSpan" != l3 &&
+      "role" != l3 &&
+      "popover" != l3 &&
+      l3 in n2
+    )
+      try {
+        n2[l3] = null == u4 ? "" : u4;
+        break n;
+      } catch (n3) {}
+    "function" == typeof u4 ||
+      (null == u4 || (false === u4 && "-" !== l3[4])
+        ? n2.removeAttribute(l3)
+        : n2.setAttribute(l3, "popover" == l3 && 1 == u4 ? "" : u4));
   }
 }
 __name(A, "A");
 function F(n2) {
-  return function(u4) {
+  return function (u4) {
     if (this.l) {
       var t2 = this.l[u4.type + n2];
       if (null == u4.t) u4.t = e++;
@@ -5363,80 +6556,295 @@ function F(n2) {
 }
 __name(F, "F");
 function O(n2, u4, t2, i4, o3, r3, f4, e2, c3, s3) {
-  var a3, h3, v2, p3, w3, _3, g2, m, x3, C3, S2, M2, $2, I2, H, L3, T3 = u4.type;
+  var a3,
+    h3,
+    v2,
+    p3,
+    w3,
+    _3,
+    g2,
+    m,
+    x3,
+    C3,
+    S2,
+    M2,
+    $2,
+    I2,
+    H,
+    L3,
+    T3 = u4.type;
   if (void 0 !== u4.constructor) return null;
-  128 & t2.__u && (c3 = !!(32 & t2.__u), r3 = [e2 = u4.__e = t2.__e]), (a3 = l.__b) && a3(u4);
-  n: if ("function" == typeof T3) try {
-    if (m = u4.props, x3 = "prototype" in T3 && T3.prototype.render, C3 = (a3 = T3.contextType) && i4[a3.__c], S2 = a3 ? C3 ? C3.props.value : a3.__ : i4, t2.__c ? g2 = (h3 = u4.__c = t2.__c).__ = h3.__E : (x3 ? u4.__c = h3 = new T3(m, S2) : (u4.__c = h3 = new k(m, S2), h3.constructor = T3, h3.render = q), C3 && C3.sub(h3), h3.props = m, h3.state || (h3.state = {}), h3.context = S2, h3.__n = i4, v2 = h3.__d = true, h3.__h = [], h3._sb = []), x3 && null == h3.__s && (h3.__s = h3.state), x3 && null != T3.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = d({}, h3.__s)), d(h3.__s, T3.getDerivedStateFromProps(m, h3.__s))), p3 = h3.props, w3 = h3.state, h3.__v = u4, v2) x3 && null == T3.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), x3 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
-    else {
-      if (x3 && null == T3.getDerivedStateFromProps && m !== p3 && null != h3.componentWillReceiveProps && h3.componentWillReceiveProps(m, S2), !h3.__e && (null != h3.shouldComponentUpdate && false === h3.shouldComponentUpdate(m, h3.__s, S2) || u4.__v === t2.__v)) {
-        for (u4.__v !== t2.__v && (h3.props = m, h3.state = h3.__s, h3.__d = false), u4.__e = t2.__e, u4.__k = t2.__k, u4.__k.some(function(n3) {
-          n3 && (n3.__ = u4);
-        }), M2 = 0; M2 < h3._sb.length; M2++) h3.__h.push(h3._sb[M2]);
-        h3._sb = [], h3.__h.length && f4.push(h3);
-        break n;
+  128 & t2.__u && ((c3 = !!(32 & t2.__u)), (r3 = [(e2 = u4.__e = t2.__e)])),
+    (a3 = l.__b) && a3(u4);
+  n: if ("function" == typeof T3)
+    try {
+      if (
+        ((m = u4.props),
+        (x3 = "prototype" in T3 && T3.prototype.render),
+        (C3 = (a3 = T3.contextType) && i4[a3.__c]),
+        (S2 = a3 ? (C3 ? C3.props.value : a3.__) : i4),
+        t2.__c
+          ? (g2 = (h3 = u4.__c = t2.__c).__ = h3.__E)
+          : (x3
+              ? (u4.__c = h3 = new T3(m, S2))
+              : ((u4.__c = h3 = new k(m, S2)),
+                (h3.constructor = T3),
+                (h3.render = q)),
+            C3 && C3.sub(h3),
+            (h3.props = m),
+            h3.state || (h3.state = {}),
+            (h3.context = S2),
+            (h3.__n = i4),
+            (v2 = h3.__d = true),
+            (h3.__h = []),
+            (h3._sb = [])),
+        x3 && null == h3.__s && (h3.__s = h3.state),
+        x3 &&
+          null != T3.getDerivedStateFromProps &&
+          (h3.__s == h3.state && (h3.__s = d({}, h3.__s)),
+          d(h3.__s, T3.getDerivedStateFromProps(m, h3.__s))),
+        (p3 = h3.props),
+        (w3 = h3.state),
+        (h3.__v = u4),
+        v2)
+      )
+        x3 &&
+          null == T3.getDerivedStateFromProps &&
+          null != h3.componentWillMount &&
+          h3.componentWillMount(),
+          x3 &&
+            null != h3.componentDidMount &&
+            h3.__h.push(h3.componentDidMount);
+      else {
+        if (
+          (x3 &&
+            null == T3.getDerivedStateFromProps &&
+            m !== p3 &&
+            null != h3.componentWillReceiveProps &&
+            h3.componentWillReceiveProps(m, S2),
+          !h3.__e &&
+            ((null != h3.shouldComponentUpdate &&
+              false === h3.shouldComponentUpdate(m, h3.__s, S2)) ||
+              u4.__v === t2.__v))
+        ) {
+          for (
+            u4.__v !== t2.__v &&
+              ((h3.props = m), (h3.state = h3.__s), (h3.__d = false)),
+              u4.__e = t2.__e,
+              u4.__k = t2.__k,
+              u4.__k.some(function (n3) {
+                n3 && (n3.__ = u4);
+              }),
+              M2 = 0;
+            M2 < h3._sb.length;
+            M2++
+          )
+            h3.__h.push(h3._sb[M2]);
+          (h3._sb = []), h3.__h.length && f4.push(h3);
+          break n;
+        }
+        null != h3.componentWillUpdate && h3.componentWillUpdate(m, h3.__s, S2),
+          x3 &&
+            null != h3.componentDidUpdate &&
+            h3.__h.push(function () {
+              h3.componentDidUpdate(p3, w3, _3);
+            });
       }
-      null != h3.componentWillUpdate && h3.componentWillUpdate(m, h3.__s, S2), x3 && null != h3.componentDidUpdate && h3.__h.push(function() {
-        h3.componentDidUpdate(p3, w3, _3);
-      });
+      if (
+        ((h3.context = S2),
+        (h3.props = m),
+        (h3.__P = n2),
+        (h3.__e = false),
+        ($2 = l.__r),
+        (I2 = 0),
+        x3)
+      ) {
+        for (
+          h3.state = h3.__s,
+            h3.__d = false,
+            $2 && $2(u4),
+            a3 = h3.render(h3.props, h3.state, h3.context),
+            H = 0;
+          H < h3._sb.length;
+          H++
+        )
+          h3.__h.push(h3._sb[H]);
+        h3._sb = [];
+      } else
+        do {
+          (h3.__d = false),
+            $2 && $2(u4),
+            (a3 = h3.render(h3.props, h3.state, h3.context)),
+            (h3.state = h3.__s);
+        } while (h3.__d && ++I2 < 25);
+      (h3.state = h3.__s),
+        null != h3.getChildContext && (i4 = d(d({}, i4), h3.getChildContext())),
+        x3 &&
+          !v2 &&
+          null != h3.getSnapshotBeforeUpdate &&
+          (_3 = h3.getSnapshotBeforeUpdate(p3, w3)),
+        P(
+          n2,
+          y(
+            (L3 =
+              null != a3 && a3.type === b && null == a3.key
+                ? a3.props.children
+                : a3),
+          )
+            ? L3
+            : [L3],
+          u4,
+          t2,
+          i4,
+          o3,
+          r3,
+          f4,
+          e2,
+          c3,
+          s3,
+        ),
+        (h3.base = u4.__e),
+        (u4.__u &= -161),
+        h3.__h.length && f4.push(h3),
+        g2 && (h3.__E = h3.__ = null);
+    } catch (n3) {
+      if (((u4.__v = null), c3 || null != r3)) {
+        for (
+          u4.__u |= c3 ? 160 : 128;
+          e2 && 8 === e2.nodeType && e2.nextSibling;
+
+        )
+          e2 = e2.nextSibling;
+        (r3[r3.indexOf(e2)] = null), (u4.__e = e2);
+      } else (u4.__e = t2.__e), (u4.__k = t2.__k);
+      l.__e(n3, u4, t2);
     }
-    if (h3.context = S2, h3.props = m, h3.__P = n2, h3.__e = false, $2 = l.__r, I2 = 0, x3) {
-      for (h3.state = h3.__s, h3.__d = false, $2 && $2(u4), a3 = h3.render(h3.props, h3.state, h3.context), H = 0; H < h3._sb.length; H++) h3.__h.push(h3._sb[H]);
-      h3._sb = [];
-    } else do {
-      h3.__d = false, $2 && $2(u4), a3 = h3.render(h3.props, h3.state, h3.context), h3.state = h3.__s;
-    } while (h3.__d && ++I2 < 25);
-    h3.state = h3.__s, null != h3.getChildContext && (i4 = d(d({}, i4), h3.getChildContext())), x3 && !v2 && null != h3.getSnapshotBeforeUpdate && (_3 = h3.getSnapshotBeforeUpdate(p3, w3)), P(n2, y(L3 = null != a3 && a3.type === b && null == a3.key ? a3.props.children : a3) ? L3 : [L3], u4, t2, i4, o3, r3, f4, e2, c3, s3), h3.base = u4.__e, u4.__u &= -161, h3.__h.length && f4.push(h3), g2 && (h3.__E = h3.__ = null);
-  } catch (n3) {
-    if (u4.__v = null, c3 || null != r3) {
-      for (u4.__u |= c3 ? 160 : 128; e2 && 8 === e2.nodeType && e2.nextSibling; ) e2 = e2.nextSibling;
-      r3[r3.indexOf(e2)] = null, u4.__e = e2;
-    } else u4.__e = t2.__e, u4.__k = t2.__k;
-    l.__e(n3, u4, t2);
-  }
-  else null == r3 && u4.__v === t2.__v ? (u4.__k = t2.__k, u4.__e = t2.__e) : u4.__e = z(t2.__e, u4, t2, i4, o3, r3, f4, c3, s3);
+  else
+    null == r3 && u4.__v === t2.__v
+      ? ((u4.__k = t2.__k), (u4.__e = t2.__e))
+      : (u4.__e = z(t2.__e, u4, t2, i4, o3, r3, f4, c3, s3));
   (a3 = l.diffed) && a3(u4);
 }
 __name(O, "O");
 function j(n2, u4, t2) {
   u4.__d = void 0;
   for (var i4 = 0; i4 < t2.length; i4++) N(t2[i4], t2[++i4], t2[++i4]);
-  l.__c && l.__c(u4, n2), n2.some(function(u5) {
-    try {
-      n2 = u5.__h, u5.__h = [], n2.some(function(n3) {
-        n3.call(u5);
-      });
-    } catch (n3) {
-      l.__e(n3, u5.__v);
-    }
-  });
+  l.__c && l.__c(u4, n2),
+    n2.some(function (u5) {
+      try {
+        (n2 = u5.__h),
+          (u5.__h = []),
+          n2.some(function (n3) {
+            n3.call(u5);
+          });
+      } catch (n3) {
+        l.__e(n3, u5.__v);
+      }
+    });
 }
 __name(j, "j");
 function z(u4, t2, i4, o3, r3, f4, e2, c3, s3) {
-  var a3, v2, p3, d3, _3, g2, m, b2 = i4.props, k3 = t2.props, C3 = t2.type;
-  if ("svg" === C3 ? r3 = "http://www.w3.org/2000/svg" : "math" === C3 ? r3 = "http://www.w3.org/1998/Math/MathML" : r3 || (r3 = "http://www.w3.org/1999/xhtml"), null != f4) {
-    for (a3 = 0; a3 < f4.length; a3++) if ((_3 = f4[a3]) && "setAttribute" in _3 == !!C3 && (C3 ? _3.localName === C3 : 3 === _3.nodeType)) {
-      u4 = _3, f4[a3] = null;
-      break;
-    }
+  var a3,
+    v2,
+    p3,
+    d3,
+    _3,
+    g2,
+    m,
+    b2 = i4.props,
+    k3 = t2.props,
+    C3 = t2.type;
+  if (
+    ("svg" === C3
+      ? (r3 = "http://www.w3.org/2000/svg")
+      : "math" === C3
+        ? (r3 = "http://www.w3.org/1998/Math/MathML")
+        : r3 || (r3 = "http://www.w3.org/1999/xhtml"),
+    null != f4)
+  ) {
+    for (a3 = 0; a3 < f4.length; a3++)
+      if (
+        (_3 = f4[a3]) &&
+        "setAttribute" in _3 == !!C3 &&
+        (C3 ? _3.localName === C3 : 3 === _3.nodeType)
+      ) {
+        (u4 = _3), (f4[a3] = null);
+        break;
+      }
   }
   if (null == u4) {
     if (null === C3) return document.createTextNode(k3);
-    u4 = document.createElementNS(r3, C3, k3.is && k3), c3 && (l.__m && l.__m(t2, f4), c3 = false), f4 = null;
+    (u4 = document.createElementNS(r3, C3, k3.is && k3)),
+      c3 && (l.__m && l.__m(t2, f4), (c3 = false)),
+      (f4 = null);
   }
-  if (null === C3) b2 === k3 || c3 && u4.data === k3 || (u4.data = k3);
+  if (null === C3) b2 === k3 || (c3 && u4.data === k3) || (u4.data = k3);
   else {
-    if (f4 = f4 && n.call(u4.childNodes), b2 = i4.props || h, !c3 && null != f4) for (b2 = {}, a3 = 0; a3 < u4.attributes.length; a3++) b2[(_3 = u4.attributes[a3]).name] = _3.value;
-    for (a3 in b2) if (_3 = b2[a3], "children" == a3) ;
-    else if ("dangerouslySetInnerHTML" == a3) p3 = _3;
-    else if (!(a3 in k3)) {
-      if ("value" == a3 && "defaultValue" in k3 || "checked" == a3 && "defaultChecked" in k3) continue;
-      A(u4, a3, null, _3, r3);
-    }
-    for (a3 in k3) _3 = k3[a3], "children" == a3 ? d3 = _3 : "dangerouslySetInnerHTML" == a3 ? v2 = _3 : "value" == a3 ? g2 = _3 : "checked" == a3 ? m = _3 : c3 && "function" != typeof _3 || b2[a3] === _3 || A(u4, a3, _3, b2[a3], r3);
-    if (v2) c3 || p3 && (v2.__html === p3.__html || v2.__html === u4.innerHTML) || (u4.innerHTML = v2.__html), t2.__k = [];
-    else if (p3 && (u4.innerHTML = ""), P(u4, y(d3) ? d3 : [d3], t2, i4, o3, "foreignObject" === C3 ? "http://www.w3.org/1999/xhtml" : r3, f4, e2, f4 ? f4[0] : i4.__k && x(i4, 0), c3, s3), null != f4) for (a3 = f4.length; a3--; ) w(f4[a3]);
-    c3 || (a3 = "value", "progress" === C3 && null == g2 ? u4.removeAttribute("value") : void 0 !== g2 && (g2 !== u4[a3] || "progress" === C3 && !g2 || "option" === C3 && g2 !== b2[a3]) && A(u4, a3, g2, b2[a3], r3), a3 = "checked", void 0 !== m && m !== u4[a3] && A(u4, a3, m, b2[a3], r3));
+    if (
+      ((f4 = f4 && n.call(u4.childNodes)),
+      (b2 = i4.props || h),
+      !c3 && null != f4)
+    )
+      for (b2 = {}, a3 = 0; a3 < u4.attributes.length; a3++)
+        b2[(_3 = u4.attributes[a3]).name] = _3.value;
+    for (a3 in b2)
+      if (((_3 = b2[a3]), "children" == a3));
+      else if ("dangerouslySetInnerHTML" == a3) p3 = _3;
+      else if (!(a3 in k3)) {
+        if (
+          ("value" == a3 && "defaultValue" in k3) ||
+          ("checked" == a3 && "defaultChecked" in k3)
+        )
+          continue;
+        A(u4, a3, null, _3, r3);
+      }
+    for (a3 in k3)
+      (_3 = k3[a3]),
+        "children" == a3
+          ? (d3 = _3)
+          : "dangerouslySetInnerHTML" == a3
+            ? (v2 = _3)
+            : "value" == a3
+              ? (g2 = _3)
+              : "checked" == a3
+                ? (m = _3)
+                : (c3 && "function" != typeof _3) ||
+                  b2[a3] === _3 ||
+                  A(u4, a3, _3, b2[a3], r3);
+    if (v2)
+      c3 ||
+        (p3 && (v2.__html === p3.__html || v2.__html === u4.innerHTML)) ||
+        (u4.innerHTML = v2.__html),
+        (t2.__k = []);
+    else if (
+      (p3 && (u4.innerHTML = ""),
+      P(
+        u4,
+        y(d3) ? d3 : [d3],
+        t2,
+        i4,
+        o3,
+        "foreignObject" === C3 ? "http://www.w3.org/1999/xhtml" : r3,
+        f4,
+        e2,
+        f4 ? f4[0] : i4.__k && x(i4, 0),
+        c3,
+        s3,
+      ),
+      null != f4)
+    )
+      for (a3 = f4.length; a3--; ) w(f4[a3]);
+    c3 ||
+      ((a3 = "value"),
+      "progress" === C3 && null == g2
+        ? u4.removeAttribute("value")
+        : void 0 !== g2 &&
+          (g2 !== u4[a3] ||
+            ("progress" === C3 && !g2) ||
+            ("option" === C3 && g2 !== b2[a3])) &&
+          A(u4, a3, g2, b2[a3], r3),
+      (a3 = "checked"),
+      void 0 !== m && m !== u4[a3] && A(u4, a3, m, b2[a3], r3));
   }
   return u4;
 }
@@ -5445,7 +6853,7 @@ function N(n2, u4, t2) {
   try {
     if ("function" == typeof n2) {
       var i4 = "function" == typeof n2.__u;
-      i4 && n2.__u(), i4 && null == u4 || (n2.__u = n2(u4));
+      i4 && n2.__u(), (i4 && null == u4) || (n2.__u = n2(u4));
     } else n2.current = u4;
   } catch (n3) {
     l.__e(n3, t2);
@@ -5454,45 +6862,89 @@ function N(n2, u4, t2) {
 __name(N, "N");
 function V(n2, u4, t2) {
   var i4, o3;
-  if (l.unmount && l.unmount(n2), (i4 = n2.ref) && (i4.current && i4.current !== n2.__e || N(i4, null, u4)), null != (i4 = n2.__c)) {
-    if (i4.componentWillUnmount) try {
-      i4.componentWillUnmount();
-    } catch (n3) {
-      l.__e(n3, u4);
-    }
+  if (
+    (l.unmount && l.unmount(n2),
+    (i4 = n2.ref) && ((i4.current && i4.current !== n2.__e) || N(i4, null, u4)),
+    null != (i4 = n2.__c))
+  ) {
+    if (i4.componentWillUnmount)
+      try {
+        i4.componentWillUnmount();
+      } catch (n3) {
+        l.__e(n3, u4);
+      }
     i4.base = i4.__P = null;
   }
-  if (i4 = n2.__k) for (o3 = 0; o3 < i4.length; o3++) i4[o3] && V(i4[o3], u4, t2 || "function" != typeof n2.type);
-  t2 || w(n2.__e), n2.__c = n2.__ = n2.__e = n2.__d = void 0;
+  if ((i4 = n2.__k))
+    for (o3 = 0; o3 < i4.length; o3++)
+      i4[o3] && V(i4[o3], u4, t2 || "function" != typeof n2.type);
+  t2 || w(n2.__e), (n2.__c = n2.__ = n2.__e = n2.__d = void 0);
 }
 __name(V, "V");
 function q(n2, l3, u4) {
   return this.constructor(n2, u4);
 }
 __name(q, "q");
-n = v.slice, l = { __e: /* @__PURE__ */ __name(function(n2, l3, u4, t2) {
-  for (var i4, o3, r3; l3 = l3.__; ) if ((i4 = l3.__c) && !i4.__) try {
-    if ((o3 = i4.constructor) && null != o3.getDerivedStateFromError && (i4.setState(o3.getDerivedStateFromError(n2)), r3 = i4.__d), null != i4.componentDidCatch && (i4.componentDidCatch(n2, t2 || {}), r3 = i4.__d), r3) return i4.__E = i4;
-  } catch (l4) {
-    n2 = l4;
-  }
-  throw n2;
-}, "__e") }, u = 0, t = /* @__PURE__ */ __name(function(n2) {
-  return null != n2 && null == n2.constructor;
-}, "t"), k.prototype.setState = function(n2, l3) {
-  var u4;
-  u4 = null != this.__s && this.__s !== this.state ? this.__s : this.__s = d({}, this.state), "function" == typeof n2 && (n2 = n2(d({}, u4), this.props)), n2 && d(u4, n2), null != n2 && this.__v && (l3 && this._sb.push(l3), S(this));
-}, k.prototype.forceUpdate = function(n2) {
-  this.__v && (this.__e = true, n2 && this.__h.push(n2), S(this));
-}, k.prototype.render = b, i = [], r = "function" == typeof Promise ? Promise.prototype.then.bind(Promise.resolve()) : setTimeout, f = /* @__PURE__ */ __name(function(n2, l3) {
-  return n2.__v.__b - l3.__v.__b;
-}, "f"), M.__r = 0, e = 0, c = F(false), s = F(true), a = 0;
+(n = v.slice),
+  (l = {
+    __e: /* @__PURE__ */ __name(function (n2, l3, u4, t2) {
+      for (var i4, o3, r3; (l3 = l3.__); )
+        if ((i4 = l3.__c) && !i4.__)
+          try {
+            if (
+              ((o3 = i4.constructor) &&
+                null != o3.getDerivedStateFromError &&
+                (i4.setState(o3.getDerivedStateFromError(n2)), (r3 = i4.__d)),
+              null != i4.componentDidCatch &&
+                (i4.componentDidCatch(n2, t2 || {}), (r3 = i4.__d)),
+              r3)
+            )
+              return (i4.__E = i4);
+          } catch (l4) {
+            n2 = l4;
+          }
+      throw n2;
+    }, "__e"),
+  }),
+  (u = 0),
+  (t = /* @__PURE__ */ __name(function (n2) {
+    return null != n2 && null == n2.constructor;
+  }, "t")),
+  (k.prototype.setState = function (n2, l3) {
+    var u4;
+    (u4 =
+      null != this.__s && this.__s !== this.state
+        ? this.__s
+        : (this.__s = d({}, this.state))),
+      "function" == typeof n2 && (n2 = n2(d({}, u4), this.props)),
+      n2 && d(u4, n2),
+      null != n2 && this.__v && (l3 && this._sb.push(l3), S(this));
+  }),
+  (k.prototype.forceUpdate = function (n2) {
+    this.__v && ((this.__e = true), n2 && this.__h.push(n2), S(this));
+  }),
+  (k.prototype.render = b),
+  (i = []),
+  (r =
+    "function" == typeof Promise
+      ? Promise.prototype.then.bind(Promise.resolve())
+      : setTimeout),
+  (f = /* @__PURE__ */ __name(function (n2, l3) {
+    return n2.__v.__b - l3.__v.__b;
+  }, "f")),
+  (M.__r = 0),
+  (e = 0),
+  (c = F(false)),
+  (s = F(true)),
+  (a = 0);
 
 // node_modules/preact-render-to-string/dist/index.module.js
 var r2 = /[\s\n\\/='"\0<>]/;
 var o2 = /^(xlink|xmlns|xml)([A-Z])/;
-var i2 = /^accessK|^auto[A-Z]|^cell|^ch|^col|cont|cross|dateT|encT|form[A-Z]|frame|hrefL|inputM|maxL|minL|noV|playsI|popoverT|readO|rowS|src[A-Z]|tabI|useM|item[A-Z]/;
-var a2 = /^ac|^ali|arabic|basel|cap|clipPath$|clipRule$|color|dominant|enable|fill|flood|font|glyph[^R]|horiz|image|letter|lighting|marker[^WUH]|overline|panose|pointe|paint|rendering|shape|stop|strikethrough|stroke|text[^L]|transform|underline|unicode|units|^v[^i]|^w|^xH/;
+var i2 =
+  /^accessK|^auto[A-Z]|^cell|^ch|^col|cont|cross|dateT|encT|form[A-Z]|frame|hrefL|inputM|maxL|minL|noV|playsI|popoverT|readO|rowS|src[A-Z]|tabI|useM|item[A-Z]/;
+var a2 =
+  /^ac|^ali|arabic|basel|cap|clipPath$|clipRule$|color|dominant|enable|fill|flood|font|glyph[^R]|horiz|image|letter|lighting|marker[^WUH]|overline|panose|pointe|paint|rendering|shape|stop|strikethrough|stroke|text[^L]|transform|underline|unicode|units|^v[^i]|^w|^xH/;
 var c2 = /* @__PURE__ */ new Set(["draggable", "spellcheck"]);
 var s2 = /["&<]/;
 function l2(e2) {
@@ -5511,21 +6963,64 @@ function l2(e2) {
       default:
         continue;
     }
-    n2 !== t2 && (r3 += e2.slice(t2, n2)), r3 += o3, t2 = n2 + 1;
+    n2 !== t2 && (r3 += e2.slice(t2, n2)), (r3 += o3), (t2 = n2 + 1);
   }
   return n2 !== t2 && (r3 += e2.slice(t2, n2)), r3;
 }
 __name(l2, "l");
 var u2 = {};
-var f2 = /* @__PURE__ */ new Set(["animation-iteration-count", "border-image-outset", "border-image-slice", "border-image-width", "box-flex", "box-flex-group", "box-ordinal-group", "column-count", "fill-opacity", "flex", "flex-grow", "flex-negative", "flex-order", "flex-positive", "flex-shrink", "flood-opacity", "font-weight", "grid-column", "grid-row", "line-clamp", "line-height", "opacity", "order", "orphans", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-miterlimit", "stroke-opacity", "stroke-width", "tab-size", "widows", "z-index", "zoom"]);
+var f2 = /* @__PURE__ */ new Set([
+  "animation-iteration-count",
+  "border-image-outset",
+  "border-image-slice",
+  "border-image-width",
+  "box-flex",
+  "box-flex-group",
+  "box-ordinal-group",
+  "column-count",
+  "fill-opacity",
+  "flex",
+  "flex-grow",
+  "flex-negative",
+  "flex-order",
+  "flex-positive",
+  "flex-shrink",
+  "flood-opacity",
+  "font-weight",
+  "grid-column",
+  "grid-row",
+  "line-clamp",
+  "line-height",
+  "opacity",
+  "order",
+  "orphans",
+  "stop-opacity",
+  "stroke-dasharray",
+  "stroke-dashoffset",
+  "stroke-miterlimit",
+  "stroke-opacity",
+  "stroke-width",
+  "tab-size",
+  "widows",
+  "z-index",
+  "zoom",
+]);
 var p2 = /[A-Z]/g;
 function h2(e2) {
   var t2 = "";
   for (var n2 in e2) {
     var r3 = e2[n2];
     if (null != r3 && "" !== r3) {
-      var o3 = "-" == n2[0] ? n2 : u2[n2] || (u2[n2] = n2.replace(p2, "-$&").toLowerCase()), i4 = ";";
-      "number" != typeof r3 || o3.startsWith("--") || f2.has(o3) || (i4 = "px;"), t2 = t2 + o3 + ":" + r3 + i4;
+      var o3 =
+          "-" == n2[0]
+            ? n2
+            : u2[n2] || (u2[n2] = n2.replace(p2, "-$&").toLowerCase()),
+        i4 = ";";
+      "number" != typeof r3 ||
+        o3.startsWith("--") ||
+        f2.has(o3) ||
+        (i4 = "px;"),
+        (t2 = t2 + o3 + ":" + r3 + i4);
     }
   }
   return t2 || void 0;
@@ -5536,7 +7031,15 @@ function d2() {
 }
 __name(d2, "d");
 function _2(e2, t2) {
-  return { __v: e2, context: t2, props: e2.props, setState: d2, forceUpdate: d2, __d: true, __h: new Array(0) };
+  return {
+    __v: e2,
+    context: t2,
+    props: e2.props,
+    setState: d2,
+    forceUpdate: d2,
+    __d: true,
+    __h: new Array(0),
+  };
 }
 __name(_2, "_");
 var k2;
@@ -5550,56 +7053,98 @@ var T2 = Object.assign;
 var j2 = "";
 function D(r3, o3, i4) {
   var a3 = l.__s;
-  l.__s = true, k2 = l.__b, w2 = l.diffed, x2 = l.__r, C2 = l.unmount;
+  (l.__s = true), (k2 = l.__b), (w2 = l.diffed), (x2 = l.__r), (C2 = l.unmount);
   var c3 = _(b, null);
   c3.__k = [r3];
   try {
     var s3 = U(r3, o3 || A2, false, void 0, c3, false, i4);
     return E(s3) ? s3.join(j2) : s3;
   } catch (e2) {
-    if (e2.then) throw new Error('Use "renderToStringAsync" for suspenseful rendering.');
+    if (e2.then)
+      throw new Error('Use "renderToStringAsync" for suspenseful rendering.');
     throw e2;
   } finally {
-    l.__c && l.__c(r3, L2), l.__s = a3, L2.length = 0;
+    l.__c && l.__c(r3, L2), (l.__s = a3), (L2.length = 0);
   }
 }
 __name(D, "D");
 function P2(e2, t2) {
-  var n2, r3 = e2.type, o3 = true;
-  return e2.__c ? (o3 = false, (n2 = e2.__c).state = n2.__s) : n2 = new r3(e2.props, t2), e2.__c = n2, n2.__v = e2, n2.props = e2.props, n2.context = t2, n2.__d = true, null == n2.state && (n2.state = A2), null == n2.__s && (n2.__s = n2.state), r3.getDerivedStateFromProps ? n2.state = T2({}, n2.state, r3.getDerivedStateFromProps(n2.props, n2.state)) : o3 && n2.componentWillMount ? (n2.componentWillMount(), n2.state = n2.__s !== n2.state ? n2.__s : n2.state) : !o3 && n2.componentWillUpdate && n2.componentWillUpdate(), x2 && x2(e2), n2.render(n2.props, n2.state, t2);
+  var n2,
+    r3 = e2.type,
+    o3 = true;
+  return (
+    e2.__c
+      ? ((o3 = false), ((n2 = e2.__c).state = n2.__s))
+      : (n2 = new r3(e2.props, t2)),
+    (e2.__c = n2),
+    (n2.__v = e2),
+    (n2.props = e2.props),
+    (n2.context = t2),
+    (n2.__d = true),
+    null == n2.state && (n2.state = A2),
+    null == n2.__s && (n2.__s = n2.state),
+    r3.getDerivedStateFromProps
+      ? (n2.state = T2(
+          {},
+          n2.state,
+          r3.getDerivedStateFromProps(n2.props, n2.state),
+        ))
+      : o3 && n2.componentWillMount
+        ? (n2.componentWillMount(),
+          (n2.state = n2.__s !== n2.state ? n2.__s : n2.state))
+        : !o3 && n2.componentWillUpdate && n2.componentWillUpdate(),
+    x2 && x2(e2),
+    n2.render(n2.props, n2.state, t2)
+  );
 }
 __name(P2, "P");
 function U(t2, s3, u4, f4, p3, d3, v2) {
   if (null == t2 || true === t2 || false === t2 || t2 === j2) return j2;
   var m = typeof t2;
-  if ("object" != m) return "function" == m ? j2 : "string" == m ? l2(t2) : t2 + j2;
+  if ("object" != m)
+    return "function" == m ? j2 : "string" == m ? l2(t2) : t2 + j2;
   if (E(t2)) {
-    var y2, g2 = j2;
+    var y2,
+      g2 = j2;
     p3.__k = t2;
     for (var b2 = 0; b2 < t2.length; b2++) {
       var S2 = t2[b2];
       if (null != S2 && "boolean" != typeof S2) {
-        var L3, D2 = U(S2, s3, u4, f4, p3, d3, v2);
-        "string" == typeof D2 ? g2 += D2 : (y2 || (y2 = []), g2 && y2.push(g2), g2 = j2, E(D2) ? (L3 = y2).push.apply(L3, D2) : y2.push(D2));
+        var L3,
+          D2 = U(S2, s3, u4, f4, p3, d3, v2);
+        "string" == typeof D2
+          ? (g2 += D2)
+          : (y2 || (y2 = []),
+            g2 && y2.push(g2),
+            (g2 = j2),
+            E(D2) ? (L3 = y2).push.apply(L3, D2) : y2.push(D2));
       }
     }
     return y2 ? (g2 && y2.push(g2), y2) : g2;
   }
   if (void 0 !== t2.constructor) return j2;
-  t2.__ = p3, k2 && k2(t2);
-  var F2 = t2.type, M2 = t2.props;
+  (t2.__ = p3), k2 && k2(t2);
+  var F2 = t2.type,
+    M2 = t2.props;
   if ("function" == typeof F2) {
-    var W, $2, z2, H = s3;
+    var W,
+      $2,
+      z2,
+      H = s3;
     if (F2 === b) {
       if ("tpl" in M2) {
-        for (var N2 = j2, q2 = 0; q2 < M2.tpl.length; q2++) if (N2 += M2.tpl[q2], M2.exprs && q2 < M2.exprs.length) {
-          var B = M2.exprs[q2];
-          if (null == B) continue;
-          "object" != typeof B || void 0 !== B.constructor && !E(B) ? N2 += B : N2 += U(B, s3, u4, f4, t2, d3, v2);
-        }
+        for (var N2 = j2, q2 = 0; q2 < M2.tpl.length; q2++)
+          if (((N2 += M2.tpl[q2]), M2.exprs && q2 < M2.exprs.length)) {
+            var B = M2.exprs[q2];
+            if (null == B) continue;
+            "object" != typeof B || (void 0 !== B.constructor && !E(B))
+              ? (N2 += B)
+              : (N2 += U(B, s3, u4, f4, t2, d3, v2));
+          }
         return N2;
       }
-      if ("UNSTABLE_comment" in M2) return "<!--" + l2(M2.UNSTABLE_comment) + "-->";
+      if ("UNSTABLE_comment" in M2)
+        return "<!--" + l2(M2.UNSTABLE_comment) + "-->";
       $2 = M2.children;
     } else {
       if (null != (W = F2.contextType)) {
@@ -5607,30 +7152,66 @@ function U(t2, s3, u4, f4, p3, d3, v2) {
         H = I2 ? I2.props.value : W.__;
       }
       var O2 = F2.prototype && "function" == typeof F2.prototype.render;
-      if (O2) $2 = P2(t2, H), z2 = t2.__c;
+      if (O2) ($2 = P2(t2, H)), (z2 = t2.__c);
       else {
         t2.__c = z2 = _2(t2, H);
-        for (var R = 0; z2.__d && R++ < 25; ) z2.__d = false, x2 && x2(t2), $2 = F2.call(z2, M2, H);
+        for (var R = 0; z2.__d && R++ < 25; )
+          (z2.__d = false), x2 && x2(t2), ($2 = F2.call(z2, M2, H));
         z2.__d = true;
       }
-      if (null != z2.getChildContext && (s3 = T2({}, s3, z2.getChildContext())), O2 && l.errorBoundaries && (F2.getDerivedStateFromError || z2.componentDidCatch)) {
-        $2 = null != $2 && $2.type === b && null == $2.key && null == $2.props.tpl ? $2.props.children : $2;
+      if (
+        (null != z2.getChildContext && (s3 = T2({}, s3, z2.getChildContext())),
+        O2 &&
+          l.errorBoundaries &&
+          (F2.getDerivedStateFromError || z2.componentDidCatch))
+      ) {
+        $2 =
+          null != $2 && $2.type === b && null == $2.key && null == $2.props.tpl
+            ? $2.props.children
+            : $2;
         try {
           return U($2, s3, u4, f4, t2, d3, v2);
         } catch (e2) {
-          return F2.getDerivedStateFromError && (z2.__s = F2.getDerivedStateFromError(e2)), z2.componentDidCatch && z2.componentDidCatch(e2, A2), z2.__d ? ($2 = P2(t2, s3), null != (z2 = t2.__c).getChildContext && (s3 = T2({}, s3, z2.getChildContext())), U($2 = null != $2 && $2.type === b && null == $2.key && null == $2.props.tpl ? $2.props.children : $2, s3, u4, f4, t2, d3, v2)) : j2;
+          return (
+            F2.getDerivedStateFromError &&
+              (z2.__s = F2.getDerivedStateFromError(e2)),
+            z2.componentDidCatch && z2.componentDidCatch(e2, A2),
+            z2.__d
+              ? (($2 = P2(t2, s3)),
+                null != (z2 = t2.__c).getChildContext &&
+                  (s3 = T2({}, s3, z2.getChildContext())),
+                U(
+                  ($2 =
+                    null != $2 &&
+                    $2.type === b &&
+                    null == $2.key &&
+                    null == $2.props.tpl
+                      ? $2.props.children
+                      : $2),
+                  s3,
+                  u4,
+                  f4,
+                  t2,
+                  d3,
+                  v2,
+                ))
+              : j2
+          );
         } finally {
-          w2 && w2(t2), t2.__ = null, C2 && C2(t2);
+          w2 && w2(t2), (t2.__ = null), C2 && C2(t2);
         }
       }
     }
-    $2 = null != $2 && $2.type === b && null == $2.key && null == $2.props.tpl ? $2.props.children : $2;
+    $2 =
+      null != $2 && $2.type === b && null == $2.key && null == $2.props.tpl
+        ? $2.props.children
+        : $2;
     try {
       var V2 = U($2, s3, u4, f4, t2, d3, v2);
-      return w2 && w2(t2), t2.__ = null, l.unmount && l.unmount(t2), V2;
+      return w2 && w2(t2), (t2.__ = null), l.unmount && l.unmount(t2), V2;
     } catch (n2) {
       if (!d3 && v2 && v2.onError) {
-        var K = v2.onError(n2, t2, function(e2) {
+        var K = v2.onError(n2, t2, function (e2) {
           return U(e2, s3, u4, f4, t2, d3, v2);
         });
         if (void 0 !== K) return K;
@@ -5639,19 +7220,23 @@ function U(t2, s3, u4, f4, p3, d3, v2) {
       }
       if (!d3) throw n2;
       if (!n2 || "function" != typeof n2.then) throw n2;
-      return n2.then(/* @__PURE__ */ __name(function e2() {
-        try {
-          return U($2, s3, u4, f4, t2, d3, v2);
-        } catch (n3) {
-          if (!n3 || "function" != typeof n3.then) throw n3;
-          return n3.then(function() {
+      return n2.then(
+        /* @__PURE__ */ __name(function e2() {
+          try {
             return U($2, s3, u4, f4, t2, d3, v2);
-          }, e2);
-        }
-      }, "e"));
+          } catch (n3) {
+            if (!n3 || "function" != typeof n3.then) throw n3;
+            return n3.then(function () {
+              return U($2, s3, u4, f4, t2, d3, v2);
+            }, e2);
+          }
+        }, "e"),
+      );
     }
   }
-  var J, Q = "<" + F2, X = j2;
+  var J,
+    Q = "<" + F2,
+    X = j2;
   for (var Y in M2) {
     var ee = M2[Y];
     if ("function" != typeof ee || "class" === Y || "className" === Y) {
@@ -5680,7 +7265,7 @@ function U(t2, s3, u4, f4, p3, d3, v2) {
           break;
         case "defaultValue":
         case "value":
-          switch (Y = "value", F2) {
+          switch (((Y = "value"), F2)) {
             case "textarea":
               J = ee;
               continue;
@@ -5707,29 +7292,111 @@ function U(t2, s3, u4, f4, p3, d3, v2) {
           if (o2.test(Y)) Y = Y.replace(o2, "$1:$2").toLowerCase();
           else {
             if (r2.test(Y)) continue;
-            "-" !== Y[4] && !c2.has(Y) || null == ee ? u4 ? a2.test(Y) && (Y = "panose1" === Y ? "panose-1" : Y.replace(/([A-Z])/g, "-$1").toLowerCase()) : i2.test(Y) && (Y = Y.toLowerCase()) : ee += j2;
+            ("-" !== Y[4] && !c2.has(Y)) || null == ee
+              ? u4
+                ? a2.test(Y) &&
+                  (Y =
+                    "panose1" === Y
+                      ? "panose-1"
+                      : Y.replace(/([A-Z])/g, "-$1").toLowerCase())
+                : i2.test(Y) && (Y = Y.toLowerCase())
+              : (ee += j2);
           }
       }
-      null != ee && false !== ee && (Q = true === ee || ee === j2 ? Q + " " + Y : Q + " " + Y + '="' + ("string" == typeof ee ? l2(ee) : ee + j2) + '"');
+      null != ee &&
+        false !== ee &&
+        (Q =
+          true === ee || ee === j2
+            ? Q + " " + Y
+            : Q +
+              " " +
+              Y +
+              '="' +
+              ("string" == typeof ee ? l2(ee) : ee + j2) +
+              '"');
     }
   }
-  if (r2.test(F2)) throw new Error(F2 + " is not a valid HTML tag name in " + Q + ">");
-  if (X || ("string" == typeof J ? X = l2(J) : null != J && false !== J && true !== J && (X = U(J, s3, "svg" === F2 || "foreignObject" !== F2 && u4, f4, t2, d3, v2))), w2 && w2(t2), t2.__ = null, C2 && C2(t2), !X && Z.has(F2)) return Q + "/>";
-  var te = "</" + F2 + ">", ne2 = Q + ">";
-  return E(X) ? [ne2].concat(X, [te]) : "string" != typeof X ? [ne2, X, te] : ne2 + X + te;
+  if (r2.test(F2))
+    throw new Error(F2 + " is not a valid HTML tag name in " + Q + ">");
+  if (
+    (X ||
+      ("string" == typeof J
+        ? (X = l2(J))
+        : null != J &&
+          false !== J &&
+          true !== J &&
+          (X = U(
+            J,
+            s3,
+            "svg" === F2 || ("foreignObject" !== F2 && u4),
+            f4,
+            t2,
+            d3,
+            v2,
+          ))),
+    w2 && w2(t2),
+    (t2.__ = null),
+    C2 && C2(t2),
+    !X && Z.has(F2))
+  )
+    return Q + "/>";
+  var te = "</" + F2 + ">",
+    ne2 = Q + ">";
+  return E(X)
+    ? [ne2].concat(X, [te])
+    : "string" != typeof X
+      ? [ne2, X, te]
+      : ne2 + X + te;
 }
 __name(U, "U");
-var Z = /* @__PURE__ */ new Set(["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]);
+var Z = /* @__PURE__ */ new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "command",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "keygen",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
 
 // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
 var f3 = 0;
 var i3 = Array.isArray;
 function u3(e2, t2, n2, o3, i4, u4) {
   t2 || (t2 = {});
-  var a3, c3, l3 = t2;
-  "ref" in t2 && (a3 = t2.ref, delete t2.ref);
-  var p3 = { type: e2, props: l3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __d: void 0, __c: null, constructor: void 0, __v: --f3, __i: -1, __u: 0, __source: i4, __self: u4 };
-  if ("function" == typeof e2 && (a3 = e2.defaultProps)) for (c3 in a3) void 0 === l3[c3] && (l3[c3] = a3[c3]);
+  var a3,
+    c3,
+    l3 = t2;
+  "ref" in t2 && ((a3 = t2.ref), delete t2.ref);
+  var p3 = {
+    type: e2,
+    props: l3,
+    key: n2,
+    ref: a3,
+    __k: null,
+    __: null,
+    __b: 0,
+    __e: null,
+    __d: void 0,
+    __c: null,
+    constructor: void 0,
+    __v: --f3,
+    __i: -1,
+    __u: 0,
+    __source: i4,
+    __self: u4,
+  };
+  if ("function" == typeof e2 && (a3 = e2.defaultProps))
+    for (c3 in a3) void 0 === l3[c3] && (l3[c3] = a3[c3]);
   return l.vnode && l.vnode(p3), p3;
 }
 __name(u3, "u");
@@ -5742,35 +7409,93 @@ function ErrorPage(props) {
     default: {
       status: 200,
       heading: "Error",
-      message: u3("p", { children: u3("a", { className: "site", href: url?.origin, children: url?.host }) })
+      message: u3("p", {
+        children: u3("a", {
+          className: "site",
+          href: url?.origin,
+          children: url?.host,
+        }),
+      }),
     },
     Configuration: {
       status: 500,
       heading: "Server error",
-      message: u3("div", { children: [u3("p", { children: "There is a problem with the server configuration." }), u3("p", { children: "Check the server logs for more information." })] })
+      message: u3("div", {
+        children: [
+          u3("p", {
+            children: "There is a problem with the server configuration.",
+          }),
+          u3("p", { children: "Check the server logs for more information." }),
+        ],
+      }),
     },
     AccessDenied: {
       status: 403,
       heading: "Access Denied",
-      message: u3("div", { children: [u3("p", { children: "You do not have permission to sign in." }), u3("p", { children: u3("a", { className: "button", href: signinPageUrl, children: "Sign in" }) })] })
+      message: u3("div", {
+        children: [
+          u3("p", { children: "You do not have permission to sign in." }),
+          u3("p", {
+            children: u3("a", {
+              className: "button",
+              href: signinPageUrl,
+              children: "Sign in",
+            }),
+          }),
+        ],
+      }),
     },
     Verification: {
       status: 403,
       heading: "Unable to sign in",
-      message: u3("div", { children: [u3("p", { children: "The sign in link is no longer valid." }), u3("p", { children: "It may have been used already or it may have expired." })] }),
-      signin: u3("a", { className: "button", href: signinPageUrl, children: "Sign in" })
-    }
+      message: u3("div", {
+        children: [
+          u3("p", { children: "The sign in link is no longer valid." }),
+          u3("p", {
+            children: "It may have been used already or it may have expired.",
+          }),
+        ],
+      }),
+      signin: u3("a", {
+        className: "button",
+        href: signinPageUrl,
+        children: "Sign in",
+      }),
+    },
   };
-  const { status, heading, message: message2, signin } = errors[error] ?? errors.default;
+  const {
+    status,
+    heading,
+    message: message2,
+    signin,
+  } = errors[error] ?? errors.default;
   return {
     status,
-    html: u3("div", { className: "error", children: [theme?.brandColor && u3("style", { dangerouslySetInnerHTML: {
-      __html: `
+    html: u3("div", {
+      className: "error",
+      children: [
+        theme?.brandColor &&
+          u3("style", {
+            dangerouslySetInnerHTML: {
+              __html: `
         :root {
           --brand-color: ${theme?.brandColor}
         }
-      `
-    } }), u3("div", { className: "card", children: [theme?.logo && u3("img", { src: theme?.logo, alt: "Logo", className: "logo" }), u3("h1", { children: heading }), u3("div", { className: "message", children: message2 }), signin] })] })
+      `,
+            },
+          }),
+        u3("div", {
+          className: "card",
+          children: [
+            theme?.logo &&
+              u3("img", { src: theme?.logo, alt: "Logo", className: "logo" }),
+            u3("h1", { children: heading }),
+            u3("div", { className: "message", children: message2 }),
+            signin,
+          ],
+        }),
+      ],
+    }),
   };
 }
 __name(ErrorPage, "ErrorPage");
@@ -5780,8 +7505,7 @@ async function webauthnScript(authURL, providerID) {
   const WebAuthnBrowser = window.SimpleWebAuthnBrowser;
   async function fetchOptions(action) {
     const url = new URL(`${authURL}/webauthn-options/${providerID}`);
-    if (action)
-      url.searchParams.append("action", action);
+    if (action) url.searchParams.append("action", action);
     const formFields = getFormFields();
     formFields.forEach((field) => {
       url.searchParams.append(field.name, field.value);
@@ -5797,14 +7521,15 @@ async function webauthnScript(authURL, providerID) {
   function getForm() {
     const formID = `#${providerID}-form`;
     const form = document.querySelector(formID);
-    if (!form)
-      throw new Error(`Form '${formID}' not found`);
+    if (!form) throw new Error(`Form '${formID}' not found`);
     return form;
   }
   __name(getForm, "getForm");
   function getFormFields() {
     const form = getForm();
-    const formFields = Array.from(form.querySelectorAll("input[data-form-field]"));
+    const formFields = Array.from(
+      form.querySelectorAll("input[data-form-field]"),
+    );
     return formFields;
   }
   __name(getFormFields, "getFormFields");
@@ -5828,7 +7553,10 @@ async function webauthnScript(authURL, providerID) {
   }
   __name(submitForm, "submitForm");
   async function authenticationFlow(options, autofill) {
-    const authResp = await WebAuthnBrowser.startAuthentication(options, autofill);
+    const authResp = await WebAuthnBrowser.startAuthentication(
+      options,
+      autofill,
+    );
     return await submitForm("authenticate", authResp);
   }
   __name(authenticationFlow, "authenticationFlow");
@@ -5844,8 +7572,7 @@ async function webauthnScript(authURL, providerID) {
   }
   __name(registrationFlow, "registrationFlow");
   async function autofillAuthentication() {
-    if (!WebAuthnBrowser.browserSupportsWebAuthnAutofill())
-      return;
+    if (!WebAuthnBrowser.browserSupportsWebAuthnAutofill()) return;
     const res = await fetchOptions("authenticate");
     if (!res) {
       console.error("Failed to fetch option for autofill authentication");
@@ -5903,10 +7630,12 @@ var signinErrors = {
   OAuthCreateAccount: "Try signing in with a different account.",
   EmailCreateAccount: "Try signing in with a different account.",
   Callback: "Try signing in with a different account.",
-  OAuthAccountNotLinked: "To confirm your identity, sign in with the same account you used originally.",
+  OAuthAccountNotLinked:
+    "To confirm your identity, sign in with the same account you used originally.",
   EmailSignin: "The e-mail could not be sent.",
-  CredentialsSignin: "Sign in failed. Check the details you provided are correct.",
-  SessionRequired: "Please sign in to access this page."
+  CredentialsSignin:
+    "Sign in failed. Check the details you provided are correct.",
+  SessionRequired: "Please sign in to access this page.",
 };
 function ConditionalUIScript(providerID) {
   const startConditionalUIScript = `
@@ -5914,70 +7643,330 @@ const currentURL = window.location.href;
 const authURL = currentURL.substring(0, currentURL.lastIndexOf('/'));
 (${webauthnScript})(authURL, "${providerID}");
 `;
-  return u3(b, { children: u3("script", { dangerouslySetInnerHTML: { __html: startConditionalUIScript } }) });
+  return u3(b, {
+    children: u3("script", {
+      dangerouslySetInnerHTML: { __html: startConditionalUIScript },
+    }),
+  });
 }
 __name(ConditionalUIScript, "ConditionalUIScript");
 function SigninPage(props) {
-  const { csrfToken, providers = [], callbackUrl, theme, email, error: errorType } = props;
+  const {
+    csrfToken,
+    providers = [],
+    callbackUrl,
+    theme,
+    email,
+    error: errorType,
+  } = props;
   if (typeof document !== "undefined" && theme?.brandColor) {
-    document.documentElement.style.setProperty("--brand-color", theme.brandColor);
+    document.documentElement.style.setProperty(
+      "--brand-color",
+      theme.brandColor,
+    );
   }
   if (typeof document !== "undefined" && theme?.buttonText) {
-    document.documentElement.style.setProperty("--button-text-color", theme.buttonText);
+    document.documentElement.style.setProperty(
+      "--button-text-color",
+      theme.buttonText,
+    );
   }
   const error = errorType && (signinErrors[errorType] ?? signinErrors.default);
   const providerLogoPath = "https://authjs.dev/img/providers";
-  const conditionalUIProviderID = providers.find((provider) => provider.type === "webauthn" && provider.enableConditionalUI)?.id;
-  return u3("div", { className: "signin", children: [theme?.brandColor && u3("style", { dangerouslySetInnerHTML: {
-    __html: `:root {--brand-color: ${theme.brandColor}}`
-  } }), theme?.buttonText && u3("style", { dangerouslySetInnerHTML: {
-    __html: `
+  const conditionalUIProviderID = providers.find(
+    (provider) => provider.type === "webauthn" && provider.enableConditionalUI,
+  )?.id;
+  return u3("div", {
+    className: "signin",
+    children: [
+      theme?.brandColor &&
+        u3("style", {
+          dangerouslySetInnerHTML: {
+            __html: `:root {--brand-color: ${theme.brandColor}}`,
+          },
+        }),
+      theme?.buttonText &&
+        u3("style", {
+          dangerouslySetInnerHTML: {
+            __html: `
         :root {
           --button-text-color: ${theme.buttonText}
         }
-      `
-  } }), u3("div", { className: "card", children: [error && u3("div", { className: "error", children: u3("p", { children: error }) }), theme?.logo && u3("img", { src: theme.logo, alt: "Logo", className: "logo" }), providers.map((provider, i4) => {
-    let bg, brandColor, logo;
-    if (provider.type === "oauth" || provider.type === "oidc") {
-      ;
-      ({
-        bg = "#fff",
-        brandColor,
-        logo = `${providerLogoPath}/${provider.id}.svg`
-      } = provider.style ?? {});
-    }
-    const color = brandColor ?? bg ?? "#fff";
-    return u3("div", { className: "provider", children: [provider.type === "oauth" || provider.type === "oidc" ? u3("form", { action: provider.signinUrl, method: "POST", children: [u3("input", { type: "hidden", name: "csrfToken", value: csrfToken }), callbackUrl && u3("input", { type: "hidden", name: "callbackUrl", value: callbackUrl }), u3("button", { type: "submit", className: "button", style: {
-      "--provider-brand-color": color
-    }, tabIndex: 0, children: [u3("span", { style: {
-      filter: "invert(1) grayscale(1) brightness(1.3) contrast(9000)",
-      "mix-blend-mode": "luminosity",
-      opacity: 0.95
-    }, children: ["Sign in with ", provider.name] }), logo && u3("img", { loading: "lazy", height: 24, src: logo })] })] }) : null, (provider.type === "email" || provider.type === "credentials" || provider.type === "webauthn") && i4 > 0 && providers[i4 - 1].type !== "email" && providers[i4 - 1].type !== "credentials" && providers[i4 - 1].type !== "webauthn" && u3("hr", {}), provider.type === "email" && u3("form", { action: provider.signinUrl, method: "POST", children: [u3("input", { type: "hidden", name: "csrfToken", value: csrfToken }), u3("label", { className: "section-header", htmlFor: `input-email-for-${provider.id}-provider`, children: "Email" }), u3("input", { id: `input-email-for-${provider.id}-provider`, autoFocus: true, type: "email", name: "email", value: email, placeholder: "email@example.com", required: true }), u3("button", { id: "submitButton", type: "submit", tabIndex: 0, children: ["Sign in with ", provider.name] })] }), provider.type === "credentials" && u3("form", { action: provider.callbackUrl, method: "POST", children: [u3("input", { type: "hidden", name: "csrfToken", value: csrfToken }), Object.keys(provider.credentials).map((credential) => {
-      return u3("div", { children: [u3("label", { className: "section-header", htmlFor: `input-${credential}-for-${provider.id}-provider`, children: provider.credentials[credential].label ?? credential }), u3("input", { name: credential, id: `input-${credential}-for-${provider.id}-provider`, type: provider.credentials[credential].type ?? "text", placeholder: provider.credentials[credential].placeholder ?? "", ...provider.credentials[credential] })] }, `input-group-${provider.id}`);
-    }), u3("button", { id: "submitButton", type: "submit", tabIndex: 0, children: ["Sign in with ", provider.name] })] }), provider.type === "webauthn" && u3("form", { action: provider.callbackUrl, method: "POST", id: `${provider.id}-form`, children: [u3("input", { type: "hidden", name: "csrfToken", value: csrfToken }), Object.keys(provider.formFields).map((field) => {
-      return u3("div", { children: [u3("label", { className: "section-header", htmlFor: `input-${field}-for-${provider.id}-provider`, children: provider.formFields[field].label ?? field }), u3("input", { name: field, "data-form-field": true, id: `input-${field}-for-${provider.id}-provider`, type: provider.formFields[field].type ?? "text", placeholder: provider.formFields[field].placeholder ?? "", ...provider.formFields[field] })] }, `input-group-${provider.id}`);
-    }), u3("button", { id: `submitButton-${provider.id}`, type: "submit", tabIndex: 0, children: ["Sign in with ", provider.name] })] }), (provider.type === "email" || provider.type === "credentials" || provider.type === "webauthn") && i4 + 1 < providers.length && u3("hr", {})] }, provider.id);
-  })] }), conditionalUIProviderID && ConditionalUIScript(conditionalUIProviderID)] });
+      `,
+          },
+        }),
+      u3("div", {
+        className: "card",
+        children: [
+          error &&
+            u3("div", {
+              className: "error",
+              children: u3("p", { children: error }),
+            }),
+          theme?.logo &&
+            u3("img", { src: theme.logo, alt: "Logo", className: "logo" }),
+          providers.map((provider, i4) => {
+            let bg, brandColor, logo;
+            if (provider.type === "oauth" || provider.type === "oidc") {
+              ({
+                bg = "#fff",
+                brandColor,
+                logo = `${providerLogoPath}/${provider.id}.svg`,
+              } = provider.style ?? {});
+            }
+            const color = brandColor ?? bg ?? "#fff";
+            return u3(
+              "div",
+              {
+                className: "provider",
+                children: [
+                  provider.type === "oauth" || provider.type === "oidc"
+                    ? u3("form", {
+                        action: provider.signinUrl,
+                        method: "POST",
+                        children: [
+                          u3("input", {
+                            type: "hidden",
+                            name: "csrfToken",
+                            value: csrfToken,
+                          }),
+                          callbackUrl &&
+                            u3("input", {
+                              type: "hidden",
+                              name: "callbackUrl",
+                              value: callbackUrl,
+                            }),
+                          u3("button", {
+                            type: "submit",
+                            className: "button",
+                            style: {
+                              "--provider-brand-color": color,
+                            },
+                            tabIndex: 0,
+                            children: [
+                              u3("span", {
+                                style: {
+                                  filter:
+                                    "invert(1) grayscale(1) brightness(1.3) contrast(9000)",
+                                  "mix-blend-mode": "luminosity",
+                                  opacity: 0.95,
+                                },
+                                children: ["Sign in with ", provider.name],
+                              }),
+                              logo &&
+                                u3("img", {
+                                  loading: "lazy",
+                                  height: 24,
+                                  src: logo,
+                                }),
+                            ],
+                          }),
+                        ],
+                      })
+                    : null,
+                  (provider.type === "email" ||
+                    provider.type === "credentials" ||
+                    provider.type === "webauthn") &&
+                    i4 > 0 &&
+                    providers[i4 - 1].type !== "email" &&
+                    providers[i4 - 1].type !== "credentials" &&
+                    providers[i4 - 1].type !== "webauthn" &&
+                    u3("hr", {}),
+                  provider.type === "email" &&
+                    u3("form", {
+                      action: provider.signinUrl,
+                      method: "POST",
+                      children: [
+                        u3("input", {
+                          type: "hidden",
+                          name: "csrfToken",
+                          value: csrfToken,
+                        }),
+                        u3("label", {
+                          className: "section-header",
+                          htmlFor: `input-email-for-${provider.id}-provider`,
+                          children: "Email",
+                        }),
+                        u3("input", {
+                          id: `input-email-for-${provider.id}-provider`,
+                          autoFocus: true,
+                          type: "email",
+                          name: "email",
+                          value: email,
+                          placeholder: "email@example.com",
+                          required: true,
+                        }),
+                        u3("button", {
+                          id: "submitButton",
+                          type: "submit",
+                          tabIndex: 0,
+                          children: ["Sign in with ", provider.name],
+                        }),
+                      ],
+                    }),
+                  provider.type === "credentials" &&
+                    u3("form", {
+                      action: provider.callbackUrl,
+                      method: "POST",
+                      children: [
+                        u3("input", {
+                          type: "hidden",
+                          name: "csrfToken",
+                          value: csrfToken,
+                        }),
+                        Object.keys(provider.credentials).map((credential) => {
+                          return u3(
+                            "div",
+                            {
+                              children: [
+                                u3("label", {
+                                  className: "section-header",
+                                  htmlFor: `input-${credential}-for-${provider.id}-provider`,
+                                  children:
+                                    provider.credentials[credential].label ??
+                                    credential,
+                                }),
+                                u3("input", {
+                                  name: credential,
+                                  id: `input-${credential}-for-${provider.id}-provider`,
+                                  type:
+                                    provider.credentials[credential].type ??
+                                    "text",
+                                  placeholder:
+                                    provider.credentials[credential]
+                                      .placeholder ?? "",
+                                  ...provider.credentials[credential],
+                                }),
+                              ],
+                            },
+                            `input-group-${provider.id}`,
+                          );
+                        }),
+                        u3("button", {
+                          id: "submitButton",
+                          type: "submit",
+                          tabIndex: 0,
+                          children: ["Sign in with ", provider.name],
+                        }),
+                      ],
+                    }),
+                  provider.type === "webauthn" &&
+                    u3("form", {
+                      action: provider.callbackUrl,
+                      method: "POST",
+                      id: `${provider.id}-form`,
+                      children: [
+                        u3("input", {
+                          type: "hidden",
+                          name: "csrfToken",
+                          value: csrfToken,
+                        }),
+                        Object.keys(provider.formFields).map((field) => {
+                          return u3(
+                            "div",
+                            {
+                              children: [
+                                u3("label", {
+                                  className: "section-header",
+                                  htmlFor: `input-${field}-for-${provider.id}-provider`,
+                                  children:
+                                    provider.formFields[field].label ?? field,
+                                }),
+                                u3("input", {
+                                  name: field,
+                                  "data-form-field": true,
+                                  id: `input-${field}-for-${provider.id}-provider`,
+                                  type:
+                                    provider.formFields[field].type ?? "text",
+                                  placeholder:
+                                    provider.formFields[field].placeholder ??
+                                    "",
+                                  ...provider.formFields[field],
+                                }),
+                              ],
+                            },
+                            `input-group-${provider.id}`,
+                          );
+                        }),
+                        u3("button", {
+                          id: `submitButton-${provider.id}`,
+                          type: "submit",
+                          tabIndex: 0,
+                          children: ["Sign in with ", provider.name],
+                        }),
+                      ],
+                    }),
+                  (provider.type === "email" ||
+                    provider.type === "credentials" ||
+                    provider.type === "webauthn") &&
+                    i4 + 1 < providers.length &&
+                    u3("hr", {}),
+                ],
+              },
+              provider.id,
+            );
+          }),
+        ],
+      }),
+      conditionalUIProviderID && ConditionalUIScript(conditionalUIProviderID),
+    ],
+  });
 }
 __name(SigninPage, "SigninPage");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/pages/signout.js
 function SignoutPage(props) {
   const { url, csrfToken, theme } = props;
-  return u3("div", { className: "signout", children: [theme?.brandColor && u3("style", { dangerouslySetInnerHTML: {
-    __html: `
+  return u3("div", {
+    className: "signout",
+    children: [
+      theme?.brandColor &&
+        u3("style", {
+          dangerouslySetInnerHTML: {
+            __html: `
         :root {
           --brand-color: ${theme.brandColor}
         }
-      `
-  } }), theme?.buttonText && u3("style", { dangerouslySetInnerHTML: {
-    __html: `
+      `,
+          },
+        }),
+      theme?.buttonText &&
+        u3("style", {
+          dangerouslySetInnerHTML: {
+            __html: `
         :root {
           --button-text-color: ${theme.buttonText}
         }
-      `
-  } }), u3("div", { className: "card", children: [theme?.logo && u3("img", { src: theme.logo, alt: "Logo", className: "logo" }), u3("h1", { children: "Signout" }), u3("p", { children: "Are you sure you want to sign out?" }), u3("form", { action: url?.toString(), method: "POST", children: [u3("input", { type: "hidden", name: "csrfToken", value: csrfToken }), u3("button", { id: "submitButton", type: "submit", children: "Sign out" })] })] })] });
+      `,
+          },
+        }),
+      u3("div", {
+        className: "card",
+        children: [
+          theme?.logo &&
+            u3("img", { src: theme.logo, alt: "Logo", className: "logo" }),
+          u3("h1", { children: "Signout" }),
+          u3("p", { children: "Are you sure you want to sign out?" }),
+          u3("form", {
+            action: url?.toString(),
+            method: "POST",
+            children: [
+              u3("input", {
+                type: "hidden",
+                name: "csrfToken",
+                value: csrfToken,
+              }),
+              u3("button", {
+                id: "submitButton",
+                type: "submit",
+                children: "Sign out",
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
 }
 __name(SignoutPage, "SignoutPage");
 
@@ -6366,13 +8355,39 @@ a.site:hover {
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/pages/verify-request.js
 function VerifyRequestPage(props) {
   const { url, theme } = props;
-  return u3("div", { className: "verify-request", children: [theme.brandColor && u3("style", { dangerouslySetInnerHTML: {
-    __html: `
+  return u3("div", {
+    className: "verify-request",
+    children: [
+      theme.brandColor &&
+        u3("style", {
+          dangerouslySetInnerHTML: {
+            __html: `
         :root {
           --brand-color: ${theme.brandColor}
         }
-      `
-  } }), u3("div", { className: "card", children: [theme.logo && u3("img", { src: theme.logo, alt: "Logo", className: "logo" }), u3("h1", { children: "Check your email" }), u3("p", { children: "A sign in link has been sent to your email address." }), u3("p", { children: u3("a", { className: "site", href: url.origin, children: url.host }) })] })] });
+      `,
+          },
+        }),
+      u3("div", {
+        className: "card",
+        children: [
+          theme.logo &&
+            u3("img", { src: theme.logo, alt: "Logo", className: "logo" }),
+          u3("h1", { children: "Check your email" }),
+          u3("p", {
+            children: "A sign in link has been sent to your email address.",
+          }),
+          u3("p", {
+            children: u3("a", {
+              className: "site",
+              href: url.origin,
+              children: url.host,
+            }),
+          }),
+        ],
+      }),
+    ],
+  });
 }
 __name(VerifyRequestPage, "VerifyRequestPage");
 
@@ -6382,7 +8397,7 @@ function send({ html, title, status, cookies, theme, headTags }) {
     cookies,
     status,
     headers: { "Content-Type": "text/html" },
-    body: `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${styles_default}</style><title>${title}</title>${headTags ?? ""}</head><body class="__next-auth-theme-${theme?.colorScheme ?? "auto"}"><div class="page">${D(html)}</div></body></html>`
+    body: `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>${styles_default}</style><title>${title}</title>${headTags ?? ""}</head><body class="__next-auth-theme-${theme?.colorScheme ?? "auto"}"><div class="page">${D(html)}</div></body></html>`,
   };
 }
 __name(send, "send");
@@ -6396,39 +8411,45 @@ function renderPage(params) {
             "Content-Type": "application/json",
             "Cache-Control": "private, no-cache, no-store",
             Expires: "0",
-            Pragma: "no-cache"
+            Pragma: "no-cache",
           },
           body: { csrfToken: options.csrfToken },
-          cookies: cookies2
+          cookies: cookies2,
         };
       }
       options.logger.warn("csrf-disabled");
       cookies2.push({
         name: options.cookies.csrfToken.name,
         value: "",
-        options: { ...options.cookies.csrfToken.options, maxAge: 0 }
+        options: { ...options.cookies.csrfToken.options, maxAge: 0 },
       });
       return { status: 404, cookies: cookies2 };
     },
     providers(providers2) {
       return {
         headers: { "Content-Type": "application/json" },
-        body: providers2.reduce((acc, { id, name, type, signinUrl, callbackUrl }) => {
-          acc[id] = { id, name, type, signinUrl, callbackUrl };
-          return acc;
-        }, {})
+        body: providers2.reduce(
+          (acc, { id, name, type, signinUrl, callbackUrl }) => {
+            acc[id] = { id, name, type, signinUrl, callbackUrl };
+            return acc;
+          },
+          {},
+        ),
       };
     },
     signin(providerId, error) {
-      if (providerId)
-        throw new UnknownAction("Unsupported action");
+      if (providerId) throw new UnknownAction("Unsupported action");
       if (pages?.signIn) {
         let signinUrl = `${pages.signIn}${pages.signIn.includes("?") ? "&" : "?"}${new URLSearchParams({ callbackUrl: params.callbackUrl ?? "/" })}`;
-        if (error)
-          signinUrl = `${signinUrl}&${new URLSearchParams({ error })}`;
+        if (error) signinUrl = `${signinUrl}&${new URLSearchParams({ error })}`;
         return { redirect: signinUrl, cookies };
       }
-      const webauthnProvider = providers?.find((p3) => p3.type === "webauthn" && p3.enableConditionalUI && !!p3.simpleWebAuthnBrowserVersion);
+      const webauthnProvider = providers?.find(
+        (p3) =>
+          p3.type === "webauthn" &&
+          p3.enableConditionalUI &&
+          !!p3.simpleWebAuthnBrowserVersion,
+      );
       let simpleWebAuthnBrowserScript = "";
       if (webauthnProvider) {
         const { simpleWebAuthnBrowserVersion } = webauthnProvider;
@@ -6440,50 +8461,50 @@ function renderPage(params) {
         html: SigninPage({
           csrfToken: params.csrfToken,
           // We only want to render providers
-          providers: params.providers?.filter((provider) => (
-            // Always render oauth and email type providers
-            ["email", "oauth", "oidc"].includes(provider.type) || // Only render credentials type provider if credentials are defined
-            provider.type === "credentials" && provider.credentials || // Only render webauthn type provider if formFields are defined
-            provider.type === "webauthn" && provider.formFields || // Don't render other provider types
-            false
-          )),
+          providers: params.providers?.filter(
+            (provider) =>
+              // Always render oauth and email type providers
+              ["email", "oauth", "oidc"].includes(provider.type) || // Only render credentials type provider if credentials are defined
+              (provider.type === "credentials" && provider.credentials) || // Only render webauthn type provider if formFields are defined
+              (provider.type === "webauthn" && provider.formFields) || // Don't render other provider types
+              false,
+          ),
           callbackUrl: params.callbackUrl,
           theme: params.theme,
           error,
-          ...query
+          ...query,
         }),
         title: "Sign In",
-        headTags: simpleWebAuthnBrowserScript
+        headTags: simpleWebAuthnBrowserScript,
       });
     },
     signout() {
-      if (pages?.signOut)
-        return { redirect: pages.signOut, cookies };
+      if (pages?.signOut) return { redirect: pages.signOut, cookies };
       return send({
         cookies,
         theme,
         html: SignoutPage({ csrfToken: params.csrfToken, url, theme }),
-        title: "Sign Out"
+        title: "Sign Out",
       });
     },
     verifyRequest(props) {
       if (pages?.verifyRequest)
         return {
           redirect: `${pages.verifyRequest}${url?.search ?? ""}`,
-          cookies
+          cookies,
         };
       return send({
         cookies,
         theme,
         html: VerifyRequestPage({ url, theme, ...props }),
-        title: "Verify Request"
+        title: "Verify Request",
       });
     },
     error(error) {
       if (pages?.error) {
         return {
           redirect: `${pages.error}${pages.error.includes("?") ? "&" : "?"}error=${error}`,
-          cookies
+          cookies,
         };
       }
       return send({
@@ -6491,9 +8512,9 @@ function renderPage(params) {
         theme,
         // @ts-expect-error fix error type
         ...ErrorPage({ url, theme, error }),
-        title: "Error"
+        title: "Error",
       });
-    }
+    },
   };
 }
 __name(renderPage, "renderPage");
@@ -6505,18 +8526,38 @@ function fromDate(time, date = Date.now()) {
 __name(fromDate, "fromDate");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/actions/callback/handle-login.js
-async function handleLoginOrRegister(sessionToken, _profile, _account, options) {
+async function handleLoginOrRegister(
+  sessionToken,
+  _profile,
+  _account,
+  options,
+) {
   if (!_account?.providerAccountId || !_account.type)
     throw new Error("Missing or invalid provider account");
   if (!["email", "oauth", "oidc", "webauthn"].includes(_account.type))
     throw new Error("Provider not supported");
-  const { adapter, jwt, events, session: { strategy: sessionStrategy, generateSessionToken } } = options;
+  const {
+    adapter,
+    jwt,
+    events,
+    session: { strategy: sessionStrategy, generateSessionToken },
+  } = options;
   if (!adapter) {
     return { user: _profile, account: _account };
   }
   const profile = _profile;
   let account = _account;
-  const { createUser, updateUser, getUser, getUserByAccount, getUserByEmail, linkAccount, createSession, getSessionAndUser, deleteSession } = adapter;
+  const {
+    createUser,
+    updateUser,
+    getUser,
+    getUserByAccount,
+    getUserByEmail,
+    linkAccount,
+    createSession,
+    getSessionAndUser,
+    deleteSession,
+  } = adapter;
   let session2 = null;
   let user = null;
   let isNewUser = false;
@@ -6529,8 +8570,7 @@ async function handleLoginOrRegister(sessionToken, _profile, _account, options) 
         if (session2 && "sub" in session2 && session2.sub) {
           user = await getUser(session2.sub);
         }
-      } catch {
-      }
+      } catch {}
     } else {
       const userAndSession = await getSessionAndUser(sessionToken);
       if (userAndSession) {
@@ -6547,47 +8587,62 @@ async function handleLoginOrRegister(sessionToken, _profile, _account, options) 
       }
       user = await updateUser({
         id: userByEmail.id,
-        emailVerified: /* @__PURE__ */ new Date()
+        emailVerified: /* @__PURE__ */ new Date(),
       });
       await events.updateUser?.({ user });
     } else {
-      user = await createUser({ ...profile, emailVerified: /* @__PURE__ */ new Date() });
+      user = await createUser({
+        ...profile,
+        emailVerified: /* @__PURE__ */ new Date(),
+      });
       await events.createUser?.({ user });
       isNewUser = true;
     }
-    session2 = useJwtSession ? {} : await createSession({
-      sessionToken: generateSessionToken(),
-      userId: user.id,
-      expires: fromDate(options.session.maxAge)
-    });
+    session2 = useJwtSession
+      ? {}
+      : await createSession({
+          sessionToken: generateSessionToken(),
+          userId: user.id,
+          expires: fromDate(options.session.maxAge),
+        });
     return { session: session2, user, isNewUser };
   } else if (account.type === "webauthn") {
     const userByAccount2 = await getUserByAccount({
       providerAccountId: account.providerAccountId,
-      provider: account.provider
+      provider: account.provider,
     });
     if (userByAccount2) {
       if (user) {
         if (userByAccount2.id === user.id) {
           const currentAccount2 = { ...account, userId: user.id };
-          return { session: session2, user, isNewUser, account: currentAccount2 };
+          return {
+            session: session2,
+            user,
+            isNewUser,
+            account: currentAccount2,
+          };
         }
-        throw new AccountNotLinked("The account is already associated with another user", { provider: account.provider });
+        throw new AccountNotLinked(
+          "The account is already associated with another user",
+          { provider: account.provider },
+        );
       }
-      session2 = useJwtSession ? {} : await createSession({
-        sessionToken: generateSessionToken(),
-        userId: userByAccount2.id,
-        expires: fromDate(options.session.maxAge)
-      });
+      session2 = useJwtSession
+        ? {}
+        : await createSession({
+            sessionToken: generateSessionToken(),
+            userId: userByAccount2.id,
+            expires: fromDate(options.session.maxAge),
+          });
       const currentAccount = {
         ...account,
-        userId: userByAccount2.id
+        userId: userByAccount2.id,
       };
       return {
         session: session2,
         user: userByAccount2,
         isNewUser,
-        account: currentAccount
+        account: currentAccount,
       };
     } else {
       if (user) {
@@ -6596,40 +8651,57 @@ async function handleLoginOrRegister(sessionToken, _profile, _account, options) 
         const currentAccount2 = { ...account, userId: user.id };
         return { session: session2, user, isNewUser, account: currentAccount2 };
       }
-      const userByEmail = profile.email ? await getUserByEmail(profile.email) : null;
+      const userByEmail = profile.email
+        ? await getUserByEmail(profile.email)
+        : null;
       if (userByEmail) {
-        throw new AccountNotLinked("Another account already exists with the same e-mail address", { provider: account.provider });
+        throw new AccountNotLinked(
+          "Another account already exists with the same e-mail address",
+          { provider: account.provider },
+        );
       } else {
         user = await createUser({ ...profile });
       }
       await events.createUser?.({ user });
       await linkAccount({ ...account, userId: user.id });
       await events.linkAccount?.({ user, account, profile });
-      session2 = useJwtSession ? {} : await createSession({
-        sessionToken: generateSessionToken(),
-        userId: user.id,
-        expires: fromDate(options.session.maxAge)
-      });
+      session2 = useJwtSession
+        ? {}
+        : await createSession({
+            sessionToken: generateSessionToken(),
+            userId: user.id,
+            expires: fromDate(options.session.maxAge),
+          });
       const currentAccount = { ...account, userId: user.id };
-      return { session: session2, user, isNewUser: true, account: currentAccount };
+      return {
+        session: session2,
+        user,
+        isNewUser: true,
+        account: currentAccount,
+      };
     }
   }
   const userByAccount = await getUserByAccount({
     providerAccountId: account.providerAccountId,
-    provider: account.provider
+    provider: account.provider,
   });
   if (userByAccount) {
     if (user) {
       if (userByAccount.id === user.id) {
         return { session: session2, user, isNewUser };
       }
-      throw new OAuthAccountNotLinked("The account is already associated with another user", { provider: account.provider });
+      throw new OAuthAccountNotLinked(
+        "The account is already associated with another user",
+        { provider: account.provider },
+      );
     }
-    session2 = useJwtSession ? {} : await createSession({
-      sessionToken: generateSessionToken(),
-      userId: userByAccount.id,
-      expires: fromDate(options.session.maxAge)
-    });
+    session2 = useJwtSession
+      ? {}
+      : await createSession({
+          sessionToken: generateSessionToken(),
+          userId: userByAccount.id,
+          expires: fromDate(options.session.maxAge),
+        });
     return { session: session2, user: userByAccount, isNewUser };
   } else {
     const { provider: p3 } = options;
@@ -6641,14 +8713,19 @@ async function handleLoginOrRegister(sessionToken, _profile, _account, options) 
       await events.linkAccount?.({ user, account, profile });
       return { session: session2, user, isNewUser };
     }
-    const userByEmail = profile.email ? await getUserByEmail(profile.email) : null;
+    const userByEmail = profile.email
+      ? await getUserByEmail(profile.email)
+      : null;
     if (userByEmail) {
       const provider2 = options.provider;
       if (provider2?.allowDangerousEmailAccountLinking) {
         user = userByEmail;
         isNewUser = false;
       } else {
-        throw new OAuthAccountNotLinked("Another account already exists with the same e-mail address", { provider: account.provider });
+        throw new OAuthAccountNotLinked(
+          "Another account already exists with the same e-mail address",
+          { provider: account.provider },
+        );
       }
     } else {
       user = await createUser({ ...profile, emailVerified: null });
@@ -6657,11 +8734,13 @@ async function handleLoginOrRegister(sessionToken, _profile, _account, options) 
     await events.createUser?.({ user });
     await linkAccount({ ...account, userId: user.id });
     await events.linkAccount?.({ user, account, profile });
-    session2 = useJwtSession ? {} : await createSession({
-      sessionToken: generateSessionToken(),
-      userId: user.id,
-      expires: fromDate(options.session.maxAge)
-    });
+    session2 = useJwtSession
+      ? {}
+      : await createSession({
+          sessionToken: generateSessionToken(),
+          userId: user.id,
+          expires: fromDate(options.session.maxAge),
+        });
     return { session: session2, user, isNewUser };
   }
 }
@@ -6669,7 +8748,10 @@ __name(handleLoginOrRegister, "handleLoginOrRegister");
 
 // node_modules/oauth4webapi/build/index.js
 var USER_AGENT;
-if (typeof navigator === "undefined" || !"Cloudflare-Workers"?.startsWith?.("Mozilla/5.0 ")) {
+if (
+  typeof navigator === "undefined" ||
+  !"Cloudflare-Workers"?.startsWith?.("Mozilla/5.0 ")
+) {
   const NAME = "oauth4webapi";
   const VERSION = "v3.4.0";
   USER_AGENT = `${NAME}/${VERSION}`;
@@ -6679,7 +8761,11 @@ function looseInstanceOf(input, expected) {
     return false;
   }
   try {
-    return input instanceof expected || Object.getPrototypeOf(input)[Symbol.toStringTag] === expected.prototype[Symbol.toStringTag];
+    return (
+      input instanceof expected ||
+      Object.getPrototypeOf(input)[Symbol.toStringTag] ===
+        expected.prototype[Symbol.toStringTag]
+    );
   } catch {
     return false;
   }
@@ -6716,21 +8802,32 @@ function encodeBase64Url(input) {
   }
   const arr = [];
   for (let i4 = 0; i4 < input.byteLength; i4 += CHUNK_SIZE2) {
-    arr.push(String.fromCharCode.apply(null, input.subarray(i4, i4 + CHUNK_SIZE2)));
+    arr.push(
+      String.fromCharCode.apply(null, input.subarray(i4, i4 + CHUNK_SIZE2)),
+    );
   }
-  return btoa(arr.join("")).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return btoa(arr.join(""))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
 }
 __name(encodeBase64Url, "encodeBase64Url");
 function decodeBase64Url(input) {
   try {
-    const binary = atob(input.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, ""));
+    const binary = atob(
+      input.replace(/-/g, "+").replace(/_/g, "/").replace(/\s/g, ""),
+    );
     const bytes = new Uint8Array(binary.length);
     for (let i4 = 0; i4 < binary.length; i4++) {
       bytes[i4] = binary.charCodeAt(i4);
     }
     return bytes;
   } catch (cause) {
-    throw CodedTypeError("The input to be decoded is not correctly encoded.", ERR_INVALID_ARG_VALUE, cause);
+    throw CodedTypeError(
+      "The input to be decoded is not correctly encoded.",
+      ERR_INVALID_ARG_VALUE,
+      cause,
+    );
   }
 }
 __name(decodeBase64Url, "decodeBase64Url");
@@ -6780,7 +8877,10 @@ __name(assertCryptoKey2, "assertCryptoKey");
 function assertPrivateKey(key, it) {
   assertCryptoKey2(key, it);
   if (key.type !== "private") {
-    throw CodedTypeError(`${it} must be a private CryptoKey`, ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      `${it} must be a private CryptoKey`,
+      ERR_INVALID_ARG_VALUE,
+    );
   }
 }
 __name(assertPrivateKey, "assertPrivateKey");
@@ -6800,7 +8900,10 @@ function prepareHeaders(input) {
     headers.set("user-agent", USER_AGENT);
   }
   if (headers.has("authorization")) {
-    throw CodedTypeError('"options.headers" must not include the "authorization" header name', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      '"options.headers" must not include the "authorization" header name',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
   return headers;
 }
@@ -6810,31 +8913,47 @@ function signal(value) {
     value = value();
   }
   if (!(value instanceof AbortSignal)) {
-    throw CodedTypeError('"options.signal" must return or be an instance of AbortSignal', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"options.signal" must return or be an instance of AbortSignal',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   return value;
 }
 __name(signal, "signal");
 async function discoveryRequest(issuerIdentifier, options) {
   if (!(issuerIdentifier instanceof URL)) {
-    throw CodedTypeError('"issuerIdentifier" must be an instance of URL', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"issuerIdentifier" must be an instance of URL',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   checkProtocol(issuerIdentifier, options?.[allowInsecureRequests] !== true);
   const url = new URL(issuerIdentifier.href);
   switch (options?.algorithm) {
     case void 0:
     case "oidc":
-      url.pathname = `${url.pathname}/.well-known/openid-configuration`.replace("//", "/");
+      url.pathname = `${url.pathname}/.well-known/openid-configuration`.replace(
+        "//",
+        "/",
+      );
       break;
     case "oauth2":
       if (url.pathname === "/") {
         url.pathname = ".well-known/oauth-authorization-server";
       } else {
-        url.pathname = `.well-known/oauth-authorization-server/${url.pathname}`.replace("//", "/");
+        url.pathname =
+          `.well-known/oauth-authorization-server/${url.pathname}`.replace(
+            "//",
+            "/",
+          );
       }
       break;
     default:
-      throw CodedTypeError('"options.algorithm" must be "oidc" (default), or "oauth2"', ERR_INVALID_ARG_VALUE);
+      throw CodedTypeError(
+        '"options.algorithm" must be "oidc" (default), or "oauth2"',
+        ERR_INVALID_ARG_VALUE,
+      );
   }
   const headers = prepareHeaders(options?.headers);
   headers.set("accept", "application/json");
@@ -6843,24 +8962,35 @@ async function discoveryRequest(issuerIdentifier, options) {
     headers: Object.fromEntries(headers.entries()),
     method: "GET",
     redirect: "manual",
-    signal: options?.signal ? signal(options.signal) : void 0
+    signal: options?.signal ? signal(options.signal) : void 0,
   });
 }
 __name(discoveryRequest, "discoveryRequest");
 function assertNumber(input, allow0, it, code, cause) {
   try {
     if (typeof input !== "number" || !Number.isFinite(input)) {
-      throw CodedTypeError(`${it} must be a number`, ERR_INVALID_ARG_TYPE, cause);
+      throw CodedTypeError(
+        `${it} must be a number`,
+        ERR_INVALID_ARG_TYPE,
+        cause,
+      );
     }
-    if (input > 0)
-      return;
+    if (input > 0) return;
     if (allow0) {
       if (input !== 0) {
-        throw CodedTypeError(`${it} must be a non-negative number`, ERR_INVALID_ARG_VALUE, cause);
+        throw CodedTypeError(
+          `${it} must be a non-negative number`,
+          ERR_INVALID_ARG_VALUE,
+          cause,
+        );
       }
       return;
     }
-    throw CodedTypeError(`${it} must be a positive number`, ERR_INVALID_ARG_VALUE, cause);
+    throw CodedTypeError(
+      `${it} must be a positive number`,
+      ERR_INVALID_ARG_VALUE,
+      cause,
+    );
   } catch (err) {
     if (code) {
       throw OPE(err.message, code, cause);
@@ -6872,10 +9002,18 @@ __name(assertNumber, "assertNumber");
 function assertString(input, it, code, cause) {
   try {
     if (typeof input !== "string") {
-      throw CodedTypeError(`${it} must be a string`, ERR_INVALID_ARG_TYPE, cause);
+      throw CodedTypeError(
+        `${it} must be a string`,
+        ERR_INVALID_ARG_TYPE,
+        cause,
+      );
     }
     if (input.length === 0) {
-      throw CodedTypeError(`${it} must not be empty`, ERR_INVALID_ARG_VALUE, cause);
+      throw CodedTypeError(
+        `${it} must not be empty`,
+        ERR_INVALID_ARG_VALUE,
+        cause,
+      );
     }
   } catch (err) {
     if (code) {
@@ -6886,14 +9024,27 @@ function assertString(input, it, code, cause) {
 }
 __name(assertString, "assertString");
 async function processDiscoveryResponse(expectedIssuerIdentifier, response) {
-  if (!(expectedIssuerIdentifier instanceof URL) && expectedIssuerIdentifier !== _nodiscoverycheck) {
-    throw CodedTypeError('"expectedIssuer" must be an instance of URL', ERR_INVALID_ARG_TYPE);
+  if (
+    !(expectedIssuerIdentifier instanceof URL) &&
+    expectedIssuerIdentifier !== _nodiscoverycheck
+  ) {
+    throw CodedTypeError(
+      '"expectedIssuer" must be an instance of URL',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   if (!looseInstanceOf(response, Response)) {
-    throw CodedTypeError('"response" must be an instance of Response', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"response" must be an instance of Response',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   if (response.status !== 200) {
-    throw OPE('"response" is not a conform Authorization Server Metadata response (unexpected HTTP status code)', RESPONSE_IS_NOT_CONFORM, response);
+    throw OPE(
+      '"response" is not a conform Authorization Server Metadata response (unexpected HTTP status code)',
+      RESPONSE_IS_NOT_CONFORM,
+      response,
+    );
   }
   assertReadableResponse(response);
   let json;
@@ -6904,11 +9055,29 @@ async function processDiscoveryResponse(expectedIssuerIdentifier, response) {
     throw OPE('failed to parse "response" body as JSON', PARSE_ERROR, cause);
   }
   if (!isJsonObject(json)) {
-    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, { body: json });
+    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, {
+      body: json,
+    });
   }
-  assertString(json.issuer, '"response" body "issuer" property', INVALID_RESPONSE, { body: json });
-  if (new URL(json.issuer).href !== expectedIssuerIdentifier.href && expectedIssuerIdentifier !== _nodiscoverycheck) {
-    throw OPE('"response" body "issuer" property does not match the expected value', JSON_ATTRIBUTE_COMPARISON, { expected: expectedIssuerIdentifier.href, body: json, attribute: "issuer" });
+  assertString(
+    json.issuer,
+    '"response" body "issuer" property',
+    INVALID_RESPONSE,
+    { body: json },
+  );
+  if (
+    new URL(json.issuer).href !== expectedIssuerIdentifier.href &&
+    expectedIssuerIdentifier !== _nodiscoverycheck
+  ) {
+    throw OPE(
+      '"response" body "issuer" property does not match the expected value',
+      JSON_ATTRIBUTE_COMPARISON,
+      {
+        expected: expectedIssuerIdentifier.href,
+        body: json,
+        attribute: "issuer",
+      },
+    );
   }
   return json;
 }
@@ -6969,7 +9138,7 @@ function getKeyAndKid(input) {
   }
   return {
     key: input.key,
-    kid: input.kid
+    kid: input.kid,
   };
 }
 __name(getKeyAndKid, "getKeyAndKid");
@@ -6982,9 +9151,12 @@ function psAlg(key) {
     case "SHA-512":
       return "PS512";
     default:
-      throw new UnsupportedOperationError("unsupported RsaHashedKeyAlgorithm hash name", {
-        cause: key
-      });
+      throw new UnsupportedOperationError(
+        "unsupported RsaHashedKeyAlgorithm hash name",
+        {
+          cause: key,
+        },
+      );
   }
 }
 __name(psAlg, "psAlg");
@@ -6997,9 +9169,12 @@ function rsAlg(key) {
     case "SHA-512":
       return "RS512";
     default:
-      throw new UnsupportedOperationError("unsupported RsaHashedKeyAlgorithm hash name", {
-        cause: key
-      });
+      throw new UnsupportedOperationError(
+        "unsupported RsaHashedKeyAlgorithm hash name",
+        {
+          cause: key,
+        },
+      );
   }
 }
 __name(rsAlg, "rsAlg");
@@ -7012,7 +9187,10 @@ function esAlg(key) {
     case "P-521":
       return "ES512";
     default:
-      throw new UnsupportedOperationError("unsupported EcKeyAlgorithm namedCurve", { cause: key });
+      throw new UnsupportedOperationError(
+        "unsupported EcKeyAlgorithm namedCurve",
+        { cause: key },
+      );
   }
 }
 __name(esAlg, "esAlg");
@@ -7028,7 +9206,10 @@ function keyToJws(key) {
     case "EdDSA":
       return "Ed25519";
     default:
-      throw new UnsupportedOperationError("unsupported CryptoKey algorithm name", { cause: key });
+      throw new UnsupportedOperationError(
+        "unsupported CryptoKey algorithm name",
+        { cause: key },
+      );
   }
 }
 __name(keyToJws, "keyToJws");
@@ -7039,7 +9220,11 @@ function getClockSkew(client) {
 __name(getClockSkew, "getClockSkew");
 function getClockTolerance(client) {
   const tolerance = client?.[clockTolerance];
-  return typeof tolerance === "number" && Number.isFinite(tolerance) && Math.sign(tolerance) !== -1 ? tolerance : 30;
+  return typeof tolerance === "number" &&
+    Number.isFinite(tolerance) &&
+    Math.sign(tolerance) !== -1
+    ? tolerance
+    : 30;
 }
 __name(getClockTolerance, "getClockTolerance");
 function epochTime() {
@@ -7077,7 +9262,7 @@ function clientAssertionPayload(as, client) {
     iat: now2,
     nbf: now2,
     iss: client.client_id,
-    sub: client.client_id
+    sub: client.client_id,
   };
 }
 __name(clientAssertionPayload, "clientAssertionPayload");
@@ -7089,7 +9274,10 @@ function PrivateKeyJwt(clientPrivateKey, options) {
     const payload = clientAssertionPayload(as, client);
     options?.[modifyAssertion]?.(header, payload);
     body.set("client_id", client.client_id);
-    body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+    body.set(
+      "client_assertion_type",
+      "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    );
     body.set("client_assertion", await signJwt(header, payload, key));
   };
 }
@@ -7099,14 +9287,23 @@ function ClientSecretJwt(clientSecret, options) {
   const modify = options?.[modifyAssertion];
   let key;
   return async (as, client, body, _headers) => {
-    key ||= await crypto.subtle.importKey("raw", buf(clientSecret), { hash: "SHA-256", name: "HMAC" }, false, ["sign"]);
+    key ||= await crypto.subtle.importKey(
+      "raw",
+      buf(clientSecret),
+      { hash: "SHA-256", name: "HMAC" },
+      false,
+      ["sign"],
+    );
     const header = { alg: "HS256" };
     const payload = clientAssertionPayload(as, client);
     modify?.(header, payload);
     const data = `${b64u(buf(JSON.stringify(header)))}.${b64u(buf(JSON.stringify(payload)))}`;
     const hmac = await crypto.subtle.sign(key.algorithm, key, buf(data));
     body.set("client_id", client.client_id);
-    body.set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+    body.set(
+      "client_assertion_type",
+      "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    );
     body.set("client_assertion", `${data}.${b64u(new Uint8Array(hmac))}`);
   };
 }
@@ -7119,41 +9316,73 @@ function None() {
 __name(None, "None");
 async function signJwt(header, payload, key) {
   if (!key.usages.includes("sign")) {
-    throw CodedTypeError('CryptoKey instances used for signing assertions must include "sign" in their "usages"', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      'CryptoKey instances used for signing assertions must include "sign" in their "usages"',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
   const input = `${b64u(buf(JSON.stringify(header)))}.${b64u(buf(JSON.stringify(payload)))}`;
-  const signature = b64u(await crypto.subtle.sign(keyToSubtle(key), key, buf(input)));
+  const signature = b64u(
+    await crypto.subtle.sign(keyToSubtle(key), key, buf(input)),
+  );
   return `${input}.${signature}`;
 }
 __name(signJwt, "signJwt");
-var URLParse = URL.parse ? (url, base) => URL.parse(url, base) : (url, base) => {
-  try {
-    return new URL(url, base);
-  } catch {
-    return null;
-  }
-};
+var URLParse = URL.parse
+  ? (url, base) => URL.parse(url, base)
+  : (url, base) => {
+      try {
+        return new URL(url, base);
+      } catch {
+        return null;
+      }
+    };
 function checkProtocol(url, enforceHttps) {
   if (enforceHttps && url.protocol !== "https:") {
-    throw OPE("only requests to HTTPS are allowed", HTTP_REQUEST_FORBIDDEN, url);
+    throw OPE(
+      "only requests to HTTPS are allowed",
+      HTTP_REQUEST_FORBIDDEN,
+      url,
+    );
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw OPE("only HTTP and HTTPS requests are allowed", REQUEST_PROTOCOL_FORBIDDEN, url);
+    throw OPE(
+      "only HTTP and HTTPS requests are allowed",
+      REQUEST_PROTOCOL_FORBIDDEN,
+      url,
+    );
   }
 }
 __name(checkProtocol, "checkProtocol");
 function validateEndpoint(value, endpoint, useMtlsAlias, enforceHttps) {
   let url;
   if (typeof value !== "string" || !(url = URLParse(value))) {
-    throw OPE(`authorization server metadata does not contain a valid ${useMtlsAlias ? `"as.mtls_endpoint_aliases.${endpoint}"` : `"as.${endpoint}"`}`, value === void 0 ? MISSING_SERVER_METADATA : INVALID_SERVER_METADATA, { attribute: useMtlsAlias ? `mtls_endpoint_aliases.${endpoint}` : endpoint });
+    throw OPE(
+      `authorization server metadata does not contain a valid ${useMtlsAlias ? `"as.mtls_endpoint_aliases.${endpoint}"` : `"as.${endpoint}"`}`,
+      value === void 0 ? MISSING_SERVER_METADATA : INVALID_SERVER_METADATA,
+      {
+        attribute: useMtlsAlias
+          ? `mtls_endpoint_aliases.${endpoint}`
+          : endpoint,
+      },
+    );
   }
   checkProtocol(url, enforceHttps);
   return url;
 }
 __name(validateEndpoint, "validateEndpoint");
 function resolveEndpoint(as, endpoint, useMtlsAlias, enforceHttps) {
-  if (useMtlsAlias && as.mtls_endpoint_aliases && endpoint in as.mtls_endpoint_aliases) {
-    return validateEndpoint(as.mtls_endpoint_aliases[endpoint], endpoint, useMtlsAlias, enforceHttps);
+  if (
+    useMtlsAlias &&
+    as.mtls_endpoint_aliases &&
+    endpoint in as.mtls_endpoint_aliases
+  ) {
+    return validateEndpoint(
+      as.mtls_endpoint_aliases[endpoint],
+      endpoint,
+      useMtlsAlias,
+      enforceHttps,
+    );
   }
   return validateEndpoint(as[endpoint], endpoint, useMtlsAlias, enforceHttps);
 }
@@ -7176,7 +9405,10 @@ var ResponseBodyError = class extends Error {
     this.error = options.cause.error;
     this.status = options.response.status;
     this.error_description = options.cause.error_description;
-    Object.defineProperty(this, "response", { enumerable: false, value: options.response });
+    Object.defineProperty(this, "response", {
+      enumerable: false,
+      value: options.response,
+    });
     Error.captureStackTrace?.(this, this.constructor);
   }
 };
@@ -7218,7 +9450,11 @@ var WWWAuthenticateChallengeError = class extends Error {
   }
 };
 function unquote(value) {
-  if (value.length >= 2 && value[0] === '"' && value[value.length - 1] === '"') {
+  if (
+    value.length >= 2 &&
+    value[0] === '"' &&
+    value[value.length - 1] === '"'
+  ) {
     return value.slice(1, -1);
   }
   return value;
@@ -7245,13 +9481,16 @@ function wwwAuth(scheme, params) {
   }
   return {
     scheme: scheme.toLowerCase(),
-    parameters
+    parameters,
   };
 }
 __name(wwwAuth, "wwwAuth");
 function parseWwwAuthenticateChallenges(response) {
   if (!looseInstanceOf(response, Response)) {
-    throw CodedTypeError('"response" must be an instance of Response', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"response" must be an instance of Response',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   const header = response.headers.get("www-authenticate");
   if (header === null) {
@@ -7283,11 +9522,14 @@ async function parseOAuthResponseErrorBody(response) {
     assertApplicationJson(response);
     try {
       const json = await response.clone().json();
-      if (isJsonObject(json) && typeof json.error === "string" && json.error.length) {
+      if (
+        isJsonObject(json) &&
+        typeof json.error === "string" &&
+        json.error.length
+      ) {
         return json;
       }
-    } catch {
-    }
+    } catch {}
   }
   return void 0;
 }
@@ -7295,41 +9537,69 @@ __name(parseOAuthResponseErrorBody, "parseOAuthResponseErrorBody");
 async function checkOAuthBodyError(response, expected, label) {
   if (response.status !== expected) {
     let err;
-    if (err = await parseOAuthResponseErrorBody(response)) {
+    if ((err = await parseOAuthResponseErrorBody(response))) {
       await response.body?.cancel();
-      throw new ResponseBodyError("server responded with an error in the response body", {
-        cause: err,
-        response
-      });
+      throw new ResponseBodyError(
+        "server responded with an error in the response body",
+        {
+          cause: err,
+          response,
+        },
+      );
     }
-    throw OPE(`"response" is not a conform ${label} response (unexpected HTTP status code)`, RESPONSE_IS_NOT_CONFORM, response);
+    throw OPE(
+      `"response" is not a conform ${label} response (unexpected HTTP status code)`,
+      RESPONSE_IS_NOT_CONFORM,
+      response,
+    );
   }
 }
 __name(checkOAuthBodyError, "checkOAuthBodyError");
 function assertDPoP(option) {
   if (!branded.has(option)) {
-    throw CodedTypeError('"options.DPoP" is not a valid DPoPHandle', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      '"options.DPoP" is not a valid DPoPHandle',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
 }
 __name(assertDPoP, "assertDPoP");
-async function resourceRequest(accessToken, method, url, headers, body, options) {
+async function resourceRequest(
+  accessToken,
+  method,
+  url,
+  headers,
+  body,
+  options,
+) {
   assertString(accessToken, '"accessToken"');
   if (!(url instanceof URL)) {
-    throw CodedTypeError('"url" must be an instance of URL', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"url" must be an instance of URL',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   checkProtocol(url, options?.[allowInsecureRequests] !== true);
   headers = prepareHeaders(headers);
   if (options?.DPoP) {
     assertDPoP(options.DPoP);
-    await options.DPoP.addProof(url, headers, method.toUpperCase(), accessToken);
+    await options.DPoP.addProof(
+      url,
+      headers,
+      method.toUpperCase(),
+      accessToken,
+    );
   }
-  headers.set("authorization", `${headers.has("dpop") ? "DPoP" : "Bearer"} ${accessToken}`);
+  headers.set(
+    "authorization",
+    `${headers.has("dpop") ? "DPoP" : "Bearer"} ${accessToken}`,
+  );
   const response = await (options?.[customFetch2] || fetch)(url.href, {
     body,
     headers: Object.fromEntries(headers.entries()),
     method,
     redirect: "manual",
-    signal: options?.signal ? signal(options.signal) : void 0
+    signal: options?.signal ? signal(options.signal) : void 0,
   });
   options?.DPoP?.cacheNonce(response);
   return response;
@@ -7338,7 +9608,12 @@ __name(resourceRequest, "resourceRequest");
 async function userInfoRequest(as, client, accessToken, options) {
   assertAs(as);
   assertClient(client);
-  const url = resolveEndpoint(as, "userinfo_endpoint", client.use_mtls_endpoint_aliases, options?.[allowInsecureRequests] !== true);
+  const url = resolveEndpoint(
+    as,
+    "userinfo_endpoint",
+    client.use_mtls_endpoint_aliases,
+    options?.[allowInsecureRequests] !== true,
+  );
   const headers = prepareHeaders(options?.headers);
   if (client.userinfo_signed_response_alg) {
     headers.set("accept", "application/jwt");
@@ -7348,7 +9623,7 @@ async function userInfoRequest(as, client, accessToken, options) {
   }
   return resourceRequest(accessToken, "GET", url, headers, null, {
     ...options,
-    [clockSkew]: getClockSkew(client)
+    [clockSkew]: getClockSkew(client),
   });
 }
 __name(userInfoRequest, "userInfoRequest");
@@ -7357,25 +9632,55 @@ function getContentType(input) {
   return input.headers.get("content-type")?.split(";")[0];
 }
 __name(getContentType, "getContentType");
-async function processUserInfoResponse(as, client, expectedSubject, response, options) {
+async function processUserInfoResponse(
+  as,
+  client,
+  expectedSubject,
+  response,
+  options,
+) {
   assertAs(as);
   assertClient(client);
   if (!looseInstanceOf(response, Response)) {
-    throw CodedTypeError('"response" must be an instance of Response', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"response" must be an instance of Response',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   checkAuthenticationChallenges(response);
   if (response.status !== 200) {
-    throw OPE('"response" is not a conform UserInfo Endpoint response (unexpected HTTP status code)', RESPONSE_IS_NOT_CONFORM, response);
+    throw OPE(
+      '"response" is not a conform UserInfo Endpoint response (unexpected HTTP status code)',
+      RESPONSE_IS_NOT_CONFORM,
+      response,
+    );
   }
   assertReadableResponse(response);
   let json;
   if (getContentType(response) === "application/jwt") {
-    const { claims, jwt } = await validateJwt(await response.text(), checkSigningAlgorithm.bind(void 0, client.userinfo_signed_response_alg, as.userinfo_signing_alg_values_supported, void 0), getClockSkew(client), getClockTolerance(client), options?.[jweDecrypt]).then(validateOptionalAudience.bind(void 0, client.client_id)).then(validateOptionalIssuer.bind(void 0, as));
+    const { claims, jwt } = await validateJwt(
+      await response.text(),
+      checkSigningAlgorithm.bind(
+        void 0,
+        client.userinfo_signed_response_alg,
+        as.userinfo_signing_alg_values_supported,
+        void 0,
+      ),
+      getClockSkew(client),
+      getClockTolerance(client),
+      options?.[jweDecrypt],
+    )
+      .then(validateOptionalAudience.bind(void 0, client.client_id))
+      .then(validateOptionalIssuer.bind(void 0, as));
     jwtRefs.set(response, jwt);
     json = claims;
   } else {
     if (client.userinfo_signed_response_alg) {
-      throw OPE("JWT UserInfo Response expected", JWT_USERINFO_EXPECTED, response);
+      throw OPE(
+        "JWT UserInfo Response expected",
+        JWT_USERINFO_EXPECTED,
+        response,
+      );
     }
     try {
       json = await response.json();
@@ -7385,39 +9690,70 @@ async function processUserInfoResponse(as, client, expectedSubject, response, op
     }
   }
   if (!isJsonObject(json)) {
-    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, { body: json });
+    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, {
+      body: json,
+    });
   }
-  assertString(json.sub, '"response" body "sub" property', INVALID_RESPONSE, { body: json });
+  assertString(json.sub, '"response" body "sub" property', INVALID_RESPONSE, {
+    body: json,
+  });
   switch (expectedSubject) {
     case skipSubjectCheck:
       break;
     default:
       assertString(expectedSubject, '"expectedSubject"');
       if (json.sub !== expectedSubject) {
-        throw OPE('unexpected "response" body "sub" property value', JSON_ATTRIBUTE_COMPARISON, {
-          expected: expectedSubject,
-          body: json,
-          attribute: "sub"
-        });
+        throw OPE(
+          'unexpected "response" body "sub" property value',
+          JSON_ATTRIBUTE_COMPARISON,
+          {
+            expected: expectedSubject,
+            body: json,
+            attribute: "sub",
+          },
+        );
       }
   }
   return json;
 }
 __name(processUserInfoResponse, "processUserInfoResponse");
-async function authenticatedRequest(as, client, clientAuthentication, url, body, headers, options) {
+async function authenticatedRequest(
+  as,
+  client,
+  clientAuthentication,
+  url,
+  body,
+  headers,
+  options,
+) {
   await clientAuthentication(as, client, body, headers);
-  headers.set("content-type", "application/x-www-form-urlencoded;charset=UTF-8");
+  headers.set(
+    "content-type",
+    "application/x-www-form-urlencoded;charset=UTF-8",
+  );
   return (options?.[customFetch2] || fetch)(url.href, {
     body,
     headers: Object.fromEntries(headers.entries()),
     method: "POST",
     redirect: "manual",
-    signal: options?.signal ? signal(options.signal) : void 0
+    signal: options?.signal ? signal(options.signal) : void 0,
   });
 }
 __name(authenticatedRequest, "authenticatedRequest");
-async function tokenEndpointRequest(as, client, clientAuthentication, grantType, parameters, options) {
-  const url = resolveEndpoint(as, "token_endpoint", client.use_mtls_endpoint_aliases, options?.[allowInsecureRequests] !== true);
+async function tokenEndpointRequest(
+  as,
+  client,
+  clientAuthentication,
+  grantType,
+  parameters,
+  options,
+) {
+  const url = resolveEndpoint(
+    as,
+    "token_endpoint",
+    client.use_mtls_endpoint_aliases,
+    options?.[allowInsecureRequests] !== true,
+  );
   parameters.set("grant_type", grantType);
   const headers = prepareHeaders(options?.headers);
   headers.set("accept", "application/json");
@@ -7425,7 +9761,15 @@ async function tokenEndpointRequest(as, client, clientAuthentication, grantType,
     assertDPoP(options.DPoP);
     await options.DPoP.addProof(url, headers, "POST");
   }
-  const response = await authenticatedRequest(as, client, clientAuthentication, url, parameters, headers, options);
+  const response = await authenticatedRequest(
+    as,
+    client,
+    clientAuthentication,
+    url,
+    parameters,
+    headers,
+    options,
+  );
   options?.DPoP?.cacheNonce(response);
   return response;
 }
@@ -7438,16 +9782,28 @@ function getValidatedIdTokenClaims(ref) {
   }
   const claims = idTokenClaims.get(ref);
   if (!claims) {
-    throw CodedTypeError('"ref" was already garbage collected or did not resolve from the proper sources', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      '"ref" was already garbage collected or did not resolve from the proper sources',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
   return claims;
 }
 __name(getValidatedIdTokenClaims, "getValidatedIdTokenClaims");
-async function processGenericAccessTokenResponse(as, client, response, additionalRequiredIdTokenClaims, options) {
+async function processGenericAccessTokenResponse(
+  as,
+  client,
+  response,
+  additionalRequiredIdTokenClaims,
+  options,
+) {
   assertAs(as);
   assertClient(client);
   if (!looseInstanceOf(response, Response)) {
-    throw CodedTypeError('"response" must be an instance of Response', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"response" must be an instance of Response',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   checkAuthenticationChallenges(response);
   await checkOAuthBodyError(response, 200, "Token Endpoint");
@@ -7460,37 +9816,74 @@ async function processGenericAccessTokenResponse(as, client, response, additiona
     throw OPE('failed to parse "response" body as JSON', PARSE_ERROR, cause);
   }
   if (!isJsonObject(json)) {
-    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, { body: json });
+    throw OPE('"response" body must be a top level object', INVALID_RESPONSE, {
+      body: json,
+    });
   }
-  assertString(json.access_token, '"response" body "access_token" property', INVALID_RESPONSE, {
-    body: json
-  });
-  assertString(json.token_type, '"response" body "token_type" property', INVALID_RESPONSE, {
-    body: json
-  });
+  assertString(
+    json.access_token,
+    '"response" body "access_token" property',
+    INVALID_RESPONSE,
+    {
+      body: json,
+    },
+  );
+  assertString(
+    json.token_type,
+    '"response" body "token_type" property',
+    INVALID_RESPONSE,
+    {
+      body: json,
+    },
+  );
   json.token_type = json.token_type.toLowerCase();
   if (json.token_type !== "dpop" && json.token_type !== "bearer") {
-    throw new UnsupportedOperationError("unsupported `token_type` value", { cause: { body: json } });
+    throw new UnsupportedOperationError("unsupported `token_type` value", {
+      cause: { body: json },
+    });
   }
   if (json.expires_in !== void 0) {
-    let expiresIn = typeof json.expires_in !== "number" ? parseFloat(json.expires_in) : json.expires_in;
-    assertNumber(expiresIn, false, '"response" body "expires_in" property', INVALID_RESPONSE, {
-      body: json
-    });
+    let expiresIn =
+      typeof json.expires_in !== "number"
+        ? parseFloat(json.expires_in)
+        : json.expires_in;
+    assertNumber(
+      expiresIn,
+      false,
+      '"response" body "expires_in" property',
+      INVALID_RESPONSE,
+      {
+        body: json,
+      },
+    );
     json.expires_in = expiresIn;
   }
   if (json.refresh_token !== void 0) {
-    assertString(json.refresh_token, '"response" body "refresh_token" property', INVALID_RESPONSE, {
-      body: json
-    });
+    assertString(
+      json.refresh_token,
+      '"response" body "refresh_token" property',
+      INVALID_RESPONSE,
+      {
+        body: json,
+      },
+    );
   }
   if (json.scope !== void 0 && typeof json.scope !== "string") {
-    throw OPE('"response" body "scope" property must be a string', INVALID_RESPONSE, { body: json });
+    throw OPE(
+      '"response" body "scope" property must be a string',
+      INVALID_RESPONSE,
+      { body: json },
+    );
   }
   if (json.id_token !== void 0) {
-    assertString(json.id_token, '"response" body "id_token" property', INVALID_RESPONSE, {
-      body: json
-    });
+    assertString(
+      json.id_token,
+      '"response" body "id_token" property',
+      INVALID_RESPONSE,
+      {
+        body: json,
+      },
+    );
     const requiredClaims = ["aud", "exp", "iat", "iss", "sub"];
     if (client.require_auth_time === true) {
       requiredClaims.push("auth_time");
@@ -7502,17 +9895,45 @@ async function processGenericAccessTokenResponse(as, client, response, additiona
     if (additionalRequiredIdTokenClaims?.length) {
       requiredClaims.push(...additionalRequiredIdTokenClaims);
     }
-    const { claims, jwt } = await validateJwt(json.id_token, checkSigningAlgorithm.bind(void 0, client.id_token_signed_response_alg, as.id_token_signing_alg_values_supported, "RS256"), getClockSkew(client), getClockTolerance(client), options?.[jweDecrypt]).then(validatePresence.bind(void 0, requiredClaims)).then(validateIssuer.bind(void 0, as)).then(validateAudience.bind(void 0, client.client_id));
+    const { claims, jwt } = await validateJwt(
+      json.id_token,
+      checkSigningAlgorithm.bind(
+        void 0,
+        client.id_token_signed_response_alg,
+        as.id_token_signing_alg_values_supported,
+        "RS256",
+      ),
+      getClockSkew(client),
+      getClockTolerance(client),
+      options?.[jweDecrypt],
+    )
+      .then(validatePresence.bind(void 0, requiredClaims))
+      .then(validateIssuer.bind(void 0, as))
+      .then(validateAudience.bind(void 0, client.client_id));
     if (Array.isArray(claims.aud) && claims.aud.length !== 1) {
       if (claims.azp === void 0) {
-        throw OPE('ID Token "aud" (audience) claim includes additional untrusted audiences', JWT_CLAIM_COMPARISON, { claims, claim: "aud" });
+        throw OPE(
+          'ID Token "aud" (audience) claim includes additional untrusted audiences',
+          JWT_CLAIM_COMPARISON,
+          { claims, claim: "aud" },
+        );
       }
       if (claims.azp !== client.client_id) {
-        throw OPE('unexpected ID Token "azp" (authorized party) claim value', JWT_CLAIM_COMPARISON, { expected: client.client_id, claims, claim: "azp" });
+        throw OPE(
+          'unexpected ID Token "azp" (authorized party) claim value',
+          JWT_CLAIM_COMPARISON,
+          { expected: client.client_id, claims, claim: "azp" },
+        );
       }
     }
     if (claims.auth_time !== void 0) {
-      assertNumber(claims.auth_time, false, 'ID Token "auth_time" (authentication time)', INVALID_RESPONSE, { claims });
+      assertNumber(
+        claims.auth_time,
+        false,
+        'ID Token "auth_time" (authentication time)',
+        INVALID_RESPONSE,
+        { claims },
+      );
     }
     jwtRefs.set(response, jwt);
     idTokenClaims.set(json, claims);
@@ -7522,8 +9943,11 @@ async function processGenericAccessTokenResponse(as, client, response, additiona
 __name(processGenericAccessTokenResponse, "processGenericAccessTokenResponse");
 function checkAuthenticationChallenges(response) {
   let challenges;
-  if (challenges = parseWwwAuthenticateChallenges(response)) {
-    throw new WWWAuthenticateChallengeError("server responded with a challenge in the WWW-Authenticate HTTP Header", { cause: challenges, response });
+  if ((challenges = parseWwwAuthenticateChallenges(response))) {
+    throw new WWWAuthenticateChallengeError(
+      "server responded with a challenge in the WWW-Authenticate HTTP Header",
+      { cause: challenges, response },
+    );
   }
 }
 __name(checkAuthenticationChallenges, "checkAuthenticationChallenges");
@@ -7537,18 +9961,26 @@ __name(validateOptionalAudience, "validateOptionalAudience");
 function validateAudience(expected, result) {
   if (Array.isArray(result.claims.aud)) {
     if (!result.claims.aud.includes(expected)) {
-      throw OPE('unexpected JWT "aud" (audience) claim value', JWT_CLAIM_COMPARISON, {
-        expected,
-        claims: result.claims,
-        claim: "aud"
-      });
+      throw OPE(
+        'unexpected JWT "aud" (audience) claim value',
+        JWT_CLAIM_COMPARISON,
+        {
+          expected,
+          claims: result.claims,
+          claim: "aud",
+        },
+      );
     }
   } else if (result.claims.aud !== expected) {
-    throw OPE('unexpected JWT "aud" (audience) claim value', JWT_CLAIM_COMPARISON, {
-      expected,
-      claims: result.claims,
-      claim: "aud"
-    });
+    throw OPE(
+      'unexpected JWT "aud" (audience) claim value',
+      JWT_CLAIM_COMPARISON,
+      {
+        expected,
+        claims: result.claims,
+        claim: "aud",
+      },
+    );
   }
   return result;
 }
@@ -7563,11 +9995,15 @@ __name(validateOptionalIssuer, "validateOptionalIssuer");
 function validateIssuer(as, result) {
   const expected = as[_expectedIssuer]?.(result) ?? as.issuer;
   if (result.claims.iss !== expected) {
-    throw OPE('unexpected JWT "iss" (issuer) claim value', JWT_CLAIM_COMPARISON, {
-      expected,
-      claims: result.claims,
-      claim: "iss"
-    });
+    throw OPE(
+      'unexpected JWT "iss" (issuer) claim value',
+      JWT_CLAIM_COMPARISON,
+      {
+        expected,
+        claims: result.claims,
+        claim: "iss",
+      },
+    );
   }
   return result;
 }
@@ -7578,16 +10014,30 @@ function brand(searchParams) {
   return searchParams;
 }
 __name(brand, "brand");
-async function authorizationCodeGrantRequest(as, client, clientAuthentication, callbackParameters, redirectUri, codeVerifier, options) {
+async function authorizationCodeGrantRequest(
+  as,
+  client,
+  clientAuthentication,
+  callbackParameters,
+  redirectUri,
+  codeVerifier,
+  options,
+) {
   assertAs(as);
   assertClient(client);
   if (!branded.has(callbackParameters)) {
-    throw CodedTypeError('"callbackParameters" must be an instance of URLSearchParams obtained from "validateAuthResponse()", or "validateJwtAuthResponse()', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      '"callbackParameters" must be an instance of URLSearchParams obtained from "validateAuthResponse()", or "validateJwtAuthResponse()',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
   assertString(redirectUri, '"redirectUri"');
   const code = getURLSearchParameter(callbackParameters, "code");
   if (!code) {
-    throw OPE('no authorization code in "callbackParameters"', INVALID_RESPONSE);
+    throw OPE(
+      'no authorization code in "callbackParameters"',
+      INVALID_RESPONSE,
+    );
   }
   const parameters = new URLSearchParams(options?.additionalParameters);
   parameters.set("redirect_uri", redirectUri);
@@ -7596,7 +10046,14 @@ async function authorizationCodeGrantRequest(as, client, clientAuthentication, c
     assertString(codeVerifier, '"codeVerifier"');
     parameters.set("code_verifier", codeVerifier);
   }
-  return tokenEndpointRequest(as, client, clientAuthentication, "authorization_code", parameters, options);
+  return tokenEndpointRequest(
+    as,
+    client,
+    clientAuthentication,
+    "authorization_code",
+    parameters,
+    options,
+  );
 }
 __name(authorizationCodeGrantRequest, "authorizationCodeGrantRequest");
 var jwtClaimNames = {
@@ -7614,14 +10071,18 @@ var jwtClaimNames = {
   htm: "http method",
   htu: "http uri",
   cnf: "confirmation",
-  auth_time: "authentication time"
+  auth_time: "authentication time",
 };
 function validatePresence(required, result) {
   for (const claim of required) {
     if (result.claims[claim] === void 0) {
-      throw OPE(`JWT "${claim}" (${jwtClaimNames[claim]}) claim missing`, INVALID_RESPONSE, {
-        claims: result.claims
-      });
+      throw OPE(
+        `JWT "${claim}" (${jwtClaimNames[claim]}) claim missing`,
+        INVALID_RESPONSE,
+        {
+          claims: result.claims,
+        },
+      );
     }
   }
   return result;
@@ -7630,15 +10091,33 @@ __name(validatePresence, "validatePresence");
 var expectNoNonce = Symbol();
 var skipAuthTimeCheck = Symbol();
 async function processAuthorizationCodeResponse(as, client, response, options) {
-  if (typeof options?.expectedNonce === "string" || typeof options?.maxAge === "number" || options?.requireIdToken) {
-    return processAuthorizationCodeOpenIDResponse(as, client, response, options.expectedNonce, options.maxAge, {
-      [jweDecrypt]: options[jweDecrypt]
-    });
+  if (
+    typeof options?.expectedNonce === "string" ||
+    typeof options?.maxAge === "number" ||
+    options?.requireIdToken
+  ) {
+    return processAuthorizationCodeOpenIDResponse(
+      as,
+      client,
+      response,
+      options.expectedNonce,
+      options.maxAge,
+      {
+        [jweDecrypt]: options[jweDecrypt],
+      },
+    );
   }
   return processAuthorizationCodeOAuth2Response(as, client, response, options);
 }
 __name(processAuthorizationCodeResponse, "processAuthorizationCodeResponse");
-async function processAuthorizationCodeOpenIDResponse(as, client, response, expectedNonce, maxAge, options) {
+async function processAuthorizationCodeOpenIDResponse(
+  as,
+  client,
+  response,
+  expectedNonce,
+  maxAge,
+  options,
+) {
   const additionalRequiredClaims = [];
   switch (expectedNonce) {
     case void 0:
@@ -7661,38 +10140,71 @@ async function processAuthorizationCodeOpenIDResponse(as, client, response, expe
       assertNumber(maxAge, false, '"maxAge" argument');
       additionalRequiredClaims.push("auth_time");
   }
-  const result = await processGenericAccessTokenResponse(as, client, response, additionalRequiredClaims, options);
-  assertString(result.id_token, '"response" body "id_token" property', INVALID_RESPONSE, {
-    body: result
-  });
+  const result = await processGenericAccessTokenResponse(
+    as,
+    client,
+    response,
+    additionalRequiredClaims,
+    options,
+  );
+  assertString(
+    result.id_token,
+    '"response" body "id_token" property',
+    INVALID_RESPONSE,
+    {
+      body: result,
+    },
+  );
   const claims = getValidatedIdTokenClaims(result);
   if (maxAge !== skipAuthTimeCheck) {
     const now2 = epochTime() + getClockSkew(client);
     const tolerance = getClockTolerance(client);
     if (claims.auth_time + maxAge < now2 - tolerance) {
-      throw OPE("too much time has elapsed since the last End-User authentication", JWT_TIMESTAMP_CHECK, { claims, now: now2, tolerance, claim: "auth_time" });
+      throw OPE(
+        "too much time has elapsed since the last End-User authentication",
+        JWT_TIMESTAMP_CHECK,
+        { claims, now: now2, tolerance, claim: "auth_time" },
+      );
     }
   }
   if (expectedNonce === expectNoNonce) {
     if (claims.nonce !== void 0) {
-      throw OPE('unexpected ID Token "nonce" claim value', JWT_CLAIM_COMPARISON, {
-        expected: void 0,
-        claims,
-        claim: "nonce"
-      });
+      throw OPE(
+        'unexpected ID Token "nonce" claim value',
+        JWT_CLAIM_COMPARISON,
+        {
+          expected: void 0,
+          claims,
+          claim: "nonce",
+        },
+      );
     }
   } else if (claims.nonce !== expectedNonce) {
     throw OPE('unexpected ID Token "nonce" claim value', JWT_CLAIM_COMPARISON, {
       expected: expectedNonce,
       claims,
-      claim: "nonce"
+      claim: "nonce",
     });
   }
   return result;
 }
-__name(processAuthorizationCodeOpenIDResponse, "processAuthorizationCodeOpenIDResponse");
-async function processAuthorizationCodeOAuth2Response(as, client, response, options) {
-  const result = await processGenericAccessTokenResponse(as, client, response, void 0, options);
+__name(
+  processAuthorizationCodeOpenIDResponse,
+  "processAuthorizationCodeOpenIDResponse",
+);
+async function processAuthorizationCodeOAuth2Response(
+  as,
+  client,
+  response,
+  options,
+) {
+  const result = await processGenericAccessTokenResponse(
+    as,
+    client,
+    response,
+    void 0,
+    options,
+  );
   const claims = getValidatedIdTokenClaims(result);
   if (claims) {
     if (client.default_max_age !== void 0) {
@@ -7700,20 +10212,31 @@ async function processAuthorizationCodeOAuth2Response(as, client, response, opti
       const now2 = epochTime() + getClockSkew(client);
       const tolerance = getClockTolerance(client);
       if (claims.auth_time + client.default_max_age < now2 - tolerance) {
-        throw OPE("too much time has elapsed since the last End-User authentication", JWT_TIMESTAMP_CHECK, { claims, now: now2, tolerance, claim: "auth_time" });
+        throw OPE(
+          "too much time has elapsed since the last End-User authentication",
+          JWT_TIMESTAMP_CHECK,
+          { claims, now: now2, tolerance, claim: "auth_time" },
+        );
       }
     }
     if (claims.nonce !== void 0) {
-      throw OPE('unexpected ID Token "nonce" claim value', JWT_CLAIM_COMPARISON, {
-        expected: void 0,
-        claims,
-        claim: "nonce"
-      });
+      throw OPE(
+        'unexpected ID Token "nonce" claim value',
+        JWT_CLAIM_COMPARISON,
+        {
+          expected: void 0,
+          claims,
+          claim: "nonce",
+        },
+      );
     }
   }
   return result;
 }
-__name(processAuthorizationCodeOAuth2Response, "processAuthorizationCodeOAuth2Response");
+__name(
+  processAuthorizationCodeOAuth2Response,
+  "processAuthorizationCodeOAuth2Response",
+);
 var WWW_AUTHENTICATE_CHALLENGE = "OAUTH_WWW_AUTHENTICATE_CHALLENGE";
 var RESPONSE_BODY_ERROR = "OAUTH_RESPONSE_BODY_ERROR";
 var UNSUPPORTED_OPERATION = "OAUTH_UNSUPPORTED_OPERATION";
@@ -7732,16 +10255,25 @@ var MISSING_SERVER_METADATA = "OAUTH_MISSING_SERVER_METADATA";
 var INVALID_SERVER_METADATA = "OAUTH_INVALID_SERVER_METADATA";
 function assertReadableResponse(response) {
   if (response.bodyUsed) {
-    throw CodedTypeError('"response" body has been used already', ERR_INVALID_ARG_VALUE);
+    throw CodedTypeError(
+      '"response" body has been used already',
+      ERR_INVALID_ARG_VALUE,
+    );
   }
 }
 __name(assertReadableResponse, "assertReadableResponse");
 function checkRsaKeyAlgorithm(key) {
   const { algorithm } = key;
-  if (typeof algorithm.modulusLength !== "number" || algorithm.modulusLength < 2048) {
-    throw new UnsupportedOperationError(`unsupported ${algorithm.name} modulusLength`, {
-      cause: key
-    });
+  if (
+    typeof algorithm.modulusLength !== "number" ||
+    algorithm.modulusLength < 2048
+  ) {
+    throw new UnsupportedOperationError(
+      `unsupported ${algorithm.name} modulusLength`,
+      {
+        cause: key,
+      },
+    );
   }
 }
 __name(checkRsaKeyAlgorithm, "checkRsaKeyAlgorithm");
@@ -7755,7 +10287,9 @@ function ecdsaHashName(key) {
     case "P-521":
       return "SHA-512";
     default:
-      throw new UnsupportedOperationError("unsupported ECDSA namedCurve", { cause: key });
+      throw new UnsupportedOperationError("unsupported ECDSA namedCurve", {
+        cause: key,
+      });
   }
 }
 __name(ecdsaHashName, "ecdsaHashName");
@@ -7764,7 +10298,7 @@ function keyToSubtle(key) {
     case "ECDSA":
       return {
         name: key.algorithm.name,
-        hash: ecdsaHashName(key)
+        hash: ecdsaHashName(key),
       };
     case "RSA-PSS": {
       checkRsaKeyAlgorithm(key);
@@ -7774,10 +10308,12 @@ function keyToSubtle(key) {
         case "SHA-512":
           return {
             name: key.algorithm.name,
-            saltLength: parseInt(key.algorithm.hash.name.slice(-3), 10) >> 3
+            saltLength: parseInt(key.algorithm.hash.name.slice(-3), 10) >> 3,
           };
         default:
-          throw new UnsupportedOperationError("unsupported RSA-PSS hash name", { cause: key });
+          throw new UnsupportedOperationError("unsupported RSA-PSS hash name", {
+            cause: key,
+          });
       }
     }
     case "RSASSA-PKCS1-v1_5":
@@ -7786,17 +10322,27 @@ function keyToSubtle(key) {
     case "Ed25519":
       return key.algorithm.name;
   }
-  throw new UnsupportedOperationError("unsupported CryptoKey algorithm name", { cause: key });
+  throw new UnsupportedOperationError("unsupported CryptoKey algorithm name", {
+    cause: key,
+  });
 }
 __name(keyToSubtle, "keyToSubtle");
-async function validateJwt(jws, checkAlg, clockSkew2, clockTolerance2, decryptJwt) {
+async function validateJwt(
+  jws,
+  checkAlg,
+  clockSkew2,
+  clockTolerance2,
+  decryptJwt,
+) {
   let { 0: protectedHeader, 1: payload, length } = jws.split(".");
   if (length === 5) {
     if (decryptJwt !== void 0) {
       jws = await decryptJwt(jws);
       ({ 0: protectedHeader, 1: payload, length } = jws.split("."));
     } else {
-      throw new UnsupportedOperationError("JWE decryption is not configured", { cause: jws });
+      throw new UnsupportedOperationError("JWE decryption is not configured", {
+        cause: jws,
+      });
     }
   }
   if (length !== 3) {
@@ -7806,22 +10352,33 @@ async function validateJwt(jws, checkAlg, clockSkew2, clockTolerance2, decryptJw
   try {
     header = JSON.parse(buf(b64u(protectedHeader)));
   } catch (cause) {
-    throw OPE("failed to parse JWT Header body as base64url encoded JSON", PARSE_ERROR, cause);
+    throw OPE(
+      "failed to parse JWT Header body as base64url encoded JSON",
+      PARSE_ERROR,
+      cause,
+    );
   }
   if (!isJsonObject(header)) {
     throw OPE("JWT Header must be a top level object", INVALID_RESPONSE, jws);
   }
   checkAlg(header);
   if (header.crit !== void 0) {
-    throw new UnsupportedOperationError('no JWT "crit" header parameter extensions are supported', {
-      cause: { header }
-    });
+    throw new UnsupportedOperationError(
+      'no JWT "crit" header parameter extensions are supported',
+      {
+        cause: { header },
+      },
+    );
   }
   let claims;
   try {
     claims = JSON.parse(buf(b64u(payload)));
   } catch (cause) {
-    throw OPE("failed to parse JWT Payload body as base64url encoded JSON", PARSE_ERROR, cause);
+    throw OPE(
+      "failed to parse JWT Payload body as base64url encoded JSON",
+      PARSE_ERROR,
+      cause,
+    );
   }
   if (!isJsonObject(claims)) {
     throw OPE("JWT Payload must be a top level object", INVALID_RESPONSE, jws);
@@ -7829,38 +10386,64 @@ async function validateJwt(jws, checkAlg, clockSkew2, clockTolerance2, decryptJw
   const now2 = epochTime() + clockSkew2;
   if (claims.exp !== void 0) {
     if (typeof claims.exp !== "number") {
-      throw OPE('unexpected JWT "exp" (expiration time) claim type', INVALID_RESPONSE, { claims });
+      throw OPE(
+        'unexpected JWT "exp" (expiration time) claim type',
+        INVALID_RESPONSE,
+        { claims },
+      );
     }
     if (claims.exp <= now2 - clockTolerance2) {
-      throw OPE('unexpected JWT "exp" (expiration time) claim value, expiration is past current timestamp', JWT_TIMESTAMP_CHECK, { claims, now: now2, tolerance: clockTolerance2, claim: "exp" });
+      throw OPE(
+        'unexpected JWT "exp" (expiration time) claim value, expiration is past current timestamp',
+        JWT_TIMESTAMP_CHECK,
+        { claims, now: now2, tolerance: clockTolerance2, claim: "exp" },
+      );
     }
   }
   if (claims.iat !== void 0) {
     if (typeof claims.iat !== "number") {
-      throw OPE('unexpected JWT "iat" (issued at) claim type', INVALID_RESPONSE, { claims });
+      throw OPE(
+        'unexpected JWT "iat" (issued at) claim type',
+        INVALID_RESPONSE,
+        { claims },
+      );
     }
   }
   if (claims.iss !== void 0) {
     if (typeof claims.iss !== "string") {
-      throw OPE('unexpected JWT "iss" (issuer) claim type', INVALID_RESPONSE, { claims });
+      throw OPE('unexpected JWT "iss" (issuer) claim type', INVALID_RESPONSE, {
+        claims,
+      });
     }
   }
   if (claims.nbf !== void 0) {
     if (typeof claims.nbf !== "number") {
-      throw OPE('unexpected JWT "nbf" (not before) claim type', INVALID_RESPONSE, { claims });
+      throw OPE(
+        'unexpected JWT "nbf" (not before) claim type',
+        INVALID_RESPONSE,
+        { claims },
+      );
     }
     if (claims.nbf > now2 + clockTolerance2) {
-      throw OPE('unexpected JWT "nbf" (not before) claim value', JWT_TIMESTAMP_CHECK, {
-        claims,
-        now: now2,
-        tolerance: clockTolerance2,
-        claim: "nbf"
-      });
+      throw OPE(
+        'unexpected JWT "nbf" (not before) claim value',
+        JWT_TIMESTAMP_CHECK,
+        {
+          claims,
+          now: now2,
+          tolerance: clockTolerance2,
+          claim: "nbf",
+        },
+      );
     }
   }
   if (claims.aud !== void 0) {
     if (typeof claims.aud !== "string" && !Array.isArray(claims.aud)) {
-      throw OPE('unexpected JWT "aud" (audience) claim type', INVALID_RESPONSE, { claims });
+      throw OPE(
+        'unexpected JWT "aud" (audience) claim type',
+        INVALID_RESPONSE,
+        { claims },
+      );
     }
   }
   return { header, claims, jwt: jws };
@@ -7868,11 +10451,15 @@ async function validateJwt(jws, checkAlg, clockSkew2, clockTolerance2, decryptJw
 __name(validateJwt, "validateJwt");
 function checkSigningAlgorithm(client, issuer, fallback, header) {
   if (client !== void 0) {
-    if (typeof client === "string" ? header.alg !== client : !client.includes(header.alg)) {
+    if (
+      typeof client === "string"
+        ? header.alg !== client
+        : !client.includes(header.alg)
+    ) {
       throw OPE('unexpected JWT "alg" header parameter', INVALID_RESPONSE, {
         header,
         expected: client,
-        reason: "client configuration"
+        reason: "client configuration",
       });
     }
     return;
@@ -7882,28 +10469,41 @@ function checkSigningAlgorithm(client, issuer, fallback, header) {
       throw OPE('unexpected JWT "alg" header parameter', INVALID_RESPONSE, {
         header,
         expected: issuer,
-        reason: "authorization server metadata"
+        reason: "authorization server metadata",
       });
     }
     return;
   }
   if (fallback !== void 0) {
-    if (typeof fallback === "string" ? header.alg !== fallback : typeof fallback === "function" ? !fallback(header.alg) : !fallback.includes(header.alg)) {
+    if (
+      typeof fallback === "string"
+        ? header.alg !== fallback
+        : typeof fallback === "function"
+          ? !fallback(header.alg)
+          : !fallback.includes(header.alg)
+    ) {
       throw OPE('unexpected JWT "alg" header parameter', INVALID_RESPONSE, {
         header,
         expected: fallback,
-        reason: "default value"
+        reason: "default value",
       });
     }
     return;
   }
-  throw OPE('missing client or server configuration to verify used JWT "alg" header parameter', void 0, { client, issuer, fallback });
+  throw OPE(
+    'missing client or server configuration to verify used JWT "alg" header parameter',
+    void 0,
+    { client, issuer, fallback },
+  );
 }
 __name(checkSigningAlgorithm, "checkSigningAlgorithm");
 function getURLSearchParameter(parameters, name) {
   const { 0: value, length } = parameters.getAll(name);
   if (length > 1) {
-    throw OPE(`"${name}" parameter must be provided only once`, INVALID_RESPONSE);
+    throw OPE(
+      `"${name}" parameter must be provided only once`,
+      INVALID_RESPONSE,
+    );
   }
   return value;
 }
@@ -7917,30 +10517,47 @@ function validateAuthResponse(as, client, parameters, expectedState) {
     parameters = parameters.searchParams;
   }
   if (!(parameters instanceof URLSearchParams)) {
-    throw CodedTypeError('"parameters" must be an instance of URLSearchParams, or URL', ERR_INVALID_ARG_TYPE);
+    throw CodedTypeError(
+      '"parameters" must be an instance of URLSearchParams, or URL',
+      ERR_INVALID_ARG_TYPE,
+    );
   }
   if (getURLSearchParameter(parameters, "response")) {
-    throw OPE('"parameters" contains a JARM response, use validateJwtAuthResponse() instead of validateAuthResponse()', INVALID_RESPONSE, { parameters });
+    throw OPE(
+      '"parameters" contains a JARM response, use validateJwtAuthResponse() instead of validateAuthResponse()',
+      INVALID_RESPONSE,
+      { parameters },
+    );
   }
   const iss = getURLSearchParameter(parameters, "iss");
   const state2 = getURLSearchParameter(parameters, "state");
   if (!iss && as.authorization_response_iss_parameter_supported) {
-    throw OPE('response parameter "iss" (issuer) missing', INVALID_RESPONSE, { parameters });
+    throw OPE('response parameter "iss" (issuer) missing', INVALID_RESPONSE, {
+      parameters,
+    });
   }
   if (iss && iss !== as.issuer) {
-    throw OPE('unexpected "iss" (issuer) response parameter value', INVALID_RESPONSE, {
-      expected: as.issuer,
-      parameters
-    });
+    throw OPE(
+      'unexpected "iss" (issuer) response parameter value',
+      INVALID_RESPONSE,
+      {
+        expected: as.issuer,
+        parameters,
+      },
+    );
   }
   switch (expectedState) {
     case void 0:
     case expectNoState:
       if (state2 !== void 0) {
-        throw OPE('unexpected "state" response parameter encountered', INVALID_RESPONSE, {
-          expected: void 0,
-          parameters
-        });
+        throw OPE(
+          'unexpected "state" response parameter encountered',
+          INVALID_RESPONSE,
+          {
+            expected: void 0,
+            parameters,
+          },
+        );
       }
       break;
     case skipStateCheck:
@@ -7948,19 +10565,30 @@ function validateAuthResponse(as, client, parameters, expectedState) {
     default:
       assertString(expectedState, '"expectedState" argument');
       if (state2 !== expectedState) {
-        throw OPE(state2 === void 0 ? 'response parameter "state" missing' : 'unexpected "state" response parameter value', INVALID_RESPONSE, { expected: expectedState, parameters });
+        throw OPE(
+          state2 === void 0
+            ? 'response parameter "state" missing'
+            : 'unexpected "state" response parameter value',
+          INVALID_RESPONSE,
+          { expected: expectedState, parameters },
+        );
       }
   }
   const error = getURLSearchParameter(parameters, "error");
   if (error) {
-    throw new AuthorizationResponseError("authorization response from the server is an error", {
-      cause: parameters
-    });
+    throw new AuthorizationResponseError(
+      "authorization response from the server is an error",
+      {
+        cause: parameters,
+      },
+    );
   }
   const id_token = getURLSearchParameter(parameters, "id_token");
   const token = getURLSearchParameter(parameters, "token");
   if (id_token !== void 0 || token !== void 0) {
-    throw new UnsupportedOperationError("implicit and hybrid flows are not supported");
+    throw new UnsupportedOperationError(
+      "implicit and hybrid flows are not supported",
+    );
   }
   return brand(new URLSearchParams(parameters));
 }
@@ -7980,13 +10608,13 @@ async function sealCookie(name, payload, options) {
     name: cookie.name,
     payload,
     COOKIE_TTL,
-    expires
+    expires,
   });
   const encoded = await encode2({
     ...options.jwt,
     maxAge: COOKIE_TTL,
     token: { value: payload },
-    salt: cookie.name
+    salt: cookie.name,
   });
   const cookieOptions = { ...cookie.options, expires };
   return { name: cookie.name, value: encoded, options: cookieOptions };
@@ -7996,19 +10624,17 @@ async function parseCookie3(name, value, options) {
   try {
     const { logger, cookies, jwt } = options;
     logger.debug(`PARSE_${name.toUpperCase()}`, { cookie: value });
-    if (!value)
-      throw new InvalidCheck(`${name} cookie was missing`);
+    if (!value) throw new InvalidCheck(`${name} cookie was missing`);
     const parsed = await decode3({
       ...jwt,
       token: value,
-      salt: cookies[name].name
+      salt: cookies[name].name,
     });
-    if (parsed?.value)
-      return parsed.value;
+    if (parsed?.value) return parsed.value;
     throw new Error("Invalid cookie");
   } catch (error) {
     throw new InvalidCheck(`${name} value could not be parsed`, {
-      cause: error
+      cause: error,
     });
   }
 }
@@ -8020,15 +10646,14 @@ function clearCookie(name, options, resCookies) {
   resCookies.push({
     name: cookie.name,
     value: "",
-    options: { ...cookies[name].options, maxAge: 0 }
+    options: { ...cookies[name].options, maxAge: 0 },
   });
 }
 __name(clearCookie, "clearCookie");
 function useCookie(check2, name) {
-  return async function(cookies, resCookies, options) {
+  return async function (cookies, resCookies, options) {
     const { provider, logger } = options;
-    if (!provider?.checks?.includes(check2))
-      return;
+    if (!provider?.checks?.includes(check2)) return;
     const cookieValue = cookies?.[options.cookies[name].name];
     logger.debug(`USE_${name.toUpperCase()}`, { value: cookieValue });
     const parsed = await parseCookie3(name, cookieValue, options);
@@ -8050,7 +10675,7 @@ var pkce = {
    * and clears the container cookie afterwards.
    * An error is thrown if the code_verifier is missing or invalid.
    */
-  use: useCookie("pkce", "pkceCodeVerifier")
+  use: useCookie("pkce", "pkceCodeVerifier"),
 };
 var STATE_MAX_AGE = 60 * 15;
 var encodedStateSalt = "encodedState";
@@ -8060,19 +10685,21 @@ var state = {
     const { provider } = options;
     if (!provider.checks.includes("state")) {
       if (origin) {
-        throw new InvalidCheck("State data was provided but the provider is not configured to use state");
+        throw new InvalidCheck(
+          "State data was provided but the provider is not configured to use state",
+        );
       }
       return;
     }
     const payload = {
       origin,
-      random: generateRandomState()
+      random: generateRandomState(),
     };
     const value = await encode2({
       secret: options.jwt.secret,
       token: payload,
       salt: encodedStateSalt,
-      maxAge: STATE_MAX_AGE
+      maxAge: STATE_MAX_AGE,
     });
     const cookie = await sealCookie("state", value, options);
     return { cookie, value };
@@ -8090,20 +10717,18 @@ var state = {
       const payload = await decode3({
         secret: options.jwt.secret,
         token: state2,
-        salt: encodedStateSalt
+        salt: encodedStateSalt,
       });
-      if (payload)
-        return payload;
+      if (payload) return payload;
       throw new Error("Invalid state");
     } catch (error) {
       throw new InvalidCheck("State could not be decoded", { cause: error });
     }
-  }
+  },
 };
 var nonce = {
   async create(options) {
-    if (!options.provider.checks.includes("nonce"))
-      return;
+    if (!options.provider.checks.includes("nonce")) return;
     const value = generateRandomNonce();
     const cookie = await sealCookie("nonce", value, options);
     return { cookie, value };
@@ -8115,35 +10740,42 @@ var nonce = {
    * @see https://openid.net/specs/openid-connect-core-1_0.html#NonceNotes
    * @see https://danielfett.de/2020/05/16/pkce-vs-nonce-equivalent-or-not/#nonce
    */
-  use: useCookie("nonce", "nonce")
+  use: useCookie("nonce", "nonce"),
 };
 var WEBAUTHN_CHALLENGE_MAX_AGE = 60 * 15;
 var webauthnChallengeSalt = "encodedWebauthnChallenge";
 var webauthnChallenge = {
   async create(options, challenge, registerData) {
     return {
-      cookie: await sealCookie("webauthnChallenge", await encode2({
-        secret: options.jwt.secret,
-        token: { challenge, registerData },
-        salt: webauthnChallengeSalt,
-        maxAge: WEBAUTHN_CHALLENGE_MAX_AGE
-      }), options)
+      cookie: await sealCookie(
+        "webauthnChallenge",
+        await encode2({
+          secret: options.jwt.secret,
+          token: { challenge, registerData },
+          salt: webauthnChallengeSalt,
+          maxAge: WEBAUTHN_CHALLENGE_MAX_AGE,
+        }),
+        options,
+      ),
     };
   },
   /** Returns WebAuthn challenge if present. */
   async use(options, cookies, resCookies) {
     const cookieValue = cookies?.[options.cookies.webauthnChallenge.name];
-    const parsed = await parseCookie3("webauthnChallenge", cookieValue, options);
+    const parsed = await parseCookie3(
+      "webauthnChallenge",
+      cookieValue,
+      options,
+    );
     const payload = await decode3({
       secret: options.jwt.secret,
       token: parsed,
-      salt: webauthnChallengeSalt
+      salt: webauthnChallengeSalt,
     });
     clearCookie("webauthnChallenge", options, resCookies);
-    if (!payload)
-      throw new InvalidCheck("WebAuthn challenge was missing");
+    if (!payload) throw new InvalidCheck("WebAuthn challenge was missing");
     return payload;
-  }
+  },
 };
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/actions/callback/oauth/callback.js
@@ -8162,28 +10794,35 @@ async function handleOAuth(params, cookies, options) {
   const { logger, provider } = options;
   let as;
   const { token, userinfo } = provider;
-  if ((!token?.url || token.url.host === "authjs.dev") && (!userinfo?.url || userinfo.url.host === "authjs.dev")) {
+  if (
+    (!token?.url || token.url.host === "authjs.dev") &&
+    (!userinfo?.url || userinfo.url.host === "authjs.dev")
+  ) {
     const issuer = new URL(provider.issuer);
     const discoveryResponse = await discoveryRequest(issuer, {
       [allowInsecureRequests]: true,
-      [customFetch2]: provider[customFetch]
+      [customFetch2]: provider[customFetch],
     });
     as = await processDiscoveryResponse(issuer, discoveryResponse);
     if (!as.token_endpoint)
-      throw new TypeError("TODO: Authorization server did not provide a token endpoint.");
+      throw new TypeError(
+        "TODO: Authorization server did not provide a token endpoint.",
+      );
     if (!as.userinfo_endpoint)
-      throw new TypeError("TODO: Authorization server did not provide a userinfo endpoint.");
+      throw new TypeError(
+        "TODO: Authorization server did not provide a userinfo endpoint.",
+      );
   } else {
     as = {
       issuer: provider.issuer ?? "https://authjs.dev",
       // TODO: review fallback issuer
       token_endpoint: token?.url.toString(),
-      userinfo_endpoint: userinfo?.url.toString()
+      userinfo_endpoint: userinfo?.url.toString(),
     };
   }
   const client = {
     client_id: provider.clientId,
-    ...provider.client
+    ...provider.client,
   };
   let clientAuth;
   switch (client.token_endpoint_auth_method) {
@@ -8191,7 +10830,10 @@ async function handleOAuth(params, cookies, options) {
     case void 0:
     case "client_secret_basic":
       clientAuth = /* @__PURE__ */ __name((_as, _client, _body, headers) => {
-        headers.set("authorization", clientSecretBasic(provider.clientId, provider.clientSecret));
+        headers.set(
+          "authorization",
+          clientSecretBasic(provider.clientId, provider.clientSecret),
+        );
       }, "clientAuth");
       break;
     case "client_secret_post":
@@ -8205,7 +10847,7 @@ async function handleOAuth(params, cookies, options) {
         // TODO: review in the next breaking change
         [modifyAssertion](_header, payload) {
           payload.aud = [as.issuer, as.token_endpoint];
-        }
+        },
       });
       break;
     case "none":
@@ -8218,12 +10860,17 @@ async function handleOAuth(params, cookies, options) {
   const state2 = await state.use(cookies, resCookies, options);
   let codeGrantParams;
   try {
-    codeGrantParams = validateAuthResponse(as, client, new URLSearchParams(params), provider.checks.includes("state") ? state2 : skipStateCheck);
+    codeGrantParams = validateAuthResponse(
+      as,
+      client,
+      new URLSearchParams(params),
+      provider.checks.includes("state") ? state2 : skipStateCheck,
+    );
   } catch (err) {
     if (err instanceof AuthorizationResponseError) {
       const cause = {
         providerId: provider.id,
-        ...Object.fromEntries(err.cause.entries())
+        ...Object.fromEntries(err.cause.entries()),
       };
       logger.debug("OAuthCallbackError", cause);
       throw new OAuthCallbackError("OAuth Provider returned an error", cause);
@@ -8235,18 +10882,28 @@ async function handleOAuth(params, cookies, options) {
   if (!options.isOnRedirectProxy && provider.redirectProxyUrl) {
     redirect_uri = provider.redirectProxyUrl;
   }
-  let codeGrantResponse = await authorizationCodeGrantRequest(as, client, clientAuth, codeGrantParams, redirect_uri, codeVerifier ?? "decoy", {
-    // TODO: move away from allowing insecure HTTP requests
-    [allowInsecureRequests]: true,
-    [customFetch2]: (...args) => {
-      if (!provider.checks.includes("pkce")) {
-        args[1].body.delete("code_verifier");
-      }
-      return (provider[customFetch] ?? fetch)(...args);
-    }
-  });
+  let codeGrantResponse = await authorizationCodeGrantRequest(
+    as,
+    client,
+    clientAuth,
+    codeGrantParams,
+    redirect_uri,
+    codeVerifier ?? "decoy",
+    {
+      // TODO: move away from allowing insecure HTTP requests
+      [allowInsecureRequests]: true,
+      [customFetch2]: (...args) => {
+        if (!provider.checks.includes("pkce")) {
+          args[1].body.delete("code_verifier");
+        }
+        return (provider[customFetch] ?? fetch)(...args);
+      },
+    },
+  );
   if (provider.token?.conform) {
-    codeGrantResponse = await provider.token.conform(codeGrantResponse.clone()) ?? codeGrantResponse;
+    codeGrantResponse =
+      (await provider.token.conform(codeGrantResponse.clone())) ??
+      codeGrantResponse;
   }
   let profile = {};
   const requireIdToken = isOIDCProvider(provider);
@@ -8254,13 +10911,15 @@ async function handleOAuth(params, cookies, options) {
     switch (provider.id) {
       case "microsoft-entra-id":
       case "azure-ad": {
-        const { tid } = decodeJwt((await codeGrantResponse.clone().json()).id_token);
+        const { tid } = decodeJwt(
+          (await codeGrantResponse.clone().json()).id_token,
+        );
         if (typeof tid === "string") {
           const tenantRe = /microsoftonline\.com\/(\w+)\/v2\.0/;
           const tenantId = as.issuer?.match(tenantRe)?.[1] ?? "common";
           const issuer = new URL(as.issuer.replace(tenantId, tid));
           const discoveryResponse = await discoveryRequest(issuer, {
-            [customFetch2]: provider[customFetch]
+            [customFetch2]: provider[customFetch],
           });
           as = await processDiscoveryResponse(issuer, discoveryResponse);
         }
@@ -8270,10 +10929,15 @@ async function handleOAuth(params, cookies, options) {
         break;
     }
   }
-  const processedCodeResponse = await processAuthorizationCodeResponse(as, client, codeGrantResponse, {
-    expectedNonce: await nonce.use(cookies, resCookies, options),
-    requireIdToken
-  });
+  const processedCodeResponse = await processAuthorizationCodeResponse(
+    as,
+    client,
+    codeGrantResponse,
+    {
+      expectedNonce: await nonce.use(cookies, resCookies, options),
+      requireIdToken,
+    },
+  );
   const tokens = processedCodeResponse;
   if (requireIdToken) {
     const idTokenClaims2 = getValidatedIdTokenClaims(processedCodeResponse);
@@ -8281,37 +10945,56 @@ async function handleOAuth(params, cookies, options) {
     if (provider[conformInternal] && provider.id === "apple") {
       try {
         profile.user = JSON.parse(params?.user);
-      } catch {
-      }
+      } catch {}
     }
     if (provider.idToken === false) {
-      const userinfoResponse = await userInfoRequest(as, client, processedCodeResponse.access_token, {
-        [customFetch2]: provider[customFetch],
-        // TODO: move away from allowing insecure HTTP requests
-        [allowInsecureRequests]: true
-      });
-      profile = await processUserInfoResponse(as, client, idTokenClaims2.sub, userinfoResponse);
+      const userinfoResponse = await userInfoRequest(
+        as,
+        client,
+        processedCodeResponse.access_token,
+        {
+          [customFetch2]: provider[customFetch],
+          // TODO: move away from allowing insecure HTTP requests
+          [allowInsecureRequests]: true,
+        },
+      );
+      profile = await processUserInfoResponse(
+        as,
+        client,
+        idTokenClaims2.sub,
+        userinfoResponse,
+      );
     }
   } else {
     if (userinfo?.request) {
       const _profile = await userinfo.request({ tokens, provider });
-      if (_profile instanceof Object)
-        profile = _profile;
+      if (_profile instanceof Object) profile = _profile;
     } else if (userinfo?.url) {
-      const userinfoResponse = await userInfoRequest(as, client, processedCodeResponse.access_token, {
-        [customFetch2]: provider[customFetch],
-        // TODO: move away from allowing insecure HTTP requests
-        [allowInsecureRequests]: true
-      });
+      const userinfoResponse = await userInfoRequest(
+        as,
+        client,
+        processedCodeResponse.access_token,
+        {
+          [customFetch2]: provider[customFetch],
+          // TODO: move away from allowing insecure HTTP requests
+          [allowInsecureRequests]: true,
+        },
+      );
       profile = await userinfoResponse.json();
     } else {
       throw new TypeError("No userinfo endpoint configured");
     }
   }
   if (tokens.expires_in) {
-    tokens.expires_at = Math.floor(Date.now() / 1e3) + Number(tokens.expires_in);
+    tokens.expires_at =
+      Math.floor(Date.now() / 1e3) + Number(tokens.expires_in);
   }
-  const profileResult = await getUserAndAccount(profile, provider, tokens, logger);
+  const profileResult = await getUserAndAccount(
+    profile,
+    provider,
+    tokens,
+    logger,
+  );
   return { ...profileResult, profile, cookies: resCookies };
 }
 __name(handleOAuth, "handleOAuth");
@@ -8324,7 +11007,7 @@ async function getUserAndAccount(OAuthProfile, provider, tokens, logger) {
       // the user should remain independent of the provider and the profile id
       // is saved on the Account already, as `providerAccountId`.
       id: crypto.randomUUID(),
-      email: userFromProfile.email?.toLowerCase()
+      email: userFromProfile.email?.toLowerCase(),
     };
     return {
       user,
@@ -8332,8 +11015,8 @@ async function getUserAndAccount(OAuthProfile, provider, tokens, logger) {
         ...tokens,
         provider: provider.id,
         type: provider.type,
-        providerAccountId: userFromProfile.id ?? crypto.randomUUID()
-      }
+        providerAccountId: userFromProfile.id ?? crypto.randomUUID(),
+      },
     };
   } catch (e2) {
     logger.debug("getProfile error details", OAuthProfile);
@@ -8350,8 +11033,7 @@ function inferWebAuthnOptions(action, loggedIn, userInfoResponse) {
       return "authenticate";
     }
     case "register": {
-      if (user && loggedIn === exists2)
-        return "register";
+      if (user && loggedIn === exists2) return "register";
       break;
     }
     case void 0: {
@@ -8374,50 +11056,71 @@ function inferWebAuthnOptions(action, loggedIn, userInfoResponse) {
 __name(inferWebAuthnOptions, "inferWebAuthnOptions");
 async function getRegistrationResponse(options, request, user, resCookies) {
   const regOptions = await getRegistrationOptions(options, request, user);
-  const { cookie } = await webauthnChallenge.create(options, regOptions.challenge, user);
+  const { cookie } = await webauthnChallenge.create(
+    options,
+    regOptions.challenge,
+    user,
+  );
   return {
     status: 200,
-    cookies: [...resCookies ?? [], cookie],
+    cookies: [...(resCookies ?? []), cookie],
     body: {
       action: "register",
-      options: regOptions
+      options: regOptions,
     },
     headers: {
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/json",
+    },
   };
 }
 __name(getRegistrationResponse, "getRegistrationResponse");
 async function getAuthenticationResponse(options, request, user, resCookies) {
   const authOptions = await getAuthenticationOptions(options, request, user);
-  const { cookie } = await webauthnChallenge.create(options, authOptions.challenge);
+  const { cookie } = await webauthnChallenge.create(
+    options,
+    authOptions.challenge,
+  );
   return {
     status: 200,
-    cookies: [...resCookies ?? [], cookie],
+    cookies: [...(resCookies ?? []), cookie],
     body: {
       action: "authenticate",
-      options: authOptions
+      options: authOptions,
     },
     headers: {
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/json",
+    },
   };
 }
 __name(getAuthenticationResponse, "getAuthenticationResponse");
 async function verifyAuthenticate(options, request, resCookies) {
   const { adapter, provider } = options;
-  const data = request.body && typeof request.body.data === "string" ? JSON.parse(request.body.data) : void 0;
-  if (!data || typeof data !== "object" || !("id" in data) || typeof data.id !== "string") {
+  const data =
+    request.body && typeof request.body.data === "string"
+      ? JSON.parse(request.body.data)
+      : void 0;
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !("id" in data) ||
+    typeof data.id !== "string"
+  ) {
     throw new AuthError("Invalid WebAuthn Authentication response");
   }
   const credentialID = toBase64(fromBase64(data.id));
   const authenticator = await adapter.getAuthenticator(credentialID);
   if (!authenticator) {
-    throw new AuthError(`WebAuthn authenticator not found in database: ${JSON.stringify({
-      credentialID
-    })}`);
+    throw new AuthError(
+      `WebAuthn authenticator not found in database: ${JSON.stringify({
+        credentialID,
+      })}`,
+    );
   }
-  const { challenge: expectedChallenge } = await webauthnChallenge.use(options, request.cookies, resCookies);
+  const { challenge: expectedChallenge } = await webauthnChallenge.use(
+    options,
+    request.cookies,
+    resCookies,
+  );
   let verification;
   try {
     const relayingParty = provider.getRelayingParty(options, request);
@@ -8427,55 +11130,83 @@ async function verifyAuthenticate(options, request, resCookies) {
       response: data,
       authenticator: fromAdapterAuthenticator(authenticator),
       expectedOrigin: relayingParty.origin,
-      expectedRPID: relayingParty.id
+      expectedRPID: relayingParty.id,
     });
   } catch (e2) {
     throw new WebAuthnVerificationError(e2);
   }
   const { verified, authenticationInfo } = verification;
   if (!verified) {
-    throw new WebAuthnVerificationError("WebAuthn authentication response could not be verified");
+    throw new WebAuthnVerificationError(
+      "WebAuthn authentication response could not be verified",
+    );
   }
   try {
     const { newCounter } = authenticationInfo;
-    await adapter.updateAuthenticatorCounter(authenticator.credentialID, newCounter);
+    await adapter.updateAuthenticatorCounter(
+      authenticator.credentialID,
+      newCounter,
+    );
   } catch (e2) {
-    throw new AdapterError(`Failed to update authenticator counter. This may cause future authentication attempts to fail. ${JSON.stringify({
-      credentialID,
-      oldCounter: authenticator.counter,
-      newCounter: authenticationInfo.newCounter
-    })}`, e2);
+    throw new AdapterError(
+      `Failed to update authenticator counter. This may cause future authentication attempts to fail. ${JSON.stringify(
+        {
+          credentialID,
+          oldCounter: authenticator.counter,
+          newCounter: authenticationInfo.newCounter,
+        },
+      )}`,
+      e2,
+    );
   }
-  const account = await adapter.getAccount(authenticator.providerAccountId, provider.id);
+  const account = await adapter.getAccount(
+    authenticator.providerAccountId,
+    provider.id,
+  );
   if (!account) {
-    throw new AuthError(`WebAuthn account not found in database: ${JSON.stringify({
-      credentialID,
-      providerAccountId: authenticator.providerAccountId
-    })}`);
+    throw new AuthError(
+      `WebAuthn account not found in database: ${JSON.stringify({
+        credentialID,
+        providerAccountId: authenticator.providerAccountId,
+      })}`,
+    );
   }
   const user = await adapter.getUser(account.userId);
   if (!user) {
-    throw new AuthError(`WebAuthn user not found in database: ${JSON.stringify({
-      credentialID,
-      providerAccountId: authenticator.providerAccountId,
-      userID: account.userId
-    })}`);
+    throw new AuthError(
+      `WebAuthn user not found in database: ${JSON.stringify({
+        credentialID,
+        providerAccountId: authenticator.providerAccountId,
+        userID: account.userId,
+      })}`,
+    );
   }
   return {
     account,
-    user
+    user,
   };
 }
 __name(verifyAuthenticate, "verifyAuthenticate");
 async function verifyRegister(options, request, resCookies) {
   const { provider } = options;
-  const data = request.body && typeof request.body.data === "string" ? JSON.parse(request.body.data) : void 0;
-  if (!data || typeof data !== "object" || !("id" in data) || typeof data.id !== "string") {
+  const data =
+    request.body && typeof request.body.data === "string"
+      ? JSON.parse(request.body.data)
+      : void 0;
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !("id" in data) ||
+    typeof data.id !== "string"
+  ) {
     throw new AuthError("Invalid WebAuthn Registration response");
   }
-  const { challenge: expectedChallenge, registerData: user } = await webauthnChallenge.use(options, request.cookies, resCookies);
+  const { challenge: expectedChallenge, registerData: user } =
+    await webauthnChallenge.use(options, request.cookies, resCookies);
   if (!user) {
-    throw new AuthError("Missing user registration data in WebAuthn challenge cookie");
+    throw new AuthError(
+      "Missing user registration data in WebAuthn challenge cookie",
+    );
   }
   let verification;
   try {
@@ -8485,38 +11216,45 @@ async function verifyRegister(options, request, resCookies) {
       expectedChallenge,
       response: data,
       expectedOrigin: relayingParty.origin,
-      expectedRPID: relayingParty.id
+      expectedRPID: relayingParty.id,
     });
   } catch (e2) {
     throw new WebAuthnVerificationError(e2);
   }
   if (!verification.verified || !verification.registrationInfo) {
-    throw new WebAuthnVerificationError("WebAuthn registration response could not be verified");
+    throw new WebAuthnVerificationError(
+      "WebAuthn registration response could not be verified",
+    );
   }
   const account = {
     providerAccountId: toBase64(verification.registrationInfo.credentialID),
     provider: options.provider.id,
-    type: provider.type
+    type: provider.type,
   };
   const authenticator = {
     providerAccountId: account.providerAccountId,
     counter: verification.registrationInfo.counter,
     credentialID: toBase64(verification.registrationInfo.credentialID),
-    credentialPublicKey: toBase64(verification.registrationInfo.credentialPublicKey),
+    credentialPublicKey: toBase64(
+      verification.registrationInfo.credentialPublicKey,
+    ),
     credentialBackedUp: verification.registrationInfo.credentialBackedUp,
     credentialDeviceType: verification.registrationInfo.credentialDeviceType,
-    transports: transportsToString(data.response.transports)
+    transports: transportsToString(data.response.transports),
   };
   return {
     user,
     account,
-    authenticator
+    authenticator,
   };
 }
 __name(verifyRegister, "verifyRegister");
 async function getAuthenticationOptions(options, request, user) {
   const { provider, adapter } = options;
-  const authenticators2 = user && user["id"] ? await adapter.listAuthenticatorsByUserId(user.id) : null;
+  const authenticators2 =
+    user && user["id"]
+      ? await adapter.listAuthenticatorsByUserId(user.id)
+      : null;
   const relayingParty = provider.getRelayingParty(options, request);
   return await provider.simpleWebAuthn.generateAuthenticationOptions({
     ...provider.authenticationOptions,
@@ -8524,14 +11262,16 @@ async function getAuthenticationOptions(options, request, user) {
     allowCredentials: authenticators2?.map((a3) => ({
       id: fromBase64(a3.credentialID),
       type: "public-key",
-      transports: stringToTransports(a3.transports)
-    }))
+      transports: stringToTransports(a3.transports),
+    })),
   });
 }
 __name(getAuthenticationOptions, "getAuthenticationOptions");
 async function getRegistrationOptions(options, request, user) {
   const { provider, adapter } = options;
-  const authenticators2 = user["id"] ? await adapter.listAuthenticatorsByUserId(user.id) : null;
+  const authenticators2 = user["id"]
+    ? await adapter.listAuthenticatorsByUserId(user.id)
+    : null;
   const userID = randomString(32);
   const relayingParty = provider.getRelayingParty(options, request);
   return await provider.simpleWebAuthn.generateRegistrationOptions({
@@ -8544,15 +11284,17 @@ async function getRegistrationOptions(options, request, user) {
     excludeCredentials: authenticators2?.map((a3) => ({
       id: fromBase64(a3.credentialID),
       type: "public-key",
-      transports: stringToTransports(a3.transports)
-    }))
+      transports: stringToTransports(a3.transports),
+    })),
   });
 }
 __name(getRegistrationOptions, "getRegistrationOptions");
 function assertInternalOptionsWebAuthn(options) {
   const { provider, adapter } = options;
   if (!adapter)
-    throw new MissingAdapter("An adapter is required for the WebAuthn provider");
+    throw new MissingAdapter(
+      "An adapter is required for the WebAuthn provider",
+    );
   if (!provider || provider.type !== "webauthn") {
     throw new InvalidProvider("Provider must be WebAuthn");
   }
@@ -8565,7 +11307,7 @@ function fromAdapterAuthenticator(authenticator) {
     credentialDeviceType: authenticator.credentialDeviceType,
     transports: stringToTransports(authenticator.transports),
     credentialID: fromBase64(authenticator.credentialID),
-    credentialPublicKey: fromBase64(authenticator.credentialPublicKey)
+    credentialPublicKey: fromBase64(authenticator.credentialPublicKey),
   };
 }
 __name(fromAdapterAuthenticator, "fromAdapterAuthenticator");
@@ -8591,26 +11333,51 @@ async function callback(request, options, sessionStore, cookies) {
   if (!options.provider)
     throw new InvalidProvider("Callback route called without provider");
   const { query, body, method, headers } = request;
-  const { provider, adapter, url, callbackUrl, pages, jwt, events, callbacks, session: { strategy: sessionStrategy, maxAge: sessionMaxAge }, logger } = options;
+  const {
+    provider,
+    adapter,
+    url,
+    callbackUrl,
+    pages,
+    jwt,
+    events,
+    callbacks,
+    session: { strategy: sessionStrategy, maxAge: sessionMaxAge },
+    logger,
+  } = options;
   const useJwtSession = sessionStrategy === "jwt";
   try {
     if (provider.type === "oauth" || provider.type === "oidc") {
-      const params = provider.authorization?.url.searchParams.get("response_mode") === "form_post" ? body : query;
+      const params =
+        provider.authorization?.url.searchParams.get("response_mode") ===
+        "form_post"
+          ? body
+          : query;
       if (options.isOnRedirectProxy && params?.state) {
         const parsedState = await state.decode(params.state, options);
-        const shouldRedirect = parsedState?.origin && new URL(parsedState.origin).origin !== options.url.origin;
+        const shouldRedirect =
+          parsedState?.origin &&
+          new URL(parsedState.origin).origin !== options.url.origin;
         if (shouldRedirect) {
           const proxyRedirect = `${parsedState.origin}?${new URLSearchParams(params)}`;
           logger.debug("Proxy redirecting to", proxyRedirect);
           return { redirect: proxyRedirect, cookies };
         }
       }
-      const authorizationResult = await handleOAuth(params, request.cookies, options);
+      const authorizationResult = await handleOAuth(
+        params,
+        request.cookies,
+        options,
+      );
       if (authorizationResult.cookies.length) {
         cookies.push(...authorizationResult.cookies);
       }
       logger.debug("authorization result", authorizationResult);
-      const { user: userFromProvider, account, profile: OAuthProfile } = authorizationResult;
+      const {
+        user: userFromProvider,
+        account,
+        profile: OAuthProfile,
+      } = authorizationResult;
       if (!userFromProvider || !account || !OAuthProfile) {
         return { redirect: `${url}/signin`, cookies };
       }
@@ -8619,23 +11386,34 @@ async function callback(request, options, sessionStore, cookies) {
         const { getUserByAccount } = adapter;
         userByAccount = await getUserByAccount({
           providerAccountId: account.providerAccountId,
-          provider: provider.id
+          provider: provider.id,
         });
       }
-      const redirect = await handleAuthorized({
-        user: userByAccount ?? userFromProvider,
+      const redirect = await handleAuthorized(
+        {
+          user: userByAccount ?? userFromProvider,
+          account,
+          profile: OAuthProfile,
+        },
+        options,
+      );
+      if (redirect) return { redirect, cookies };
+      const {
+        user,
+        session: session2,
+        isNewUser,
+      } = await handleLoginOrRegister(
+        sessionStore.value,
+        userFromProvider,
         account,
-        profile: OAuthProfile
-      }, options);
-      if (redirect)
-        return { redirect, cookies };
-      const { user, session: session2, isNewUser } = await handleLoginOrRegister(sessionStore.value, userFromProvider, account, options);
+        options,
+      );
       if (useJwtSession) {
         const defaultToken = {
           name: user.name,
           email: user.email,
           picture: user.image,
-          sub: user.id?.toString()
+          sub: user.id?.toString(),
         };
         const token = await callbacks.jwt({
           token: defaultToken,
@@ -8643,7 +11421,7 @@ async function callback(request, options, sessionStore, cookies) {
           account,
           profile: OAuthProfile,
           isNewUser,
-          trigger: isNewUser ? "signUp" : "signIn"
+          trigger: isNewUser ? "signUp" : "signIn",
         });
         if (token === null) {
           cookies.push(...sessionStore.clean());
@@ -8653,7 +11431,7 @@ async function callback(request, options, sessionStore, cookies) {
           const cookieExpires = /* @__PURE__ */ new Date();
           cookieExpires.setTime(cookieExpires.getTime() + sessionMaxAge * 1e3);
           const sessionCookies = sessionStore.chunk(newToken, {
-            expires: cookieExpires
+            expires: cookieExpires,
           });
           cookies.push(...sessionCookies);
         }
@@ -8663,20 +11441,20 @@ async function callback(request, options, sessionStore, cookies) {
           value: session2.sessionToken,
           options: {
             ...options.cookies.sessionToken.options,
-            expires: session2.expires
-          }
+            expires: session2.expires,
+          },
         });
       }
       await events.signIn?.({
         user,
         account,
         profile: OAuthProfile,
-        isNewUser
+        isNewUser,
       });
       if (isNewUser && pages.newUser) {
         return {
           redirect: `${pages.newUser}${pages.newUser.includes("?") ? "&" : "?"}${new URLSearchParams({ callbackUrl })}`,
-          cookies
+          cookies,
         };
       }
       return { redirect: callbackUrl, cookies };
@@ -8684,7 +11462,10 @@ async function callback(request, options, sessionStore, cookies) {
       const paramToken = query?.token;
       const paramIdentifier = query?.email;
       if (!paramToken) {
-        const e2 = new TypeError("Missing token. The sign-in URL was manually opened without token or the link was not sent correctly in the email.", { cause: { hasToken: !!paramToken } });
+        const e2 = new TypeError(
+          "Missing token. The sign-in URL was manually opened without token or the link was not sent correctly in the email.",
+          { cause: { hasToken: !!paramToken } },
+        );
         e2.name = "Configuration";
         throw e2;
       }
@@ -8693,44 +11474,53 @@ async function callback(request, options, sessionStore, cookies) {
         // @ts-expect-error User-land adapters might decide to omit the identifier during lookup
         identifier: paramIdentifier,
         // TODO: Drop this requirement for lookup in official adapters too
-        token: await createHash(`${paramToken}${secret}`)
+        token: await createHash(`${paramToken}${secret}`),
       });
       const hasInvite = !!invite;
       const expired = hasInvite && invite.expires.valueOf() < Date.now();
-      const invalidInvite = !hasInvite || expired || // The user might have configured the link to not contain the identifier
-      // so we only compare if it exists
-      paramIdentifier && invite.identifier !== paramIdentifier;
-      if (invalidInvite)
-        throw new Verification({ hasInvite, expired });
+      const invalidInvite =
+        !hasInvite ||
+        expired || // The user might have configured the link to not contain the identifier
+        // so we only compare if it exists
+        (paramIdentifier && invite.identifier !== paramIdentifier);
+      if (invalidInvite) throw new Verification({ hasInvite, expired });
       const { identifier } = invite;
-      const user = await adapter.getUserByEmail(identifier) ?? {
+      const user = (await adapter.getUserByEmail(identifier)) ?? {
         id: crypto.randomUUID(),
         email: identifier,
-        emailVerified: null
+        emailVerified: null,
       };
       const account = {
         providerAccountId: user.email,
         userId: user.id,
         type: "email",
-        provider: provider.id
+        provider: provider.id,
       };
       const redirect = await handleAuthorized({ user, account }, options);
-      if (redirect)
-        return { redirect, cookies };
-      const { user: loggedInUser, session: session2, isNewUser } = await handleLoginOrRegister(sessionStore.value, user, account, options);
+      if (redirect) return { redirect, cookies };
+      const {
+        user: loggedInUser,
+        session: session2,
+        isNewUser,
+      } = await handleLoginOrRegister(
+        sessionStore.value,
+        user,
+        account,
+        options,
+      );
       if (useJwtSession) {
         const defaultToken = {
           name: loggedInUser.name,
           email: loggedInUser.email,
           picture: loggedInUser.image,
-          sub: loggedInUser.id?.toString()
+          sub: loggedInUser.id?.toString(),
         };
         const token = await callbacks.jwt({
           token: defaultToken,
           user: loggedInUser,
           account,
           isNewUser,
-          trigger: isNewUser ? "signUp" : "signIn"
+          trigger: isNewUser ? "signUp" : "signIn",
         });
         if (token === null) {
           cookies.push(...sessionStore.clean());
@@ -8740,7 +11530,7 @@ async function callback(request, options, sessionStore, cookies) {
           const cookieExpires = /* @__PURE__ */ new Date();
           cookieExpires.setTime(cookieExpires.getTime() + sessionMaxAge * 1e3);
           const sessionCookies = sessionStore.chunk(newToken, {
-            expires: cookieExpires
+            expires: cookieExpires,
           });
           cookies.push(...sessionCookies);
         }
@@ -8750,51 +11540,53 @@ async function callback(request, options, sessionStore, cookies) {
           value: session2.sessionToken,
           options: {
             ...options.cookies.sessionToken.options,
-            expires: session2.expires
-          }
+            expires: session2.expires,
+          },
         });
       }
       await events.signIn?.({ user: loggedInUser, account, isNewUser });
       if (isNewUser && pages.newUser) {
         return {
           redirect: `${pages.newUser}${pages.newUser.includes("?") ? "&" : "?"}${new URLSearchParams({ callbackUrl })}`,
-          cookies
+          cookies,
         };
       }
       return { redirect: callbackUrl, cookies };
     } else if (provider.type === "credentials" && method === "POST") {
       const credentials = body ?? {};
-      Object.entries(query ?? {}).forEach(([k3, v2]) => url.searchParams.set(k3, v2));
+      Object.entries(query ?? {}).forEach(([k3, v2]) =>
+        url.searchParams.set(k3, v2),
+      );
       const userFromAuthorize = await provider.authorize(
         credentials,
         // prettier-ignore
-        new Request(url, { headers, method, body: JSON.stringify(body) })
+        new Request(url, { headers, method, body: JSON.stringify(body) }),
       );
       const user = userFromAuthorize;
-      if (!user)
-        throw new CredentialsSignin();
-      else
-        user.id = user.id?.toString() ?? crypto.randomUUID();
+      if (!user) throw new CredentialsSignin();
+      else user.id = user.id?.toString() ?? crypto.randomUUID();
       const account = {
         providerAccountId: user.id,
         type: "credentials",
-        provider: provider.id
+        provider: provider.id,
       };
-      const redirect = await handleAuthorized({ user, account, credentials }, options);
-      if (redirect)
-        return { redirect, cookies };
+      const redirect = await handleAuthorized(
+        { user, account, credentials },
+        options,
+      );
+      if (redirect) return { redirect, cookies };
       const defaultToken = {
         name: user.name,
         email: user.email,
         picture: user.image,
-        sub: user.id
+        sub: user.id,
       };
       const token = await callbacks.jwt({
         token: defaultToken,
         user,
         account,
         isNewUser: false,
-        trigger: "signIn"
+        trigger: "signIn",
       });
       if (token === null) {
         cookies.push(...sessionStore.clean());
@@ -8804,7 +11596,7 @@ async function callback(request, options, sessionStore, cookies) {
         const cookieExpires = /* @__PURE__ */ new Date();
         cookieExpires.setTime(cookieExpires.getTime() + sessionMaxAge * 1e3);
         const sessionCookies = sessionStore.chunk(newToken, {
-          expires: cookieExpires
+          expires: cookieExpires,
         });
         cookies.push(...sessionCookies);
       }
@@ -8812,7 +11604,10 @@ async function callback(request, options, sessionStore, cookies) {
       return { redirect: callbackUrl, cookies };
     } else if (provider.type === "webauthn" && method === "POST") {
       const action = request.body?.action;
-      if (typeof action !== "string" || action !== "authenticate" && action !== "register") {
+      if (
+        typeof action !== "string" ||
+        (action !== "authenticate" && action !== "register")
+      ) {
         throw new AuthError("Invalid action parameter");
       }
       const localOptions = assertInternalOptionsWebAuthn(options);
@@ -8821,7 +11616,11 @@ async function callback(request, options, sessionStore, cookies) {
       let authenticator;
       switch (action) {
         case "authenticate": {
-          const verified = await verifyAuthenticate(localOptions, request, cookies);
+          const verified = await verifyAuthenticate(
+            localOptions,
+            request,
+            cookies,
+          );
           user = verified.user;
           account = verified.account;
           break;
@@ -8835,14 +11634,24 @@ async function callback(request, options, sessionStore, cookies) {
         }
       }
       await handleAuthorized({ user, account }, options);
-      const { user: loggedInUser, isNewUser, session: session2, account: currentAccount } = await handleLoginOrRegister(sessionStore.value, user, account, options);
+      const {
+        user: loggedInUser,
+        isNewUser,
+        session: session2,
+        account: currentAccount,
+      } = await handleLoginOrRegister(
+        sessionStore.value,
+        user,
+        account,
+        options,
+      );
       if (!currentAccount) {
         throw new AuthError("Error creating or finding account");
       }
       if (authenticator && loggedInUser.id) {
         await localOptions.adapter.createAuthenticator({
           ...authenticator,
-          userId: loggedInUser.id
+          userId: loggedInUser.id,
         });
       }
       if (useJwtSession) {
@@ -8850,14 +11659,14 @@ async function callback(request, options, sessionStore, cookies) {
           name: loggedInUser.name,
           email: loggedInUser.email,
           picture: loggedInUser.image,
-          sub: loggedInUser.id?.toString()
+          sub: loggedInUser.id?.toString(),
         };
         const token = await callbacks.jwt({
           token: defaultToken,
           user: loggedInUser,
           account: currentAccount,
           isNewUser,
-          trigger: isNewUser ? "signUp" : "signIn"
+          trigger: isNewUser ? "signUp" : "signIn",
         });
         if (token === null) {
           cookies.push(...sessionStore.clean());
@@ -8867,7 +11676,7 @@ async function callback(request, options, sessionStore, cookies) {
           const cookieExpires = /* @__PURE__ */ new Date();
           cookieExpires.setTime(cookieExpires.getTime() + sessionMaxAge * 1e3);
           const sessionCookies = sessionStore.chunk(newToken, {
-            expires: cookieExpires
+            expires: cookieExpires,
           });
           cookies.push(...sessionCookies);
         }
@@ -8877,27 +11686,28 @@ async function callback(request, options, sessionStore, cookies) {
           value: session2.sessionToken,
           options: {
             ...options.cookies.sessionToken.options,
-            expires: session2.expires
-          }
+            expires: session2.expires,
+          },
         });
       }
       await events.signIn?.({
         user: loggedInUser,
         account: currentAccount,
-        isNewUser
+        isNewUser,
       });
       if (isNewUser && pages.newUser) {
         return {
           redirect: `${pages.newUser}${pages.newUser.includes("?") ? "&" : "?"}${new URLSearchParams({ callbackUrl })}`,
-          cookies
+          cookies,
         };
       }
       return { redirect: callbackUrl, cookies };
     }
-    throw new InvalidProvider(`Callback for provider type (${provider.type}) is not supported`);
+    throw new InvalidProvider(
+      `Callback for provider type (${provider.type}) is not supported`,
+    );
   } catch (e2) {
-    if (e2 instanceof AuthError)
-      throw e2;
+    if (e2 instanceof AuthError) throw e2;
     const error = new CallbackRouteError(e2, { provider: provider.id });
     logger.debug("callback route error details", { method, query, body });
     throw error;
@@ -8910,58 +11720,63 @@ async function handleAuthorized(params, config) {
   try {
     authorized = await signIn2(params);
   } catch (e2) {
-    if (e2 instanceof AuthError)
-      throw e2;
+    if (e2 instanceof AuthError) throw e2;
     throw new AccessDenied(e2);
   }
-  if (!authorized)
-    throw new AccessDenied("AccessDenied");
-  if (typeof authorized !== "string")
-    return;
+  if (!authorized) throw new AccessDenied("AccessDenied");
+  if (typeof authorized !== "string") return;
   return await redirect({ url: authorized, baseUrl: config.url.origin });
 }
 __name(handleAuthorized, "handleAuthorized");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/actions/session.js
 async function session(options, sessionStore, cookies, isUpdate, newSession) {
-  const { adapter, jwt, events, callbacks, logger, session: { strategy: sessionStrategy, maxAge: sessionMaxAge } } = options;
+  const {
+    adapter,
+    jwt,
+    events,
+    callbacks,
+    logger,
+    session: { strategy: sessionStrategy, maxAge: sessionMaxAge },
+  } = options;
   const response = {
     body: null,
     headers: {
       "Content-Type": "application/json",
-      ...!isUpdate && {
+      ...(!isUpdate && {
         "Cache-Control": "private, no-cache, no-store",
         Expires: "0",
-        Pragma: "no-cache"
-      }
+        Pragma: "no-cache",
+      }),
     },
-    cookies
+    cookies,
   };
   const sessionToken = sessionStore.value;
-  if (!sessionToken)
-    return response;
+  if (!sessionToken) return response;
   if (sessionStrategy === "jwt") {
     try {
       const salt = options.cookies.sessionToken.name;
       const payload = await jwt.decode({ ...jwt, token: sessionToken, salt });
-      if (!payload)
-        throw new Error("Invalid JWT");
+      if (!payload) throw new Error("Invalid JWT");
       const token = await callbacks.jwt({
         token: payload,
-        ...isUpdate && { trigger: "update" },
-        session: newSession
+        ...(isUpdate && { trigger: "update" }),
+        session: newSession,
       });
       const newExpires = fromDate(sessionMaxAge);
       if (token !== null) {
         const session2 = {
           user: { name: token.name, email: token.email, image: token.picture },
-          expires: newExpires.toISOString()
+          expires: newExpires.toISOString(),
         };
-        const newSession2 = await callbacks.session({ session: session2, token });
+        const newSession2 = await callbacks.session({
+          session: session2,
+          token,
+        });
         response.body = newSession2;
         const newToken = await jwt.encode({ ...jwt, token, salt });
         const sessionCookies = sessionStore.chunk(newToken, {
-          expires: newExpires
+          expires: newExpires,
         });
         response.cookies?.push(...sessionCookies);
         await events.session?.({ session: newSession2, token });
@@ -8977,19 +11792,25 @@ async function session(options, sessionStore, cookies, isUpdate, newSession) {
   try {
     const { getSessionAndUser, deleteSession, updateSession } = adapter;
     let userAndSession = await getSessionAndUser(sessionToken);
-    if (userAndSession && userAndSession.session.expires.valueOf() < Date.now()) {
+    if (
+      userAndSession &&
+      userAndSession.session.expires.valueOf() < Date.now()
+    ) {
       await deleteSession(sessionToken);
       userAndSession = null;
     }
     if (userAndSession) {
       const { user, session: session2 } = userAndSession;
       const sessionUpdateAge = options.session.updateAge;
-      const sessionIsDueToBeUpdatedDate = session2.expires.valueOf() - sessionMaxAge * 1e3 + sessionUpdateAge * 1e3;
+      const sessionIsDueToBeUpdatedDate =
+        session2.expires.valueOf() -
+        sessionMaxAge * 1e3 +
+        sessionUpdateAge * 1e3;
       const newExpires = fromDate(sessionMaxAge);
       if (sessionIsDueToBeUpdatedDate <= Date.now()) {
         await updateSession({
           sessionToken,
-          expires: newExpires
+          expires: newExpires,
         });
       }
       const sessionPayload = await callbacks.session({
@@ -8999,7 +11820,7 @@ async function session(options, sessionStore, cookies, isUpdate, newSession) {
         session: { ...session2, user },
         user,
         newSession,
-        ...isUpdate ? { trigger: "update" } : {}
+        ...(isUpdate ? { trigger: "update" } : {}),
       });
       response.body = sessionPayload;
       response.cookies?.push({
@@ -9007,8 +11828,8 @@ async function session(options, sessionStore, cookies, isUpdate, newSession) {
         value: sessionToken,
         options: {
           ...options.cookies.sessionToken.options,
-          expires: newExpires
-        }
+          expires: newExpires,
+        },
       });
       await events.session?.({ session: sessionPayload });
     } else if (sessionToken) {
@@ -9031,15 +11852,21 @@ async function getAuthorizationUrl(query, options) {
     const discoveryResponse = await discoveryRequest(issuer, {
       [customFetch2]: provider[customFetch],
       // TODO: move away from allowing insecure HTTP requests
-      [allowInsecureRequests]: true
+      [allowInsecureRequests]: true,
     });
-    const as2 = await processDiscoveryResponse(issuer, discoveryResponse).catch((error) => {
-      if (!(error instanceof TypeError) || error.message !== "Invalid URL")
-        throw error;
-      throw new TypeError(`Discovery request responded with an invalid issuer. expected: ${issuer}`);
-    });
+    const as2 = await processDiscoveryResponse(issuer, discoveryResponse).catch(
+      (error) => {
+        if (!(error instanceof TypeError) || error.message !== "Invalid URL")
+          throw error;
+        throw new TypeError(
+          `Discovery request responded with an invalid issuer. expected: ${issuer}`,
+        );
+      },
+    );
     if (!as2.authorization_endpoint) {
-      throw new TypeError("Authorization server did not provide an authorization endpoint.");
+      throw new TypeError(
+        "Authorization server did not provide an authorization endpoint.",
+      );
     }
     url = new URL(as2.authorization_endpoint);
   }
@@ -9051,20 +11878,24 @@ async function getAuthorizationUrl(query, options) {
     data = provider.callbackUrl;
     logger.debug("using redirect proxy", { redirect_uri, data });
   }
-  const params = Object.assign({
-    response_type: "code",
-    // clientId can technically be undefined, should we check this in assert.ts or rely on the Authorization Server to do it?
-    client_id: provider.clientId,
-    redirect_uri,
-    // @ts-expect-error TODO:
-    ...provider.authorization?.params
-  }, Object.fromEntries(provider.authorization?.url.searchParams ?? []), query);
-  for (const k3 in params)
-    authParams.set(k3, params[k3]);
+  const params = Object.assign(
+    {
+      response_type: "code",
+      // clientId can technically be undefined, should we check this in assert.ts or rely on the Authorization Server to do it?
+      client_id: provider.clientId,
+      redirect_uri,
+      // @ts-expect-error TODO:
+      ...provider.authorization?.params,
+    },
+    Object.fromEntries(provider.authorization?.url.searchParams ?? []),
+    query,
+  );
+  for (const k3 in params) authParams.set(k3, params[k3]);
   const cookies = [];
   if (
     // Otherwise "POST /redirect_uri" wouldn't include the cookies
-    provider.authorization?.url.searchParams.get("response_mode") === "form_post"
+    provider.authorization?.url.searchParams.get("response_mode") ===
+    "form_post"
   ) {
     options.cookies.state.options.sameSite = "none";
     options.cookies.state.options.secure = true;
@@ -9078,8 +11909,7 @@ async function getAuthorizationUrl(query, options) {
   }
   if (provider.checks?.includes("pkce")) {
     if (as && !as.code_challenge_methods_supported?.includes("S256")) {
-      if (provider.type === "oidc")
-        provider.checks = ["nonce"];
+      if (provider.type === "oidc") provider.checks = ["nonce"];
     } else {
       const { value, cookie } = await pkce.create(options);
       authParams.set("code_challenge", value);
@@ -9107,37 +11937,39 @@ async function sendToken(request, options) {
   const normalizer = provider.normalizeIdentifier ?? defaultNormalizer;
   const email = normalizer(body?.email);
   const defaultUser = { id: crypto.randomUUID(), email, emailVerified: null };
-  const user = await adapter.getUserByEmail(email) ?? defaultUser;
+  const user = (await adapter.getUserByEmail(email)) ?? defaultUser;
   const account = {
     providerAccountId: email,
     userId: user.id,
     type: "email",
-    provider: provider.id
+    provider: provider.id,
   };
   let authorized;
   try {
     authorized = await callbacks.signIn({
       user,
       account,
-      email: { verificationRequest: true }
+      email: { verificationRequest: true },
     });
   } catch (e2) {
     throw new AccessDenied(e2);
   }
-  if (!authorized)
-    throw new AccessDenied("AccessDenied");
+  if (!authorized) throw new AccessDenied("AccessDenied");
   if (typeof authorized === "string") {
     return {
       redirect: await callbacks.redirect({
         url: authorized,
-        baseUrl: options.url.origin
-      })
+        baseUrl: options.url.origin,
+      }),
     };
   }
   const { callbackUrl, theme } = options;
-  const token = await provider.generateVerificationToken?.() ?? randomString(32);
+  const token =
+    (await provider.generateVerificationToken?.()) ?? randomString(32);
   const ONE_DAY_IN_SECONDS = 86400;
-  const expires = new Date(Date.now() + (provider.maxAge ?? ONE_DAY_IN_SECONDS) * 1e3);
+  const expires = new Date(
+    Date.now() + (provider.maxAge ?? ONE_DAY_IN_SECONDS) * 1e3,
+  );
   const secret = provider.secret ?? options.secret;
   const baseUrl = new URL(options.basePath, options.url.origin);
   const sendRequest = provider.sendVerificationRequest({
@@ -9147,29 +11979,28 @@ async function sendToken(request, options) {
     url: `${baseUrl}/callback/${provider.id}?${new URLSearchParams({
       callbackUrl,
       token,
-      email
+      email,
     })}`,
     provider,
     theme,
-    request: toRequest(request)
+    request: toRequest(request),
   });
   const createToken = adapter.createVerificationToken?.({
     identifier: email,
     token: await createHash(`${token}${secret}`),
-    expires
+    expires,
   });
   await Promise.all([sendRequest, createToken]);
   return {
     redirect: `${baseUrl}/verify-request?${new URLSearchParams({
       provider: provider.id,
-      type: provider.type
-    })}`
+      type: provider.type,
+    })}`,
   };
 }
 __name(sendToken, "sendToken");
 function defaultNormalizer(email) {
-  if (!email)
-    throw new Error("Missing email from request body.");
+  if (!email) throw new Error("Missing email from request body.");
   let [local, domain] = email.toLowerCase().trim().split("@");
   domain = domain.split(",")[0];
   return `${local}@${domain}`;
@@ -9179,14 +12010,15 @@ __name(defaultNormalizer, "defaultNormalizer");
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/actions/signin/index.js
 async function signIn(request, cookies, options) {
   const signInUrl = `${options.url.origin}${options.basePath}/signin`;
-  if (!options.provider)
-    return { redirect: signInUrl, cookies };
+  if (!options.provider) return { redirect: signInUrl, cookies };
   switch (options.provider.type) {
     case "oauth":
     case "oidc": {
-      const { redirect, cookies: authCookies } = await getAuthorizationUrl(request.query, options);
-      if (authCookies)
-        cookies.push(...authCookies);
+      const { redirect, cookies: authCookies } = await getAuthorizationUrl(
+        request.query,
+        options,
+      );
+      if (authCookies) cookies.push(...authCookies);
       return { redirect, cookies };
     }
     case "email": {
@@ -9201,10 +12033,15 @@ __name(signIn, "signIn");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/actions/signout.js
 async function signOut(cookies, sessionStore, options) {
-  const { jwt, events, callbackUrl: redirect, logger, session: session2 } = options;
+  const {
+    jwt,
+    events,
+    callbackUrl: redirect,
+    logger,
+    session: session2,
+  } = options;
   const sessionToken = sessionStore.value;
-  if (!sessionToken)
-    return { redirect, cookies };
+  if (!sessionToken) return { redirect, cookies };
   try {
     if (session2.strategy === "jwt") {
       const salt = options.cookies.sessionToken.name;
@@ -9224,10 +12061,13 @@ __name(signOut, "signOut");
 
 // node_modules/@hono/auth-js/node_modules/@auth/core/lib/utils/session.js
 async function getLoggedInUser(options, sessionStore) {
-  const { adapter, jwt, session: { strategy: sessionStrategy } } = options;
+  const {
+    adapter,
+    jwt,
+    session: { strategy: sessionStrategy },
+  } = options;
   const sessionToken = sessionStore.value;
-  if (!sessionToken)
-    return null;
+  if (!sessionToken) return null;
   if (sessionStrategy === "jwt") {
     const salt = options.cookies.sessionToken.name;
     const payload = await jwt.decode({ ...jwt, token: sessionToken, salt });
@@ -9236,7 +12076,7 @@ async function getLoggedInUser(options, sessionStore) {
         id: payload.sub,
         name: payload.name,
         email: payload.email,
-        image: payload.picture
+        image: payload.picture,
       };
     }
   } else {
@@ -9254,29 +12094,49 @@ async function webAuthnOptions(request, options, sessionStore, cookies) {
   const narrowOptions = assertInternalOptionsWebAuthn(options);
   const { provider } = narrowOptions;
   const { action } = request.query ?? {};
-  if (action !== "register" && action !== "authenticate" && typeof action !== "undefined") {
+  if (
+    action !== "register" &&
+    action !== "authenticate" &&
+    typeof action !== "undefined"
+  ) {
     return {
       status: 400,
       body: { error: "Invalid action" },
       cookies,
       headers: {
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+      },
     };
   }
   const sessionUser = await getLoggedInUser(options, sessionStore);
-  const getUserInfoResponse = sessionUser ? {
-    user: sessionUser,
-    exists: true
-  } : await provider.getUserInfo(options, request);
+  const getUserInfoResponse = sessionUser
+    ? {
+        user: sessionUser,
+        exists: true,
+      }
+    : await provider.getUserInfo(options, request);
   const userInfo = getUserInfoResponse?.user;
-  const decision = inferWebAuthnOptions(action, !!sessionUser, getUserInfoResponse);
+  const decision = inferWebAuthnOptions(
+    action,
+    !!sessionUser,
+    getUserInfoResponse,
+  );
   switch (decision) {
     case "authenticate":
-      return getAuthenticationResponse(narrowOptions, request, userInfo, cookies);
+      return getAuthenticationResponse(
+        narrowOptions,
+        request,
+        userInfo,
+        cookies,
+      );
     case "register":
       if (typeof userInfo?.email === "string") {
-        return getRegistrationResponse(narrowOptions, request, userInfo, cookies);
+        return getRegistrationResponse(
+          narrowOptions,
+          request,
+          userInfo,
+          cookies,
+        );
       }
       break;
     default:
@@ -9285,8 +12145,8 @@ async function webAuthnOptions(request, options, sessionStore, cookies) {
         body: { error: "Invalid request" },
         cookies,
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       };
   }
 }
@@ -9305,9 +12165,13 @@ async function AuthInternal(request, authOptions) {
     csrfToken: request.body?.csrfToken,
     cookies: request.cookies,
     isPost: method === "POST",
-    csrfDisabled
+    csrfDisabled,
   });
-  const sessionStore = new SessionStore(options.cookies.sessionToken, request.cookies, options.logger);
+  const sessionStore = new SessionStore(
+    options.cookies.sessionToken,
+    request.cookies,
+    options.logger,
+  );
   if (method === "GET") {
     const render = renderPage({ ...options, query: request.query, cookies });
     switch (action) {
@@ -9340,7 +12204,13 @@ async function AuthInternal(request, authOptions) {
         return await callback(request, options, sessionStore, cookies);
       case "session":
         validateCSRF(action, csrfTokenVerified);
-        return await session(options, sessionStore, cookies, true, request.body?.data);
+        return await session(
+          options,
+          sessionStore,
+          cookies,
+          true,
+          request.body?.data,
+        );
       case "signin":
         validateCSRF(action, csrfTokenVerified);
         return await signIn(request, cookies, options);
@@ -9375,16 +12245,22 @@ function setEnvDefaults(envObject, config, suppressBasePathWarning = false) {
   if (!config.secret?.length) {
     config.secret = [];
     const secret = envObject.AUTH_SECRET;
-    if (secret)
-      config.secret.push(secret);
+    if (secret) config.secret.push(secret);
     for (const i4 of [1, 2, 3]) {
       const secret2 = envObject[`AUTH_SECRET_${i4}`];
-      if (secret2)
-        config.secret.unshift(secret2);
+      if (secret2) config.secret.unshift(secret2);
     }
   }
-  config.redirectProxyUrl ?? (config.redirectProxyUrl = envObject.AUTH_REDIRECT_PROXY_URL);
-  config.trustHost ?? (config.trustHost = !!(envObject.AUTH_URL ?? envObject.AUTH_TRUST_HOST ?? envObject.VERCEL ?? envObject.CF_PAGES ?? envObject.NODE_ENV !== "production"));
+  config.redirectProxyUrl ??
+    (config.redirectProxyUrl = envObject.AUTH_REDIRECT_PROXY_URL);
+  config.trustHost ??
+    (config.trustHost = !!(
+      envObject.AUTH_URL ??
+      envObject.AUTH_TRUST_HOST ??
+      envObject.VERCEL ??
+      envObject.CF_PAGES ??
+      envObject.NODE_ENV !== "production"
+    ));
   config.providers = config.providers.map((provider) => {
     const { id } = typeof provider === "function" ? provider({}) : provider;
     const ID = id.toUpperCase().replace(/-/g, "_");
@@ -9392,7 +12268,10 @@ function setEnvDefaults(envObject, config, suppressBasePathWarning = false) {
     const clientSecret = envObject[`AUTH_${ID}_SECRET`];
     const issuer = envObject[`AUTH_${ID}_ISSUER`];
     const apiKey = envObject[`AUTH_${ID}_KEY`];
-    const finalProvider = typeof provider === "function" ? provider({ clientId, clientSecret, issuer, apiKey }) : provider;
+    const finalProvider =
+      typeof provider === "function"
+        ? provider({ clientId, clientSecret, issuer, apiKey })
+        : provider;
     if (finalProvider.type === "oauth" || finalProvider.type === "oidc") {
       finalProvider.clientId ?? (finalProvider.clientId = clientId);
       finalProvider.clientSecret ?? (finalProvider.clientSecret = clientSecret);
@@ -9409,8 +12288,7 @@ __name(setEnvDefaults, "setEnvDefaults");
 async function Auth(request, config) {
   const logger = setLogger(config);
   const internalRequest = await toInternalRequest(request, config);
-  if (!internalRequest)
-    return Response.json(`Bad request.`, { status: 400 });
+  if (!internalRequest) return Response.json(`Bad request.`, { status: 400 });
   const warningsOrError = assertConfig(internalRequest, config);
   if (Array.isArray(warningsOrError)) {
     warningsOrError.forEach(logger.warn);
@@ -9420,17 +12298,29 @@ async function Auth(request, config) {
       "signin",
       "signout",
       "error",
-      "verify-request"
+      "verify-request",
     ]);
-    if (!htmlPages.has(internalRequest.action) || internalRequest.method !== "GET") {
-      const message2 = "There was a problem with the server configuration. Check the server logs for more information.";
+    if (
+      !htmlPages.has(internalRequest.action) ||
+      internalRequest.method !== "GET"
+    ) {
+      const message2 =
+        "There was a problem with the server configuration. Check the server logs for more information.";
       return Response.json({ message: message2 }, { status: 500 });
     }
     const { pages, theme } = config;
-    const authOnErrorPage = pages?.error && internalRequest.url.searchParams.get("callbackUrl")?.startsWith(pages.error);
+    const authOnErrorPage =
+      pages?.error &&
+      internalRequest.url.searchParams
+        .get("callbackUrl")
+        ?.startsWith(pages.error);
     if (!pages?.error || authOnErrorPage) {
       if (authOnErrorPage) {
-        logger.error(new ErrorPageLoop(`The error page ${pages?.error} should not require authentication`));
+        logger.error(
+          new ErrorPageLoop(
+            `The error page ${pages?.error} should not require authentication`,
+          ),
+        );
       }
       const page = renderPage({ theme }).error("Configuration");
       return toResponse(page);
@@ -9442,31 +12332,28 @@ async function Auth(request, config) {
   const isRaw = config.raw === raw2;
   try {
     const internalResponse = await AuthInternal(internalRequest, config);
-    if (isRaw)
-      return internalResponse;
+    if (isRaw) return internalResponse;
     const response = toResponse(internalResponse);
     const url = response.headers.get("Location");
-    if (!isRedirect || !url)
-      return response;
+    if (!isRedirect || !url) return response;
     return Response.json({ url }, { headers: response.headers });
   } catch (e2) {
     const error = e2;
     logger.error(error);
     const isAuthError = error instanceof AuthError;
-    if (isAuthError && isRaw && !isRedirect)
-      throw error;
+    if (isAuthError && isRaw && !isRedirect) throw error;
     if (request.method === "POST" && internalRequest.action === "session")
       return Response.json(null, { status: 400 });
     const isClientSafeErrorType = isClientError(error);
     const type = isClientSafeErrorType ? error.type : "Configuration";
     const params = new URLSearchParams({ error: type });
-    if (error instanceof CredentialsSignin)
-      params.set("code", error.code);
-    const pageKind = isAuthError && error.kind || "error";
-    const pagePath = config.pages?.[pageKind] ?? `${config.basePath}/${pageKind.toLowerCase()}`;
+    if (error instanceof CredentialsSignin) params.set("code", error.code);
+    const pageKind = (isAuthError && error.kind) || "error";
+    const pagePath =
+      config.pages?.[pageKind] ??
+      `${config.basePath}/${pageKind.toLowerCase()}`;
     const url = `${internalRequest.url.origin}${pagePath}?${params}`;
-    if (isRedirect)
-      return Response.json({ url });
+    if (isRedirect) return Response.json({ url });
     return Response.redirect(url);
   }
 }
@@ -9486,7 +12373,7 @@ var env = /* @__PURE__ */ __name((c3, runtime) => {
     }, "deno"),
     workerd: /* @__PURE__ */ __name(() => c3.env, "workerd"),
     fastly: /* @__PURE__ */ __name(() => ({}), "fastly"),
-    other: /* @__PURE__ */ __name(() => ({}), "other")
+    other: /* @__PURE__ */ __name(() => ({}), "other"),
   };
   return runtimeEnvHandlers[runtime]();
 }, "env");
@@ -9494,7 +12381,7 @@ var knownUserAgents = {
   deno: "Deno",
   bun: "Bun",
   workerd: "Cloudflare-Workers",
-  node: "Node.js"
+  node: "Node.js",
 };
 var getRuntimeKey = /* @__PURE__ */ __name(() => {
   const global = globalThis;
@@ -9538,12 +12425,12 @@ var HTTPException = class extends Error {
     if (this.res) {
       const newResponse = new Response(this.res.body, {
         status: this.status,
-        headers: this.res.headers
+        headers: this.res.headers,
       });
       return newResponse;
     }
     return new Response(this.message, {
-      status: this.status
+      status: this.status,
     });
   }
 };
@@ -9560,24 +12447,21 @@ function reqWithEnvUrl(req, authUrl) {
     const authUrlObj = new URL(authUrl);
     const props = ["hostname", "protocol", "port", "password", "username"];
     for (const prop of props) {
-      if (authUrlObj[prop])
-        reqUrlObj[prop] = authUrlObj[prop];
+      if (authUrlObj[prop]) reqUrlObj[prop] = authUrlObj[prop];
     }
     return new Request(reqUrlObj.href, req);
   }
   const url = new URL(req.url);
   const newReq = new Request(url.href, req);
   const proto = newReq.headers.get("x-forwarded-proto");
-  const host = newReq.headers.get("x-forwarded-host") ?? newReq.headers.get("host");
-  if (proto != null)
-    url.protocol = proto.endsWith(":") ? proto : `${proto}:`;
+  const host =
+    newReq.headers.get("x-forwarded-host") ?? newReq.headers.get("host");
+  if (proto != null) url.protocol = proto.endsWith(":") ? proto : `${proto}:`;
   if (host != null) {
     url.host = host;
     const portMatch = host.match(/:(\d+)$/);
-    if (portMatch)
-      url.port = portMatch[1];
-    else
-      url.port = "";
+    if (portMatch) url.port = portMatch[1];
+    else url.port = "";
     newReq.headers.delete("x-forwarded-host");
     newReq.headers.delete("Host");
     newReq.headers.set("Host", host);
@@ -9618,7 +12502,7 @@ function is(value, type) {
   }
   if (!Object.prototype.hasOwnProperty.call(type, entityKind)) {
     throw new Error(
-      `Class "${type.name ?? "<unknown>"}" doesn't look like a Drizzle entity. If this is incorrect and the class is provided by Drizzle, please report this as a bug.`
+      `Class "${type.name ?? "<unknown>"}" doesn't look like a Drizzle entity. If this is incorrect and the class is provided by Drizzle, please report this as a bug.`,
     );
   }
   let cls = Object.getPrototypeOf(value).constructor;
@@ -9684,7 +12568,10 @@ var Column = class {
   }
   // ** @internal */
   shouldDisableInsert() {
-    return this.config.generated !== void 0 && this.config.generated.type !== "byDefault";
+    return (
+      this.config.generated !== void 0 &&
+      this.config.generated.type !== "byDefault"
+    );
   }
 };
 
@@ -9708,7 +12595,7 @@ var ColumnBuilder = class {
       uniqueType: void 0,
       dataType,
       columnType,
-      generated: void 0
+      generated: void 0,
     };
   }
   /**
@@ -9789,8 +12676,7 @@ var ColumnBuilder = class {
   }
   /** @internal Sets the name of the column to the key within the table definition if a name was not given. */
   setName(name) {
-    if (this.config.name !== "")
-      return;
+    if (this.config.name !== "") return;
     this.config.name = name;
   }
 };
@@ -9813,7 +12699,12 @@ var ForeignKeyBuilder = class {
   constructor(config, actions2) {
     this.reference = () => {
       const { name, columns, foreignColumns } = config();
-      return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
+      return {
+        name,
+        columns,
+        foreignTable: foreignColumns[0].table,
+        foreignColumns,
+      };
     };
     if (actions2) {
       this._onUpdate = actions2.onUpdate;
@@ -9855,7 +12746,7 @@ var ForeignKey = class {
       this.table[TableName],
       ...columnNames,
       foreignColumns[0].table[TableName],
-      ...foreignColumnNames
+      ...foreignColumnNames,
     ];
     return name ?? `${chunks.join("_")}_fk`;
   }
@@ -9891,7 +12782,12 @@ var UniqueConstraintBuilder = class {
   }
   /** @internal */
   build(table) {
-    return new UniqueConstraint(table, this.columns, this.nullsNotDistinctConfig, this.name);
+    return new UniqueConstraint(
+      table,
+      this.columns,
+      this.nullsNotDistinctConfig,
+      this.name,
+    );
   }
 };
 var UniqueOnConstraintBuilder = class {
@@ -9915,7 +12811,12 @@ var UniqueConstraint = class {
   constructor(table, columns, nullsNotDistinct, name) {
     this.table = table;
     this.columns = columns;
-    this.name = name ?? uniqueKeyName(this.table, this.columns.map((column) => column.name));
+    this.name =
+      name ??
+      uniqueKeyName(
+        this.table,
+        this.columns.map((column) => column.name),
+      );
     this.nullsNotDistinct = nullsNotDistinct;
   }
   static [entityKind] = "PgUniqueConstraint";
@@ -9995,15 +12896,17 @@ function parsePgArray(arrayString) {
 }
 __name(parsePgArray, "parsePgArray");
 function makePgArray(array) {
-  return `{${array.map((item) => {
-    if (Array.isArray(item)) {
-      return makePgArray(item);
-    }
-    if (typeof item === "string") {
-      return `"${item.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-    }
-    return `${item}`;
-  }).join(",")}}`;
+  return `{${array
+    .map((item) => {
+      if (Array.isArray(item)) {
+        return makePgArray(item);
+      }
+      if (typeof item === "string") {
+        return `"${item.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+      }
+      return `${item}`;
+    })
+    .join(",")}}`;
 }
 __name(makePgArray, "makePgArray");
 
@@ -10031,7 +12934,7 @@ var PgColumnBuilder = class extends ColumnBuilder {
     this.config.generated = {
       as,
       type: "always",
-      mode: "stored"
+      mode: "stored",
     };
     return this;
   }
@@ -10053,7 +12956,7 @@ var PgColumnBuilder = class extends ColumnBuilder {
           return builder.build(table);
         },
         ref,
-        actions2
+        actions2,
       );
     });
   }
@@ -10086,12 +12989,12 @@ var ExtraConfigColumn = class extends PgColumn {
   indexConfig = {
     order: this.config.order ?? "asc",
     nulls: this.config.nulls ?? "last",
-    opClass: this.config.opClass
+    opClass: this.config.opClass,
   };
   defaultConfig = {
     order: "asc",
     nulls: "last",
-    opClass: void 0
+    opClass: void 0,
   };
   asc() {
     this.indexConfig.order = "asc";
@@ -10172,11 +13075,7 @@ var PgArrayBuilder = class extends PgColumnBuilder {
   /** @internal */
   build(table) {
     const baseColumn = this.config.baseBuilder.build(table);
-    return new PgArray(
-      table,
-      this.config,
-      baseColumn
-    );
+    return new PgArray(table, this.config, baseColumn);
   }
 };
 var PgArray = class _PgArray extends PgColumn {
@@ -10201,11 +13100,14 @@ var PgArray = class _PgArray extends PgColumn {
     return value.map((v2) => this.baseColumn.mapFromDriverValue(v2));
   }
   mapToDriverValue(value, isNestedArray = false) {
-    const a3 = value.map(
-      (v2) => v2 === null ? null : is(this.baseColumn, _PgArray) ? this.baseColumn.mapToDriverValue(v2, true) : this.baseColumn.mapToDriverValue(v2)
+    const a3 = value.map((v2) =>
+      v2 === null
+        ? null
+        : is(this.baseColumn, _PgArray)
+          ? this.baseColumn.mapToDriverValue(v2, true)
+          : this.baseColumn.mapToDriverValue(v2),
     );
-    if (isNestedArray)
-      return a3;
+    if (isNestedArray) return a3;
     return makePgArray(a3);
   }
 };
@@ -10213,7 +13115,12 @@ var PgArray = class _PgArray extends PgColumn {
 // node_modules/drizzle-orm/pg-core/columns/enum.js
 var isPgEnumSym = Symbol.for("drizzle:isPgEnum");
 function isPgEnum(obj) {
-  return !!obj && typeof obj === "function" && isPgEnumSym in obj && obj[isPgEnumSym] === true;
+  return (
+    !!obj &&
+    typeof obj === "function" &&
+    isPgEnumSym in obj &&
+    obj[isPgEnumSym] === true
+  );
 }
 __name(isPgEnum, "isPgEnum");
 var PgEnumColumnBuilder = class extends PgColumnBuilder {
@@ -10227,10 +13134,7 @@ var PgEnumColumnBuilder = class extends PgColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new PgEnumColumn(
-      table,
-      this.config
-    );
+    return new PgEnumColumn(table, this.config);
   }
 };
 var PgEnumColumn = class extends PgColumn {
@@ -10261,7 +13165,7 @@ var Subquery = class {
       sql: sql2,
       selectedFields: selection,
       alias,
-      isWith
+      isWith,
     };
   }
   // getSQL(): SQL<unknown> {
@@ -10290,27 +13194,25 @@ var tracer = {
       rawTracer = otel.trace.getTracer("drizzle-orm", version);
     }
     return iife(
-      (otel2, rawTracer2) => rawTracer2.startActiveSpan(
-        name,
-        (span) => {
+      (otel2, rawTracer2) =>
+        rawTracer2.startActiveSpan(name, (span) => {
           try {
             return fn(span);
           } catch (e2) {
             span.setStatus({
               code: otel2.SpanStatusCode.ERROR,
-              message: e2 instanceof Error ? e2.message : "Unknown error"
+              message: e2 instanceof Error ? e2.message : "Unknown error",
               // eslint-disable-line no-instanceof/no-instanceof
             });
             throw e2;
           } finally {
             span.end();
           }
-        }
-      ),
+        }),
       otel,
-      rawTracer
+      rawTracer,
     );
-  }
+  },
 };
 
 // node_modules/drizzle-orm/view-common.js
@@ -10339,7 +13241,7 @@ var Table = class {
     ExtraConfigColumns,
     BaseName,
     IsAlias,
-    ExtraConfigBuilder
+    ExtraConfigBuilder,
   };
   /**
    * @internal
@@ -10391,7 +13293,9 @@ var FakePrimitiveParam = class {
   static [entityKind] = "FakePrimitiveParam";
 };
 function isSQLWrapper(value) {
-  return value !== null && value !== void 0 && typeof value.getSQL === "function";
+  return (
+    value !== null && value !== void 0 && typeof value.getSQL === "function"
+  );
 }
 __name(isSQLWrapper, "isSQLWrapper");
 function mergeQueries(queries) {
@@ -10442,7 +13346,7 @@ var SQL = class _SQL {
       const query = this.buildQueryFromSourceParams(this.queryChunks, config);
       span?.setAttributes({
         "drizzle.query.text": query.sql,
-        "drizzle.query.params": JSON.stringify(query.params)
+        "drizzle.query.params": JSON.stringify(query.params),
       });
       return query;
     });
@@ -10450,7 +13354,7 @@ var SQL = class _SQL {
   buildQueryFromSourceParams(chunks, _config) {
     const config = Object.assign({}, _config, {
       inlineParams: _config.inlineParams || this.shouldInlineParams,
-      paramStartIndex: _config.paramStartIndex || { value: 0 }
+      paramStartIndex: _config.paramStartIndex || { value: 0 },
     });
     const {
       casing,
@@ -10458,117 +13362,161 @@ var SQL = class _SQL {
       escapeParam,
       prepareTyping,
       inlineParams,
-      paramStartIndex
+      paramStartIndex,
     } = config;
-    return mergeQueries(chunks.map((chunk) => {
-      if (is(chunk, StringChunk)) {
-        return { sql: chunk.value.join(""), params: [] };
-      }
-      if (is(chunk, Name)) {
-        return { sql: escapeName(chunk.value), params: [] };
-      }
-      if (chunk === void 0) {
-        return { sql: "", params: [] };
-      }
-      if (Array.isArray(chunk)) {
-        const result = [new StringChunk("(")];
-        for (const [i4, p3] of chunk.entries()) {
-          result.push(p3);
-          if (i4 < chunk.length - 1) {
-            result.push(new StringChunk(", "));
+    return mergeQueries(
+      chunks.map((chunk) => {
+        if (is(chunk, StringChunk)) {
+          return { sql: chunk.value.join(""), params: [] };
+        }
+        if (is(chunk, Name)) {
+          return { sql: escapeName(chunk.value), params: [] };
+        }
+        if (chunk === void 0) {
+          return { sql: "", params: [] };
+        }
+        if (Array.isArray(chunk)) {
+          const result = [new StringChunk("(")];
+          for (const [i4, p3] of chunk.entries()) {
+            result.push(p3);
+            if (i4 < chunk.length - 1) {
+              result.push(new StringChunk(", "));
+            }
           }
+          result.push(new StringChunk(")"));
+          return this.buildQueryFromSourceParams(result, config);
         }
-        result.push(new StringChunk(")"));
-        return this.buildQueryFromSourceParams(result, config);
-      }
-      if (is(chunk, _SQL)) {
-        return this.buildQueryFromSourceParams(chunk.queryChunks, {
-          ...config,
-          inlineParams: inlineParams || chunk.shouldInlineParams
-        });
-      }
-      if (is(chunk, Table)) {
-        const schemaName = chunk[Table.Symbol.Schema];
-        const tableName = chunk[Table.Symbol.Name];
-        return {
-          sql: schemaName === void 0 || chunk[IsAlias] ? escapeName(tableName) : escapeName(schemaName) + "." + escapeName(tableName),
-          params: []
-        };
-      }
-      if (is(chunk, Column)) {
-        const columnName = casing.getColumnCasing(chunk);
-        if (_config.invokeSource === "indexes") {
-          return { sql: escapeName(columnName), params: [] };
+        if (is(chunk, _SQL)) {
+          return this.buildQueryFromSourceParams(chunk.queryChunks, {
+            ...config,
+            inlineParams: inlineParams || chunk.shouldInlineParams,
+          });
         }
-        const schemaName = chunk.table[Table.Symbol.Schema];
-        return {
-          sql: chunk.table[IsAlias] || schemaName === void 0 ? escapeName(chunk.table[Table.Symbol.Name]) + "." + escapeName(columnName) : escapeName(schemaName) + "." + escapeName(chunk.table[Table.Symbol.Name]) + "." + escapeName(columnName),
-          params: []
-        };
-      }
-      if (is(chunk, View)) {
-        const schemaName = chunk[ViewBaseConfig].schema;
-        const viewName = chunk[ViewBaseConfig].name;
-        return {
-          sql: schemaName === void 0 || chunk[ViewBaseConfig].isAlias ? escapeName(viewName) : escapeName(schemaName) + "." + escapeName(viewName),
-          params: []
-        };
-      }
-      if (is(chunk, Param)) {
-        if (is(chunk.value, Placeholder)) {
-          return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
+        if (is(chunk, Table)) {
+          const schemaName = chunk[Table.Symbol.Schema];
+          const tableName = chunk[Table.Symbol.Name];
+          return {
+            sql:
+              schemaName === void 0 || chunk[IsAlias]
+                ? escapeName(tableName)
+                : escapeName(schemaName) + "." + escapeName(tableName),
+            params: [],
+          };
         }
-        const mappedValue = chunk.value === null ? null : chunk.encoder.mapToDriverValue(chunk.value);
-        if (is(mappedValue, _SQL)) {
-          return this.buildQueryFromSourceParams([mappedValue], config);
+        if (is(chunk, Column)) {
+          const columnName = casing.getColumnCasing(chunk);
+          if (_config.invokeSource === "indexes") {
+            return { sql: escapeName(columnName), params: [] };
+          }
+          const schemaName = chunk.table[Table.Symbol.Schema];
+          return {
+            sql:
+              chunk.table[IsAlias] || schemaName === void 0
+                ? escapeName(chunk.table[Table.Symbol.Name]) +
+                  "." +
+                  escapeName(columnName)
+                : escapeName(schemaName) +
+                  "." +
+                  escapeName(chunk.table[Table.Symbol.Name]) +
+                  "." +
+                  escapeName(columnName),
+            params: [],
+          };
+        }
+        if (is(chunk, View)) {
+          const schemaName = chunk[ViewBaseConfig].schema;
+          const viewName = chunk[ViewBaseConfig].name;
+          return {
+            sql:
+              schemaName === void 0 || chunk[ViewBaseConfig].isAlias
+                ? escapeName(viewName)
+                : escapeName(schemaName) + "." + escapeName(viewName),
+            params: [],
+          };
+        }
+        if (is(chunk, Param)) {
+          if (is(chunk.value, Placeholder)) {
+            return {
+              sql: escapeParam(paramStartIndex.value++, chunk),
+              params: [chunk],
+              typings: ["none"],
+            };
+          }
+          const mappedValue =
+            chunk.value === null
+              ? null
+              : chunk.encoder.mapToDriverValue(chunk.value);
+          if (is(mappedValue, _SQL)) {
+            return this.buildQueryFromSourceParams([mappedValue], config);
+          }
+          if (inlineParams) {
+            return {
+              sql: this.mapInlineParam(mappedValue, config),
+              params: [],
+            };
+          }
+          let typings = ["none"];
+          if (prepareTyping) {
+            typings = [prepareTyping(chunk.encoder)];
+          }
+          return {
+            sql: escapeParam(paramStartIndex.value++, mappedValue),
+            params: [mappedValue],
+            typings,
+          };
+        }
+        if (is(chunk, Placeholder)) {
+          return {
+            sql: escapeParam(paramStartIndex.value++, chunk),
+            params: [chunk],
+            typings: ["none"],
+          };
+        }
+        if (is(chunk, _SQL.Aliased) && chunk.fieldAlias !== void 0) {
+          return { sql: escapeName(chunk.fieldAlias), params: [] };
+        }
+        if (is(chunk, Subquery)) {
+          if (chunk._.isWith) {
+            return { sql: escapeName(chunk._.alias), params: [] };
+          }
+          return this.buildQueryFromSourceParams(
+            [
+              new StringChunk("("),
+              chunk._.sql,
+              new StringChunk(") "),
+              new Name(chunk._.alias),
+            ],
+            config,
+          );
+        }
+        if (isPgEnum(chunk)) {
+          if (chunk.schema) {
+            return {
+              sql: escapeName(chunk.schema) + "." + escapeName(chunk.enumName),
+              params: [],
+            };
+          }
+          return { sql: escapeName(chunk.enumName), params: [] };
+        }
+        if (isSQLWrapper(chunk)) {
+          if (chunk.shouldOmitSQLParens?.()) {
+            return this.buildQueryFromSourceParams([chunk.getSQL()], config);
+          }
+          return this.buildQueryFromSourceParams(
+            [new StringChunk("("), chunk.getSQL(), new StringChunk(")")],
+            config,
+          );
         }
         if (inlineParams) {
-          return { sql: this.mapInlineParam(mappedValue, config), params: [] };
+          return { sql: this.mapInlineParam(chunk, config), params: [] };
         }
-        let typings = ["none"];
-        if (prepareTyping) {
-          typings = [prepareTyping(chunk.encoder)];
-        }
-        return { sql: escapeParam(paramStartIndex.value++, mappedValue), params: [mappedValue], typings };
-      }
-      if (is(chunk, Placeholder)) {
-        return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
-      }
-      if (is(chunk, _SQL.Aliased) && chunk.fieldAlias !== void 0) {
-        return { sql: escapeName(chunk.fieldAlias), params: [] };
-      }
-      if (is(chunk, Subquery)) {
-        if (chunk._.isWith) {
-          return { sql: escapeName(chunk._.alias), params: [] };
-        }
-        return this.buildQueryFromSourceParams([
-          new StringChunk("("),
-          chunk._.sql,
-          new StringChunk(") "),
-          new Name(chunk._.alias)
-        ], config);
-      }
-      if (isPgEnum(chunk)) {
-        if (chunk.schema) {
-          return { sql: escapeName(chunk.schema) + "." + escapeName(chunk.enumName), params: [] };
-        }
-        return { sql: escapeName(chunk.enumName), params: [] };
-      }
-      if (isSQLWrapper(chunk)) {
-        if (chunk.shouldOmitSQLParens?.()) {
-          return this.buildQueryFromSourceParams([chunk.getSQL()], config);
-        }
-        return this.buildQueryFromSourceParams([
-          new StringChunk("("),
-          chunk.getSQL(),
-          new StringChunk(")")
-        ], config);
-      }
-      if (inlineParams) {
-        return { sql: this.mapInlineParam(chunk, config), params: [] };
-      }
-      return { sql: escapeParam(paramStartIndex.value++, chunk), params: [chunk], typings: ["none"] };
-    }));
+        return {
+          sql: escapeParam(paramStartIndex.value++, chunk),
+          params: [chunk],
+          typings: ["none"],
+        };
+      }),
+    );
   }
   mapInlineParam(chunk, { escapeString }) {
     if (chunk === null) {
@@ -10599,7 +13547,10 @@ var SQL = class _SQL {
     return new _SQL.Aliased(this, alias);
   }
   mapWith(decoder3) {
-    this.decoder = typeof decoder3 === "function" ? { mapFromDriverValue: decoder3 } : decoder3;
+    this.decoder =
+      typeof decoder3 === "function"
+        ? { mapFromDriverValue: decoder3 }
+        : decoder3;
     return this;
   }
   inlineParams() {
@@ -10630,18 +13581,29 @@ var Name = class {
   }
 };
 function isDriverValueEncoder(value) {
-  return typeof value === "object" && value !== null && "mapToDriverValue" in value && typeof value.mapToDriverValue === "function";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "mapToDriverValue" in value &&
+    typeof value.mapToDriverValue === "function"
+  );
 }
 __name(isDriverValueEncoder, "isDriverValueEncoder");
 var noopDecoder = {
-  mapFromDriverValue: /* @__PURE__ */ __name((value) => value, "mapFromDriverValue")
+  mapFromDriverValue: /* @__PURE__ */ __name(
+    (value) => value,
+    "mapFromDriverValue",
+  ),
 };
 var noopEncoder = {
-  mapToDriverValue: /* @__PURE__ */ __name((value) => value, "mapToDriverValue")
+  mapToDriverValue: /* @__PURE__ */ __name(
+    (value) => value,
+    "mapToDriverValue",
+  ),
 };
 var noopMapper = {
   ...noopDecoder,
-  ...noopEncoder
+  ...noopEncoder,
 };
 var Param = class {
   static {
@@ -10663,7 +13625,7 @@ var Param = class {
 };
 function sql(strings, ...params) {
   const queryChunks = [];
-  if (params.length > 0 || strings.length > 0 && strings[0] !== "") {
+  if (params.length > 0 || (strings.length > 0 && strings[0] !== "")) {
     queryChunks.push(new StringChunk(strings[0]));
   }
   for (const [paramIndex, param2] of params.entries()) {
@@ -10760,7 +13722,9 @@ function fillPlaceholders(params, values) {
     }
     if (is(p3, Param) && is(p3.value, Placeholder)) {
       if (!(p3.value.name in values)) {
-        throw new Error(`No value for placeholder "${p3.value.name}" was provided`);
+        throw new Error(
+          `No value for placeholder "${p3.value.name}" was provided`,
+        );
       }
       return p3.encoder.mapToDriverValue(values[p3.value.name]);
     }
@@ -10786,20 +13750,20 @@ var View = class {
       selectedFields,
       query,
       isExisting: !query,
-      isAlias: false
+      isAlias: false,
     };
   }
   getSQL() {
     return new SQL([this]);
   }
 };
-Column.prototype.getSQL = function() {
+Column.prototype.getSQL = function () {
   return new SQL([this]);
 };
-Table.prototype.getSQL = function() {
+Table.prototype.getSQL = function () {
   return new SQL([this]);
 };
-Subquery.prototype.getSQL = function() {
+Subquery.prototype.getSQL = function () {
   return new SQL([this]);
 };
 
@@ -10842,7 +13806,7 @@ var TableAliasProxyHandler = class {
       return {
         ...target[ViewBaseConfig],
         name: this.alias,
-        isAlias: true
+        isAlias: true,
       };
     }
     if (prop === Table.Symbol.Columns) {
@@ -10854,14 +13818,17 @@ var TableAliasProxyHandler = class {
       Object.keys(columns).map((key) => {
         proxiedColumns[key] = new Proxy(
           columns[key],
-          new ColumnAliasProxyHandler(new Proxy(target, this))
+          new ColumnAliasProxyHandler(new Proxy(target, this)),
         );
       });
       return proxiedColumns;
     }
     const value = target[prop];
     if (is(value, Column)) {
-      return new Proxy(value, new ColumnAliasProxyHandler(new Proxy(target, this)));
+      return new Proxy(
+        value,
+        new ColumnAliasProxyHandler(new Proxy(target, this)),
+      );
     }
     return value;
   }
@@ -10888,67 +13855,76 @@ __name(aliasedTable, "aliasedTable");
 function aliasedTableColumn(column, tableAlias) {
   return new Proxy(
     column,
-    new ColumnAliasProxyHandler(new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)))
+    new ColumnAliasProxyHandler(
+      new Proxy(column.table, new TableAliasProxyHandler(tableAlias, false)),
+    ),
   );
 }
 __name(aliasedTableColumn, "aliasedTableColumn");
 function mapColumnsInAliasedSQLToAlias(query, alias) {
-  return new SQL.Aliased(mapColumnsInSQLToAlias(query.sql, alias), query.fieldAlias);
+  return new SQL.Aliased(
+    mapColumnsInSQLToAlias(query.sql, alias),
+    query.fieldAlias,
+  );
 }
 __name(mapColumnsInAliasedSQLToAlias, "mapColumnsInAliasedSQLToAlias");
 function mapColumnsInSQLToAlias(query, alias) {
-  return sql.join(query.queryChunks.map((c3) => {
-    if (is(c3, Column)) {
-      return aliasedTableColumn(c3, alias);
-    }
-    if (is(c3, SQL)) {
-      return mapColumnsInSQLToAlias(c3, alias);
-    }
-    if (is(c3, SQL.Aliased)) {
-      return mapColumnsInAliasedSQLToAlias(c3, alias);
-    }
-    return c3;
-  }));
+  return sql.join(
+    query.queryChunks.map((c3) => {
+      if (is(c3, Column)) {
+        return aliasedTableColumn(c3, alias);
+      }
+      if (is(c3, SQL)) {
+        return mapColumnsInSQLToAlias(c3, alias);
+      }
+      if (is(c3, SQL.Aliased)) {
+        return mapColumnsInAliasedSQLToAlias(c3, alias);
+      }
+      return c3;
+    }),
+  );
 }
 __name(mapColumnsInSQLToAlias, "mapColumnsInSQLToAlias");
 
 // node_modules/drizzle-orm/utils.js
 function mapResultRow(columns, row, joinsNotNullableMap) {
   const nullifyMap = {};
-  const result = columns.reduce(
-    (result2, { path, field }, columnIndex) => {
-      let decoder3;
-      if (is(field, Column)) {
-        decoder3 = field;
-      } else if (is(field, SQL)) {
-        decoder3 = field.decoder;
+  const result = columns.reduce((result2, { path, field }, columnIndex) => {
+    let decoder3;
+    if (is(field, Column)) {
+      decoder3 = field;
+    } else if (is(field, SQL)) {
+      decoder3 = field.decoder;
+    } else {
+      decoder3 = field.sql.decoder;
+    }
+    let node = result2;
+    for (const [pathChunkIndex, pathChunk] of path.entries()) {
+      if (pathChunkIndex < path.length - 1) {
+        if (!(pathChunk in node)) {
+          node[pathChunk] = {};
+        }
+        node = node[pathChunk];
       } else {
-        decoder3 = field.sql.decoder;
-      }
-      let node = result2;
-      for (const [pathChunkIndex, pathChunk] of path.entries()) {
-        if (pathChunkIndex < path.length - 1) {
-          if (!(pathChunk in node)) {
-            node[pathChunk] = {};
-          }
-          node = node[pathChunk];
-        } else {
-          const rawValue = row[columnIndex];
-          const value = node[pathChunk] = rawValue === null ? null : decoder3.mapFromDriverValue(rawValue);
-          if (joinsNotNullableMap && is(field, Column) && path.length === 2) {
-            const objectName = path[0];
-            if (!(objectName in nullifyMap)) {
-              nullifyMap[objectName] = value === null ? getTableName(field.table) : false;
-            } else if (typeof nullifyMap[objectName] === "string" && nullifyMap[objectName] !== getTableName(field.table)) {
-              nullifyMap[objectName] = false;
-            }
+        const rawValue = row[columnIndex];
+        const value = (node[pathChunk] =
+          rawValue === null ? null : decoder3.mapFromDriverValue(rawValue));
+        if (joinsNotNullableMap && is(field, Column) && path.length === 2) {
+          const objectName = path[0];
+          if (!(objectName in nullifyMap)) {
+            nullifyMap[objectName] =
+              value === null ? getTableName(field.table) : false;
+          } else if (
+            typeof nullifyMap[objectName] === "string" &&
+            nullifyMap[objectName] !== getTableName(field.table)
+          ) {
+            nullifyMap[objectName] = false;
           }
         }
       }
-      return result2;
-    },
-    {}
-  );
+    }
+    return result2;
+  }, {});
   if (joinsNotNullableMap && Object.keys(nullifyMap).length > 0) {
     for (const [objectName, tableName] of Object.entries(nullifyMap)) {
       if (typeof tableName === "string" && !joinsNotNullableMap[tableName]) {
@@ -10991,13 +13967,15 @@ function haveSameKeys(left, right) {
 }
 __name(haveSameKeys, "haveSameKeys");
 function mapUpdateSet(table, values) {
-  const entries = Object.entries(values).filter(([, value]) => value !== void 0).map(([key, value]) => {
-    if (is(value, SQL) || is(value, Column)) {
-      return [key, value];
-    } else {
-      return [key, new Param(value, table[Table.Symbol.Columns][key])];
-    }
-  });
+  const entries = Object.entries(values)
+    .filter(([, value]) => value !== void 0)
+    .map(([key, value]) => {
+      if (is(value, SQL) || is(value, Column)) {
+        return [key, value];
+      } else {
+        return [key, new Param(value, table[Table.Symbol.Columns][key])];
+      }
+    });
   if (entries.length === 0) {
     throw new Error("No values to set");
   }
@@ -11007,12 +13985,12 @@ __name(mapUpdateSet, "mapUpdateSet");
 function applyMixins(baseClass, extendedClasses) {
   for (const extendedClass of extendedClasses) {
     for (const name of Object.getOwnPropertyNames(extendedClass.prototype)) {
-      if (name === "constructor")
-        continue;
+      if (name === "constructor") continue;
       Object.defineProperty(
         baseClass.prototype,
         name,
-        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) || /* @__PURE__ */ Object.create(null)
+        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) ||
+          /* @__PURE__ */ Object.create(null),
       );
     }
   }
@@ -11023,13 +14001,21 @@ function getTableColumns(table) {
 }
 __name(getTableColumns, "getTableColumns");
 function getTableLikeName(table) {
-  return is(table, Subquery) ? table._.alias : is(table, View) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : table[Table.Symbol.IsAlias] ? table[Table.Symbol.Name] : table[Table.Symbol.BaseName];
+  return is(table, Subquery)
+    ? table._.alias
+    : is(table, View)
+      ? table[ViewBaseConfig].name
+      : is(table, SQL)
+        ? void 0
+        : table[Table.Symbol.IsAlias]
+          ? table[Table.Symbol.Name]
+          : table[Table.Symbol.BaseName];
 }
 __name(getTableLikeName, "getTableLikeName");
 function getColumnNameAndConfig(a3, b2) {
   return {
     name: typeof a3 === "string" && a3.length > 0 ? a3 : "",
-    config: typeof a3 === "object" ? a3 : b2
+    config: typeof a3 === "object" ? a3 : b2,
   };
 }
 __name(getColumnNameAndConfig, "getColumnNameAndConfig");
@@ -11049,7 +14035,12 @@ var ForeignKeyBuilder2 = class {
   constructor(config, actions2) {
     this.reference = () => {
       const { name, columns, foreignColumns } = config();
-      return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
+      return {
+        name,
+        columns,
+        foreignTable: foreignColumns[0].table,
+        foreignColumns,
+      };
     };
     if (actions2) {
       this._onUpdate = actions2.onUpdate;
@@ -11091,7 +14082,7 @@ var ForeignKey2 = class {
       this.table[TableName],
       ...columnNames,
       foreignColumns[0].table[TableName],
-      ...foreignColumnNames
+      ...foreignColumnNames,
     ];
     return name ?? `${chunks.join("_")}_fk`;
   }
@@ -11139,7 +14130,12 @@ var UniqueConstraint2 = class {
   constructor(table, columns, name) {
     this.table = table;
     this.columns = columns;
-    this.name = name ?? uniqueKeyName2(this.table, this.columns.map((column) => column.name));
+    this.name =
+      name ??
+      uniqueKeyName2(
+        this.table,
+        this.columns.map((column) => column.name),
+      );
   }
   static [entityKind] = "SQLiteUniqueConstraint";
   columns;
@@ -11169,7 +14165,7 @@ var SQLiteColumnBuilder = class extends ColumnBuilder {
     this.config.generated = {
       as,
       type: "always",
-      mode: config?.mode ?? "virtual"
+      mode: config?.mode ?? "virtual",
     };
     return this;
   }
@@ -11252,10 +14248,7 @@ var SQLiteBlobJsonBuilder = class extends SQLiteColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new SQLiteBlobJson(
-      table,
-      this.config
-    );
+    return new SQLiteBlobJson(table, this.config);
   }
 };
 var SQLiteBlobJson = class extends SQLiteColumn {
@@ -11327,10 +14320,7 @@ var SQLiteCustomColumnBuilder = class extends SQLiteColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new SQLiteCustomColumn(
-      table,
-      this.config
-    );
+    return new SQLiteCustomColumn(table, this.config);
   }
 };
 var SQLiteCustomColumn = class extends SQLiteColumn {
@@ -11360,11 +14350,7 @@ var SQLiteCustomColumn = class extends SQLiteColumn {
 function customType(customTypeParams) {
   return (a3, b2) => {
     const { name, config } = getColumnNameAndConfig(a3, b2);
-    return new SQLiteCustomColumnBuilder(
-      name,
-      config,
-      customTypeParams
-    );
+    return new SQLiteCustomColumnBuilder(name, config, customTypeParams);
   };
 }
 __name(customType, "customType");
@@ -11406,10 +14392,7 @@ var SQLiteIntegerBuilder = class extends SQLiteBaseIntegerBuilder {
     super(name, "number", "SQLiteInteger");
   }
   build(table) {
-    return new SQLiteInteger(
-      table,
-      this.config
-    );
+    return new SQLiteInteger(table, this.config);
   }
 };
 var SQLiteInteger = class extends SQLiteBaseInteger {
@@ -11433,13 +14416,12 @@ var SQLiteTimestampBuilder = class extends SQLiteBaseIntegerBuilder {
    * Adds `DEFAULT (cast((julianday('now') - 2440587.5)*86400000 as integer))` to the column, which is the current epoch timestamp in milliseconds.
    */
   defaultNow() {
-    return this.default(sql`(cast((julianday('now') - 2440587.5)*86400000 as integer))`);
+    return this.default(
+      sql`(cast((julianday('now') - 2440587.5)*86400000 as integer))`,
+    );
   }
   build(table) {
-    return new SQLiteTimestamp(
-      table,
-      this.config
-    );
+    return new SQLiteTimestamp(table, this.config);
   }
 };
 var SQLiteTimestamp = class extends SQLiteBaseInteger {
@@ -11472,10 +14454,7 @@ var SQLiteBooleanBuilder = class extends SQLiteBaseIntegerBuilder {
     this.config.mode = mode;
   }
   build(table) {
-    return new SQLiteBoolean(
-      table,
-      this.config
-    );
+    return new SQLiteBoolean(table, this.config);
   }
 };
 var SQLiteBoolean = class extends SQLiteBaseInteger {
@@ -11514,10 +14493,7 @@ var SQLiteNumericBuilder = class extends SQLiteColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new SQLiteNumeric(
-      table,
-      this.config
-    );
+    return new SQLiteNumeric(table, this.config);
   }
 };
 var SQLiteNumeric = class extends SQLiteColumn {
@@ -11575,10 +14551,7 @@ var SQLiteTextBuilder = class extends SQLiteColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new SQLiteText(
-      table,
-      this.config
-    );
+    return new SQLiteText(table, this.config);
   }
 };
 var SQLiteText = class extends SQLiteColumn {
@@ -11605,10 +14578,7 @@ var SQLiteTextJsonBuilder = class extends SQLiteColumnBuilder {
   }
   /** @internal */
   build(table) {
-    return new SQLiteTextJson(
-      table,
-      this.config
-    );
+    return new SQLiteTextJson(table, this.config);
   }
 };
 var SQLiteTextJson = class extends SQLiteColumn {
@@ -11649,10 +14619,7 @@ var SelectionProxyHandler = class _SelectionProxyHandler {
     if (prop === "_") {
       return {
         ...subquery["_"],
-        selectedFields: new Proxy(
-          subquery._.selectedFields,
-          this
-        )
+        selectedFields: new Proxy(subquery._.selectedFields, this),
       };
     }
     if (prop === ViewBaseConfig) {
@@ -11660,14 +14627,18 @@ var SelectionProxyHandler = class _SelectionProxyHandler {
         ...subquery[ViewBaseConfig],
         selectedFields: new Proxy(
           subquery[ViewBaseConfig].selectedFields,
-          this
-        )
+          this,
+        ),
       };
     }
     if (typeof prop === "symbol") {
       return subquery[prop];
     }
-    const columns = is(subquery, Subquery) ? subquery._.selectedFields : is(subquery, View) ? subquery[ViewBaseConfig].selectedFields : subquery;
+    const columns = is(subquery, Subquery)
+      ? subquery._.selectedFields
+      : is(subquery, View)
+        ? subquery[ViewBaseConfig].selectedFields
+        : subquery;
     const value = columns[prop];
     if (is(value, SQL.Aliased)) {
       if (this.config.sqlAliasedBehavior === "sql" && !value.isSelectionField) {
@@ -11682,7 +14653,7 @@ var SelectionProxyHandler = class _SelectionProxyHandler {
         return value;
       }
       throw new Error(
-        `You tried to reference "${prop}" field from a subquery, which is a raw SQL field, but it doesn't have an alias declared. Please add an alias to the field using ".as('alias')" method.`
+        `You tried to reference "${prop}" field from a subquery, which is a raw SQL field, but it doesn't have an alias declared. Please add an alias to the field using ".as('alias')" method.`,
       );
     }
     if (is(value, Column)) {
@@ -11692,9 +14663,12 @@ var SelectionProxyHandler = class _SelectionProxyHandler {
           new ColumnAliasProxyHandler(
             new Proxy(
               value.table,
-              new TableAliasProxyHandler(this.config.alias, this.config.replaceOriginalName ?? false)
-            )
-          )
+              new TableAliasProxyHandler(
+                this.config.alias,
+                this.config.replaceOriginalName ?? false,
+              ),
+            ),
+          ),
         );
       }
       return value;
@@ -11725,7 +14699,7 @@ var QueryPromise = class {
       (reason) => {
         onFinally?.();
         throw reason;
-      }
+      },
     );
   }
   then(onFulfilled, onRejected) {
@@ -11741,7 +14715,7 @@ function getSQLiteColumnBuilders() {
     integer,
     numeric,
     real,
-    text
+    text,
   };
 }
 __name(getSQLiteColumnBuilders, "getSQLiteColumnBuilders");
@@ -11755,7 +14729,7 @@ var SQLiteTable = class extends Table {
   static [entityKind] = "SQLiteTable";
   /** @internal */
   static Symbol = Object.assign({}, Table.Symbol, {
-    InlineForeignKeys
+    InlineForeignKeys,
   });
   /** @internal */
   [Table.Symbol.Columns];
@@ -11766,15 +14740,20 @@ var SQLiteTable = class extends Table {
 };
 function sqliteTableBase(name, columns, extraConfig, schema, baseName = name) {
   const rawTable = new SQLiteTable(name, schema, baseName);
-  const parsedColumns = typeof columns === "function" ? columns(getSQLiteColumnBuilders()) : columns;
+  const parsedColumns =
+    typeof columns === "function"
+      ? columns(getSQLiteColumnBuilders())
+      : columns;
   const builtColumns = Object.fromEntries(
     Object.entries(parsedColumns).map(([name2, colBuilderBase]) => {
       const colBuilder = colBuilderBase;
       colBuilder.setName(name2);
       const column = colBuilder.build(rawTable);
-      rawTable[InlineForeignKeys].push(...colBuilder.buildForeignKeys(column, rawTable));
+      rawTable[InlineForeignKeys].push(
+        ...colBuilder.buildForeignKeys(column, rawTable),
+      );
       return [name2, column];
-    })
+    }),
   );
   const table = Object.assign(rawTable, builtColumns);
   table[Table.Symbol.Columns] = builtColumns;
@@ -11842,8 +14821,11 @@ var SQLiteDeleteBase = class extends QueryPromise {
       const orderBy = columns[0](
         new Proxy(
           this.config.table[Table.Symbol.Columns],
-          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "alias",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
       const orderByArray = Array.isArray(orderBy) ? orderBy : [orderBy];
       this.config.orderBy = orderByArray;
@@ -11866,16 +14848,20 @@ var SQLiteDeleteBase = class extends QueryPromise {
     return this.dialect.buildDeleteQuery(this.config);
   }
   toSQL() {
-    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(
+      this.getSQL(),
+    );
     return rest;
   }
   /** @internal */
   _prepare(isOneTimeQuery = true) {
-    return this.session[isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"](
+    return this.session[
+      isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"
+    ](
       this.dialect.sqlToQuery(this.getSQL()),
       this.config.returning,
       this.config.returning ? "all" : "run",
-      true
+      true,
     );
   }
   prepare() {
@@ -11903,14 +14889,23 @@ var SQLiteDeleteBase = class extends QueryPromise {
 
 // node_modules/drizzle-orm/casing.js
 function toSnakeCase(input) {
-  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+  const words =
+    input
+      .replace(/['\u2019]/g, "")
+      .match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
   return words.map((word) => word.toLowerCase()).join("_");
 }
 __name(toSnakeCase, "toSnakeCase");
 function toCamelCase(input) {
-  const words = input.replace(/['\u2019]/g, "").match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
+  const words =
+    input
+      .replace(/['\u2019]/g, "")
+      .match(/[\da-z]+|[A-Z]+(?![a-z])|[A-Z][\da-z]+/g) ?? [];
   return words.reduce((acc, word, i4) => {
-    const formattedWord = i4 === 0 ? word.toLowerCase() : `${word[0].toUpperCase()}${word.slice(1)}`;
+    const formattedWord =
+      i4 === 0
+        ? word.toLowerCase()
+        : `${word[0].toUpperCase()}${word.slice(1)}`;
     return acc + formattedWord;
   }, "");
 }
@@ -11929,11 +14924,15 @@ var CasingCache = class {
   cachedTables = {};
   convert;
   constructor(casing) {
-    this.convert = casing === "snake_case" ? toSnakeCase : casing === "camelCase" ? toCamelCase : noopCase;
+    this.convert =
+      casing === "snake_case"
+        ? toSnakeCase
+        : casing === "camelCase"
+          ? toCamelCase
+          : noopCase;
   }
   getColumnCasing(column) {
-    if (!column.keyAsName)
-      return column.name;
+    if (!column.keyAsName) return column.name;
     const schema = column.table[Table.Symbol.Schema] ?? "public";
     const tableName = column.table[Table.Symbol.OriginalName];
     const key = `${schema}.${tableName}.${column.name}`;
@@ -11993,7 +14992,7 @@ var PgTable = class extends Table {
   /** @internal */
   static Symbol = Object.assign({}, Table.Symbol, {
     InlineForeignKeys: InlineForeignKeys2,
-    EnableRLS
+    EnableRLS,
   });
   /**@internal */
   [InlineForeignKeys2] = [];
@@ -12035,13 +15034,24 @@ var PrimaryKey = class {
   columns;
   name;
   getName() {
-    return this.name ?? `${this.table[PgTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`;
+    return (
+      this.name ??
+      `${this.table[PgTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`
+    );
   }
 };
 
 // node_modules/drizzle-orm/sql/expressions/conditions.js
 function bindIfParam(value, column) {
-  if (isDriverValueEncoder(column) && !isSQLWrapper(value) && !is(value, Param) && !is(value, Placeholder) && !is(value, Column) && !is(value, Table) && !is(value, View)) {
+  if (
+    isDriverValueEncoder(column) &&
+    !isSQLWrapper(value) &&
+    !is(value, Param) &&
+    !is(value, Placeholder) &&
+    !is(value, Column) &&
+    !is(value, Table) &&
+    !is(value, View)
+  ) {
     return new Param(value, column);
   }
   return value;
@@ -12054,9 +15064,7 @@ var ne = /* @__PURE__ */ __name((left, right) => {
   return sql`${left} <> ${bindIfParam(right, left)}`;
 }, "ne");
 function and(...unfilteredConditions) {
-  const conditions = unfilteredConditions.filter(
-    (c3) => c3 !== void 0
-  );
+  const conditions = unfilteredConditions.filter((c3) => c3 !== void 0);
   if (conditions.length === 0) {
     return void 0;
   }
@@ -12066,14 +15074,12 @@ function and(...unfilteredConditions) {
   return new SQL([
     new StringChunk("("),
     sql.join(conditions, new StringChunk(" and ")),
-    new StringChunk(")")
+    new StringChunk(")"),
   ]);
 }
 __name(and, "and");
 function or(...unfilteredConditions) {
-  const conditions = unfilteredConditions.filter(
-    (c3) => c3 !== void 0
-  );
+  const conditions = unfilteredConditions.filter((c3) => c3 !== void 0);
   if (conditions.length === 0) {
     return void 0;
   }
@@ -12083,7 +15089,7 @@ function or(...unfilteredConditions) {
   return new SQL([
     new StringChunk("("),
     sql.join(conditions, new StringChunk(" or ")),
-    new StringChunk(")")
+    new StringChunk(")"),
   ]);
 }
 __name(or, "or");
@@ -12142,14 +15148,14 @@ __name(notExists, "notExists");
 function between(column, min, max) {
   return sql`${column} between ${bindIfParam(min, column)} and ${bindIfParam(
     max,
-    column
+    column,
   )}`;
 }
 __name(between, "between");
 function notBetween(column, min, max) {
   return sql`${column} not between ${bindIfParam(
     min,
-    column
+    column,
   )} and ${bindIfParam(max, column)}`;
 }
 __name(notBetween, "notBetween");
@@ -12220,7 +15226,7 @@ var One = class _One extends Relation {
       this.sourceTable,
       this.referencedTable,
       this.config,
-      this.isNullable
+      this.isNullable,
     );
     relation.fieldName = fieldName;
     return relation;
@@ -12239,7 +15245,7 @@ var Many = class _Many extends Relation {
     const relation = new _Many(
       this.sourceTable,
       this.referencedTable,
-      this.config
+      this.config,
     );
     relation.fieldName = fieldName;
     return relation;
@@ -12268,7 +15274,7 @@ function getOperators() {
     notIlike,
     notInArray,
     or,
-    sql
+    sql,
   };
 }
 __name(getOperators, "getOperators");
@@ -12276,12 +15282,16 @@ function getOrderByOperators() {
   return {
     sql,
     asc,
-    desc
+    desc,
   };
 }
 __name(getOrderByOperators, "getOrderByOperators");
 function extractTablesRelationalConfig(schema, configHelpers) {
-  if (Object.keys(schema).length === 1 && "default" in schema && !is(schema["default"], Table)) {
+  if (
+    Object.keys(schema).length === 1 &&
+    "default" in schema &&
+    !is(schema["default"], Table)
+  ) {
     schema = schema["default"];
   }
   const tableNamesMap = {};
@@ -12298,16 +15308,16 @@ function extractTablesRelationalConfig(schema, configHelpers) {
         schema: value[Table.Symbol.Schema],
         columns: value[Table.Symbol.Columns],
         relations: bufferedRelations?.relations ?? {},
-        primaryKey: bufferedRelations?.primaryKey ?? []
+        primaryKey: bufferedRelations?.primaryKey ?? [],
       };
-      for (const column of Object.values(
-        value[Table.Symbol.Columns]
-      )) {
+      for (const column of Object.values(value[Table.Symbol.Columns])) {
         if (column.primary) {
           tablesConfig[key].primaryKey.push(column);
         }
       }
-      const extraConfig = value[Table.Symbol.ExtraConfigBuilder]?.(value[Table.Symbol.ExtraConfigColumns]);
+      const extraConfig = value[Table.Symbol.ExtraConfigBuilder]?.(
+        value[Table.Symbol.ExtraConfigColumns],
+      );
       if (extraConfig) {
         for (const configEntry of Object.values(extraConfig)) {
           if (is(configEntry, PrimaryKeyBuilder)) {
@@ -12318,9 +15328,7 @@ function extractTablesRelationalConfig(schema, configHelpers) {
     } else if (is(value, Relations)) {
       const dbName = getTableUniqueName(value.table);
       const tableName = tableNamesMap[dbName];
-      const relations2 = value.config(
-        configHelpers(value.table)
-      );
+      const relations2 = value.config(configHelpers(value.table));
       let primaryKey3;
       for (const [relationName, relation] of Object.entries(relations2)) {
         if (tableName) {
@@ -12333,7 +15341,7 @@ function extractTablesRelationalConfig(schema, configHelpers) {
           if (!(dbName in relationsBuffer)) {
             relationsBuffer[dbName] = {
               relations: {},
-              primaryKey: primaryKey3
+              primaryKey: primaryKey3,
             };
           }
           relationsBuffer[dbName].relations[relationName] = relation;
@@ -12345,14 +15353,13 @@ function extractTablesRelationalConfig(schema, configHelpers) {
 }
 __name(extractTablesRelationalConfig, "extractTablesRelationalConfig");
 function relations(table, relations2) {
-  return new Relations(
-    table,
-    (helpers) => Object.fromEntries(
+  return new Relations(table, (helpers) =>
+    Object.fromEntries(
       Object.entries(relations2(helpers)).map(([key, value]) => [
         key,
-        value.withFieldName(key)
-      ])
-    )
+        value.withFieldName(key),
+      ]),
+    ),
   );
 }
 __name(relations, "relations");
@@ -12362,7 +15369,7 @@ function createOne(sourceTable) {
       sourceTable,
       table,
       config,
-      config?.fields.reduce((res, f4) => res && f4.notNull, true) ?? false
+      config?.fields.reduce((res, f4) => res && f4.notNull, true) ?? false,
     );
   }, "one");
 }
@@ -12377,13 +15384,14 @@ function normalizeRelation(schema, tableNamesMap, relation) {
   if (is(relation, One) && relation.config) {
     return {
       fields: relation.config.fields,
-      references: relation.config.references
+      references: relation.config.references,
     };
   }
-  const referencedTableTsName = tableNamesMap[getTableUniqueName(relation.referencedTable)];
+  const referencedTableTsName =
+    tableNamesMap[getTableUniqueName(relation.referencedTable)];
   if (!referencedTableTsName) {
     throw new Error(
-      `Table "${relation.referencedTable[Table.Symbol.Name]}" not found in schema`
+      `Table "${relation.referencedTable[Table.Symbol.Name]}" not found in schema`,
     );
   }
   const referencedTableConfig = schema[referencedTableTsName];
@@ -12394,67 +15402,89 @@ function normalizeRelation(schema, tableNamesMap, relation) {
   const sourceTableTsName = tableNamesMap[getTableUniqueName(sourceTable)];
   if (!sourceTableTsName) {
     throw new Error(
-      `Table "${sourceTable[Table.Symbol.Name]}" not found in schema`
+      `Table "${sourceTable[Table.Symbol.Name]}" not found in schema`,
     );
   }
   const reverseRelations = [];
   for (const referencedTableRelation of Object.values(
-    referencedTableConfig.relations
+    referencedTableConfig.relations,
   )) {
-    if (relation.relationName && relation !== referencedTableRelation && referencedTableRelation.relationName === relation.relationName || !relation.relationName && referencedTableRelation.referencedTable === relation.sourceTable) {
+    if (
+      (relation.relationName &&
+        relation !== referencedTableRelation &&
+        referencedTableRelation.relationName === relation.relationName) ||
+      (!relation.relationName &&
+        referencedTableRelation.referencedTable === relation.sourceTable)
+    ) {
       reverseRelations.push(referencedTableRelation);
     }
   }
   if (reverseRelations.length > 1) {
-    throw relation.relationName ? new Error(
-      `There are multiple relations with name "${relation.relationName}" in table "${referencedTableTsName}"`
-    ) : new Error(
-      `There are multiple relations between "${referencedTableTsName}" and "${relation.sourceTable[Table.Symbol.Name]}". Please specify relation name`
-    );
+    throw relation.relationName
+      ? new Error(
+          `There are multiple relations with name "${relation.relationName}" in table "${referencedTableTsName}"`,
+        )
+      : new Error(
+          `There are multiple relations between "${referencedTableTsName}" and "${relation.sourceTable[Table.Symbol.Name]}". Please specify relation name`,
+        );
   }
-  if (reverseRelations[0] && is(reverseRelations[0], One) && reverseRelations[0].config) {
+  if (
+    reverseRelations[0] &&
+    is(reverseRelations[0], One) &&
+    reverseRelations[0].config
+  ) {
     return {
       fields: reverseRelations[0].config.references,
-      references: reverseRelations[0].config.fields
+      references: reverseRelations[0].config.fields,
     };
   }
   throw new Error(
-    `There is not enough information to infer relation "${sourceTableTsName}.${relation.fieldName}"`
+    `There is not enough information to infer relation "${sourceTableTsName}.${relation.fieldName}"`,
   );
 }
 __name(normalizeRelation, "normalizeRelation");
 function createTableRelationsHelpers(sourceTable) {
   return {
     one: createOne(sourceTable),
-    many: createMany(sourceTable)
+    many: createMany(sourceTable),
   };
 }
 __name(createTableRelationsHelpers, "createTableRelationsHelpers");
-function mapRelationalRow(tablesConfig, tableConfig, row, buildQueryResultSelection, mapColumnValue = (value) => value) {
+function mapRelationalRow(
+  tablesConfig,
+  tableConfig,
+  row,
+  buildQueryResultSelection,
+  mapColumnValue = (value) => value,
+) {
   const result = {};
   for (const [
     selectionItemIndex,
-    selectionItem
+    selectionItem,
   ] of buildQueryResultSelection.entries()) {
     if (selectionItem.isJson) {
       const relation = tableConfig.relations[selectionItem.tsKey];
       const rawSubRows = row[selectionItemIndex];
-      const subRows = typeof rawSubRows === "string" ? JSON.parse(rawSubRows) : rawSubRows;
-      result[selectionItem.tsKey] = is(relation, One) ? subRows && mapRelationalRow(
-        tablesConfig,
-        tablesConfig[selectionItem.relationTableTsKey],
-        subRows,
-        selectionItem.selection,
-        mapColumnValue
-      ) : subRows.map(
-        (subRow) => mapRelationalRow(
-          tablesConfig,
-          tablesConfig[selectionItem.relationTableTsKey],
-          subRow,
-          selectionItem.selection,
-          mapColumnValue
-        )
-      );
+      const subRows =
+        typeof rawSubRows === "string" ? JSON.parse(rawSubRows) : rawSubRows;
+      result[selectionItem.tsKey] = is(relation, One)
+        ? subRows &&
+          mapRelationalRow(
+            tablesConfig,
+            tablesConfig[selectionItem.relationTableTsKey],
+            subRows,
+            selectionItem.selection,
+            mapColumnValue,
+          )
+        : subRows.map((subRow) =>
+            mapRelationalRow(
+              tablesConfig,
+              tablesConfig[selectionItem.relationTableTsKey],
+              subRow,
+              selectionItem.selection,
+              mapColumnValue,
+            ),
+          );
     } else {
       const value = mapColumnValue(row[selectionItemIndex]);
       const field = selectionItem.field;
@@ -12466,7 +15496,8 @@ function mapRelationalRow(tablesConfig, tableConfig, row, buildQueryResultSelect
       } else {
         decoder3 = field.sql.decoder;
       }
-      result[selectionItem.tsKey] = value === null ? null : decoder3.mapFromDriverValue(value);
+      result[selectionItem.tsKey] =
+        value === null ? null : decoder3.mapFromDriverValue(value);
     }
   }
   return result;
@@ -12502,8 +15533,7 @@ var SQLiteDialect = class {
     return `'${str.replace(/'/g, "''")}'`;
   }
   buildWithCTE(queries) {
-    if (!queries?.length)
-      return void 0;
+    if (!queries?.length) return void 0;
     const withSqlChunks = [sql`with `];
     for (const [i4, w3] of queries.entries()) {
       withSqlChunks.push(sql`${sql.identifier(w3._.alias)} as (${w3._.sql})`);
@@ -12516,7 +15546,9 @@ var SQLiteDialect = class {
   }
   buildDeleteQuery({ table, where, returning, withList, limit, orderBy }) {
     const withSql = this.buildWithCTE(withList);
-    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}` : void 0;
+    const returningSql = returning
+      ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}`
+      : void 0;
     const whereSql = where ? sql` where ${where}` : void 0;
     const orderBySql = this.buildOrderBy(orderBy);
     const limitSql = this.buildLimit(limit);
@@ -12525,25 +15557,41 @@ var SQLiteDialect = class {
   buildUpdateSet(table, set) {
     const tableColumns = table[Table.Symbol.Columns];
     const columnNames = Object.keys(tableColumns).filter(
-      (colName) => set[colName] !== void 0 || tableColumns[colName]?.onUpdateFn !== void 0
+      (colName) =>
+        set[colName] !== void 0 || tableColumns[colName]?.onUpdateFn !== void 0,
     );
     const setSize = columnNames.length;
-    return sql.join(columnNames.flatMap((colName, i4) => {
-      const col = tableColumns[colName];
-      const value = set[colName] ?? sql.param(col.onUpdateFn(), col);
-      const res = sql`${sql.identifier(this.casing.getColumnCasing(col))} = ${value}`;
-      if (i4 < setSize - 1) {
-        return [res, sql.raw(", ")];
-      }
-      return [res];
-    }));
+    return sql.join(
+      columnNames.flatMap((colName, i4) => {
+        const col = tableColumns[colName];
+        const value = set[colName] ?? sql.param(col.onUpdateFn(), col);
+        const res = sql`${sql.identifier(this.casing.getColumnCasing(col))} = ${value}`;
+        if (i4 < setSize - 1) {
+          return [res, sql.raw(", ")];
+        }
+        return [res];
+      }),
+    );
   }
-  buildUpdateQuery({ table, set, where, returning, withList, joins, from, limit, orderBy }) {
+  buildUpdateQuery({
+    table,
+    set,
+    where,
+    returning,
+    withList,
+    joins,
+    from,
+    limit,
+    orderBy,
+  }) {
     const withSql = this.buildWithCTE(withList);
     const setSql = this.buildUpdateSet(table, set);
-    const fromSql = from && sql.join([sql.raw(" from "), this.buildFromTable(from)]);
+    const fromSql =
+      from && sql.join([sql.raw(" from "), this.buildFromTable(from)]);
     const joinsSql = this.buildJoins(joins);
-    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}` : void 0;
+    const returningSql = returning
+      ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}`
+      : void 0;
     const whereSql = where ? sql` where ${where}` : void 0;
     const orderBySql = this.buildOrderBy(orderBy);
     const limitSql = this.buildLimit(limit);
@@ -12576,8 +15624,8 @@ var SQLiteDialect = class {
                   return sql.identifier(this.casing.getColumnCasing(c3));
                 }
                 return c3;
-              })
-            )
+              }),
+            ),
           );
         } else {
           chunk.push(query);
@@ -12590,7 +15638,9 @@ var SQLiteDialect = class {
         if (isSingleTable) {
           chunk.push(sql.identifier(this.casing.getColumnCasing(field)));
         } else {
-          chunk.push(sql`${sql.identifier(tableName)}.${sql.identifier(this.casing.getColumnCasing(field))}`);
+          chunk.push(
+            sql`${sql.identifier(tableName)}.${sql.identifier(this.casing.getColumnCasing(field))}`,
+          );
         }
       }
       if (i4 < columnsLen - 1) {
@@ -12617,11 +15667,11 @@ var SQLiteDialect = class {
           const origTableName = table[SQLiteTable.Symbol.OriginalName];
           const alias = tableName === origTableName ? void 0 : joinMeta.alias;
           joinsArray.push(
-            sql`${sql.raw(joinMeta.joinType)} join ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`
+            sql`${sql.raw(joinMeta.joinType)} join ${tableSchema ? sql`${sql.identifier(tableSchema)}.` : void 0}${sql.identifier(origTableName)}${alias && sql` ${sql.identifier(alias)}`} on ${joinMeta.on}`,
           );
         } else {
           joinsArray.push(
-            sql`${sql.raw(joinMeta.joinType)} join ${table} on ${joinMeta.on}`
+            sql`${sql.raw(joinMeta.joinType)} join ${table} on ${joinMeta.on}`,
           );
         }
         if (index < joins.length - 1) {
@@ -12632,7 +15682,10 @@ var SQLiteDialect = class {
     return sql.join(joinsArray);
   }
   buildLimit(limit) {
-    return typeof limit === "object" || typeof limit === "number" && limit >= 0 ? sql` limit ${limit}` : void 0;
+    return typeof limit === "object" ||
+      (typeof limit === "number" && limit >= 0)
+      ? sql` limit ${limit}`
+      : void 0;
   }
   buildOrderBy(orderBy) {
     const orderByList = [];
@@ -12644,10 +15697,15 @@ var SQLiteDialect = class {
         }
       }
     }
-    return orderByList.length > 0 ? sql` order by ${sql.join(orderByList)}` : void 0;
+    return orderByList.length > 0
+      ? sql` order by ${sql.join(orderByList)}`
+      : void 0;
   }
   buildFromTable(table) {
-    if (is(table, Table) && table[Table.Symbol.OriginalName] !== table[Table.Symbol.Name]) {
+    if (
+      is(table, Table) &&
+      table[Table.Symbol.OriginalName] !== table[Table.Symbol.Name]
+    ) {
       return sql`${sql.identifier(table[Table.Symbol.OriginalName])} ${sql.identifier(table[Table.Symbol.Name])}`;
     }
     return table;
@@ -12665,16 +15723,32 @@ var SQLiteDialect = class {
     limit,
     offset,
     distinct,
-    setOperators
+    setOperators,
   }) {
     const fieldsList = fieldsFlat ?? orderSelectedFields(fields);
     for (const f4 of fieldsList) {
-      if (is(f4.field, Column) && getTableName(f4.field.table) !== (is(table, Subquery) ? table._.alias : is(table, SQLiteViewBase) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : getTableName(table)) && !((table2) => joins?.some(
-        ({ alias }) => alias === (table2[Table.Symbol.IsAlias] ? getTableName(table2) : table2[Table.Symbol.BaseName])
-      ))(f4.field.table)) {
+      if (
+        is(f4.field, Column) &&
+        getTableName(f4.field.table) !==
+          (is(table, Subquery)
+            ? table._.alias
+            : is(table, SQLiteViewBase)
+              ? table[ViewBaseConfig].name
+              : is(table, SQL)
+                ? void 0
+                : getTableName(table)) &&
+        !((table2) =>
+          joins?.some(
+            ({ alias }) =>
+              alias ===
+              (table2[Table.Symbol.IsAlias]
+                ? getTableName(table2)
+                : table2[Table.Symbol.BaseName]),
+          ))(f4.field.table)
+      ) {
         const tableName = getTableName(f4.field.table);
         throw new Error(
-          `Your "${f4.path.join("->")}" field references a column "${tableName}"."${f4.field.name}", but the table "${tableName}" is not part of the query! Did you forget to join it?`
+          `Your "${f4.path.join("->")}" field references a column "${tableName}"."${f4.field.name}", but the table "${tableName}" is not part of the query! Did you forget to join it?`,
         );
       }
     }
@@ -12695,7 +15769,8 @@ var SQLiteDialect = class {
         }
       }
     }
-    const groupBySql = groupByList.length > 0 ? sql` group by ${sql.join(groupByList)}` : void 0;
+    const groupBySql =
+      groupByList.length > 0 ? sql` group by ${sql.join(groupByList)}` : void 0;
     const orderBySql = this.buildOrderBy(orderBy);
     const limitSql = this.buildLimit(limit);
     const offsetSql = offset ? sql` offset ${offset}` : void 0;
@@ -12715,12 +15790,12 @@ var SQLiteDialect = class {
     }
     return this.buildSetOperations(
       this.buildSetOperationQuery({ leftSelect, setOperator }),
-      rest
+      rest,
     );
   }
   buildSetOperationQuery({
     leftSelect,
-    setOperator: { type, isAll, rightSelect, limit, orderBy, offset }
+    setOperator: { type, isAll, rightSelect, limit, orderBy, offset },
   }) {
     const leftChunk = sql`${leftSelect.getSQL()} `;
     const rightChunk = sql`${rightSelect.getSQL()}`;
@@ -12734,7 +15809,9 @@ var SQLiteDialect = class {
           for (let i4 = 0; i4 < singleOrderBy.queryChunks.length; i4++) {
             const chunk = singleOrderBy.queryChunks[i4];
             if (is(chunk, SQLiteColumn)) {
-              singleOrderBy.queryChunks[i4] = sql.identifier(this.casing.getColumnCasing(chunk));
+              singleOrderBy.queryChunks[i4] = sql.identifier(
+                this.casing.getColumnCasing(chunk),
+              );
             }
           }
           orderByValues.push(sql`${singleOrderBy}`);
@@ -12744,18 +15821,30 @@ var SQLiteDialect = class {
       }
       orderBySql = sql` order by ${sql.join(orderByValues, sql`, `)}`;
     }
-    const limitSql = typeof limit === "object" || typeof limit === "number" && limit >= 0 ? sql` limit ${limit}` : void 0;
+    const limitSql =
+      typeof limit === "object" || (typeof limit === "number" && limit >= 0)
+        ? sql` limit ${limit}`
+        : void 0;
     const operatorChunk = sql.raw(`${type} ${isAll ? "all " : ""}`);
     const offsetSql = offset ? sql` offset ${offset}` : void 0;
     return sql`${leftChunk}${operatorChunk}${rightChunk}${orderBySql}${limitSql}${offsetSql}`;
   }
-  buildInsertQuery({ table, values: valuesOrSelect, onConflict, returning, withList, select }) {
+  buildInsertQuery({
+    table,
+    values: valuesOrSelect,
+    onConflict,
+    returning,
+    withList,
+    select,
+  }) {
     const valuesSqlList = [];
     const columns = table[Table.Symbol.Columns];
     const colEntries = Object.entries(columns).filter(
-      ([_3, col]) => !col.shouldDisableInsert()
+      ([_3, col]) => !col.shouldDisableInsert(),
     );
-    const insertOrder = colEntries.map(([, column]) => sql.identifier(this.casing.getColumnCasing(column)));
+    const insertOrder = colEntries.map(([, column]) =>
+      sql.identifier(this.casing.getColumnCasing(column)),
+    );
     if (select) {
       const select2 = valuesOrSelect;
       if (is(select2, SQL)) {
@@ -12770,16 +15859,25 @@ var SQLiteDialect = class {
         const valueList = [];
         for (const [fieldName, col] of colEntries) {
           const colValue = value[fieldName];
-          if (colValue === void 0 || is(colValue, Param) && colValue.value === void 0) {
+          if (
+            colValue === void 0 ||
+            (is(colValue, Param) && colValue.value === void 0)
+          ) {
             let defaultValue;
             if (col.default !== null && col.default !== void 0) {
-              defaultValue = is(col.default, SQL) ? col.default : sql.param(col.default, col);
+              defaultValue = is(col.default, SQL)
+                ? col.default
+                : sql.param(col.default, col);
             } else if (col.defaultFn !== void 0) {
               const defaultFnResult = col.defaultFn();
-              defaultValue = is(defaultFnResult, SQL) ? defaultFnResult : sql.param(defaultFnResult, col);
+              defaultValue = is(defaultFnResult, SQL)
+                ? defaultFnResult
+                : sql.param(defaultFnResult, col);
             } else if (!col.default && col.onUpdateFn !== void 0) {
               const onUpdateFnResult = col.onUpdateFn();
-              defaultValue = is(onUpdateFnResult, SQL) ? onUpdateFnResult : sql.param(onUpdateFnResult, col);
+              defaultValue = is(onUpdateFnResult, SQL)
+                ? onUpdateFnResult
+                : sql.param(onUpdateFnResult, col);
             } else {
               defaultValue = sql`null`;
             }
@@ -12796,7 +15894,9 @@ var SQLiteDialect = class {
     }
     const withSql = this.buildWithCTE(withList);
     const valuesSql = sql.join(valuesSqlList);
-    const returningSql = returning ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}` : void 0;
+    const returningSql = returning
+      ? sql` returning ${this.buildSelection(returning, { isSingleTable: true })}`
+      : void 0;
     const onConflictSql = onConflict?.length ? sql.join(onConflict) : void 0;
     return sql`${withSql}insert into ${table} ${insertOrder} ${valuesSql}${onConflictSql}${returningSql}`;
   }
@@ -12806,7 +15906,7 @@ var SQLiteDialect = class {
       escapeName: this.escapeName,
       escapeParam: this.escapeParam,
       escapeString: this.escapeString,
-      invokeSource
+      invokeSource,
     });
   }
   buildRelationalQuery({
@@ -12818,10 +15918,13 @@ var SQLiteDialect = class {
     queryConfig: config,
     tableAlias,
     nestedQueryRelation,
-    joinOn
+    joinOn,
   }) {
     let selection = [];
-    let limit, offset, orderBy = [], where;
+    let limit,
+      offset,
+      orderBy = [],
+      where;
     const joins = [];
     if (config === true) {
       const selectionEntries = Object.entries(tableConfig.columns);
@@ -12831,14 +15934,20 @@ var SQLiteDialect = class {
         field: aliasedTableColumn(value, tableAlias),
         relationTableTsKey: void 0,
         isJson: false,
-        selection: []
+        selection: [],
       }));
     } else {
       const aliasedColumns = Object.fromEntries(
-        Object.entries(tableConfig.columns).map(([key, value]) => [key, aliasedTableColumn(value, tableAlias)])
+        Object.entries(tableConfig.columns).map(([key, value]) => [
+          key,
+          aliasedTableColumn(value, tableAlias),
+        ]),
       );
       if (config.where) {
-        const whereSql = typeof config.where === "function" ? config.where(aliasedColumns, getOperators()) : config.where;
+        const whereSql =
+          typeof config.where === "function"
+            ? config.where(aliasedColumns, getOperators())
+            : config.where;
         where = whereSql && mapColumnsInSQLToAlias(whereSql, tableAlias);
       }
       const fieldsSelection = [];
@@ -12857,7 +15966,11 @@ var SQLiteDialect = class {
           }
         }
         if (selectedColumns.length > 0) {
-          selectedColumns = isIncludeMode ? selectedColumns.filter((c3) => config.columns?.[c3] === true) : Object.keys(tableConfig.columns).filter((key) => !selectedColumns.includes(key));
+          selectedColumns = isIncludeMode
+            ? selectedColumns.filter((c3) => config.columns?.[c3] === true)
+            : Object.keys(tableConfig.columns).filter(
+                (key) => !selectedColumns.includes(key),
+              );
         }
       } else {
         selectedColumns = Object.keys(tableConfig.columns);
@@ -12868,29 +15981,45 @@ var SQLiteDialect = class {
       }
       let selectedRelations = [];
       if (config.with) {
-        selectedRelations = Object.entries(config.with).filter((entry) => !!entry[1]).map(([tsKey, queryConfig]) => ({ tsKey, queryConfig, relation: tableConfig.relations[tsKey] }));
+        selectedRelations = Object.entries(config.with)
+          .filter((entry) => !!entry[1])
+          .map(([tsKey, queryConfig]) => ({
+            tsKey,
+            queryConfig,
+            relation: tableConfig.relations[tsKey],
+          }));
       }
       let extras;
       if (config.extras) {
-        extras = typeof config.extras === "function" ? config.extras(aliasedColumns, { sql }) : config.extras;
+        extras =
+          typeof config.extras === "function"
+            ? config.extras(aliasedColumns, { sql })
+            : config.extras;
         for (const [tsKey, value] of Object.entries(extras)) {
           fieldsSelection.push({
             tsKey,
-            value: mapColumnsInAliasedSQLToAlias(value, tableAlias)
+            value: mapColumnsInAliasedSQLToAlias(value, tableAlias),
           });
         }
       }
       for (const { tsKey, value } of fieldsSelection) {
         selection.push({
-          dbKey: is(value, SQL.Aliased) ? value.fieldAlias : tableConfig.columns[tsKey].name,
+          dbKey: is(value, SQL.Aliased)
+            ? value.fieldAlias
+            : tableConfig.columns[tsKey].name,
           tsKey,
-          field: is(value, Column) ? aliasedTableColumn(value, tableAlias) : value,
+          field: is(value, Column)
+            ? aliasedTableColumn(value, tableAlias)
+            : value,
           relationTableTsKey: void 0,
           isJson: false,
-          selection: []
+          selection: [],
         });
       }
-      let orderByOrig = typeof config.orderBy === "function" ? config.orderBy(aliasedColumns, getOrderByOperators()) : config.orderBy ?? [];
+      let orderByOrig =
+        typeof config.orderBy === "function"
+          ? config.orderBy(aliasedColumns, getOrderByOperators())
+          : (config.orderBy ?? []);
       if (!Array.isArray(orderByOrig)) {
         orderByOrig = [orderByOrig];
       }
@@ -12905,19 +16034,26 @@ var SQLiteDialect = class {
       for (const {
         tsKey: selectedRelationTsKey,
         queryConfig: selectedRelationConfigValue,
-        relation
+        relation,
       } of selectedRelations) {
-        const normalizedRelation = normalizeRelation(schema, tableNamesMap, relation);
+        const normalizedRelation = normalizeRelation(
+          schema,
+          tableNamesMap,
+          relation,
+        );
         const relationTableName = getTableUniqueName(relation.referencedTable);
         const relationTableTsName = tableNamesMap[relationTableName];
         const relationTableAlias = `${tableAlias}_${selectedRelationTsKey}`;
         const joinOn2 = and(
-          ...normalizedRelation.fields.map(
-            (field2, i4) => eq(
-              aliasedTableColumn(normalizedRelation.references[i4], relationTableAlias),
-              aliasedTableColumn(field2, tableAlias)
-            )
-          )
+          ...normalizedRelation.fields.map((field2, i4) =>
+            eq(
+              aliasedTableColumn(
+                normalizedRelation.references[i4],
+                relationTableAlias,
+              ),
+              aliasedTableColumn(field2, tableAlias),
+            ),
+          ),
         );
         const builtRelation = this.buildRelationalQuery({
           fullSchema,
@@ -12925,10 +16061,14 @@ var SQLiteDialect = class {
           tableNamesMap,
           table: fullSchema[relationTableTsName],
           tableConfig: schema[relationTableTsName],
-          queryConfig: is(relation, One) ? selectedRelationConfigValue === true ? { limit: 1 } : { ...selectedRelationConfigValue, limit: 1 } : selectedRelationConfigValue,
+          queryConfig: is(relation, One)
+            ? selectedRelationConfigValue === true
+              ? { limit: 1 }
+              : { ...selectedRelationConfigValue, limit: 1 }
+            : selectedRelationConfigValue,
           tableAlias: relationTableAlias,
           joinOn: joinOn2,
-          nestedQueryRelation: relation
+          nestedQueryRelation: relation,
         });
         const field = sql`(${builtRelation.sql})`.as(selectedRelationTsKey);
         selection.push({
@@ -12937,36 +16077,43 @@ var SQLiteDialect = class {
           field,
           relationTableTsKey: relationTableTsName,
           isJson: true,
-          selection: builtRelation.selection
+          selection: builtRelation.selection,
         });
       }
     }
     if (selection.length === 0) {
       throw new DrizzleError({
-        message: `No fields selected for table "${tableConfig.tsName}" ("${tableAlias}"). You need to have at least one item in "columns", "with" or "extras". If you need to select all columns, omit the "columns" key or set it to undefined.`
+        message: `No fields selected for table "${tableConfig.tsName}" ("${tableAlias}"). You need to have at least one item in "columns", "with" or "extras". If you need to select all columns, omit the "columns" key or set it to undefined.`,
       });
     }
     let result;
     where = and(joinOn, where);
     if (nestedQueryRelation) {
       let field = sql`json_array(${sql.join(
-        selection.map(
-          ({ field: field2 }) => is(field2, SQLiteColumn) ? sql.identifier(this.casing.getColumnCasing(field2)) : is(field2, SQL.Aliased) ? field2.sql : field2
+        selection.map(({ field: field2 }) =>
+          is(field2, SQLiteColumn)
+            ? sql.identifier(this.casing.getColumnCasing(field2))
+            : is(field2, SQL.Aliased)
+              ? field2.sql
+              : field2,
         ),
-        sql`, `
+        sql`, `,
       )})`;
       if (is(nestedQueryRelation, Many)) {
         field = sql`coalesce(json_group_array(${field}), json_array())`;
       }
-      const nestedSelection = [{
-        dbKey: "data",
-        tsKey: "data",
-        field: field.as("data"),
-        isJson: true,
-        relationTableTsKey: tableConfig.tsName,
-        selection
-      }];
-      const needsSubquery = limit !== void 0 || offset !== void 0 || orderBy.length > 0;
+      const nestedSelection = [
+        {
+          dbKey: "data",
+          tsKey: "data",
+          field: field.as("data"),
+          isJson: true,
+          relationTableTsKey: tableConfig.tsName,
+          selection,
+        },
+      ];
+      const needsSubquery =
+        limit !== void 0 || offset !== void 0 || orderBy.length > 0;
       if (needsSubquery) {
         result = this.buildSelectQuery({
           table: aliasedTable(table, tableAlias),
@@ -12974,14 +16121,14 @@ var SQLiteDialect = class {
           fieldsFlat: [
             {
               path: [],
-              field: sql.raw("*")
-            }
+              field: sql.raw("*"),
+            },
           ],
           where,
           limit,
           offset,
           orderBy,
-          setOperators: []
+          setOperators: [],
         });
         where = void 0;
         limit = void 0;
@@ -12991,18 +16138,22 @@ var SQLiteDialect = class {
         result = aliasedTable(table, tableAlias);
       }
       result = this.buildSelectQuery({
-        table: is(result, SQLiteTable) ? result : new Subquery(result, {}, tableAlias),
+        table: is(result, SQLiteTable)
+          ? result
+          : new Subquery(result, {}, tableAlias),
         fields: {},
         fieldsFlat: nestedSelection.map(({ field: field2 }) => ({
           path: [],
-          field: is(field2, Column) ? aliasedTableColumn(field2, tableAlias) : field2
+          field: is(field2, Column)
+            ? aliasedTableColumn(field2, tableAlias)
+            : field2,
         })),
         joins,
         where,
         limit,
         offset,
         orderBy,
-        setOperators: []
+        setOperators: [],
       });
     } else {
       result = this.buildSelectQuery({
@@ -13010,20 +16161,22 @@ var SQLiteDialect = class {
         fields: {},
         fieldsFlat: selection.map(({ field }) => ({
           path: [],
-          field: is(field, Column) ? aliasedTableColumn(field, tableAlias) : field
+          field: is(field, Column)
+            ? aliasedTableColumn(field, tableAlias)
+            : field,
         })),
         joins,
         where,
         limit,
         offset,
         orderBy,
-        setOperators: []
+        setOperators: [],
       });
     }
     return {
       tableTsKey: tableConfig.tsName,
       sql: result,
-      selection
+      selection,
     };
   }
 };
@@ -13033,7 +16186,12 @@ var SQLiteSyncDialect = class extends SQLiteDialect {
   }
   static [entityKind] = "SQLiteSyncDialect";
   migrate(migrations, session2, config) {
-    const migrationsTable = config === void 0 ? "__drizzle_migrations" : typeof config === "string" ? "__drizzle_migrations" : config.migrationsTable ?? "__drizzle_migrations";
+    const migrationsTable =
+      config === void 0
+        ? "__drizzle_migrations"
+        : typeof config === "string"
+          ? "__drizzle_migrations"
+          : (config.migrationsTable ?? "__drizzle_migrations");
     const migrationTableCreate = sql`
 			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
 				id SERIAL PRIMARY KEY,
@@ -13043,18 +16201,21 @@ var SQLiteSyncDialect = class extends SQLiteDialect {
 		`;
     session2.run(migrationTableCreate);
     const dbMigrations = session2.values(
-      sql`SELECT id, hash, created_at FROM ${sql.identifier(migrationsTable)} ORDER BY created_at DESC LIMIT 1`
+      sql`SELECT id, hash, created_at FROM ${sql.identifier(migrationsTable)} ORDER BY created_at DESC LIMIT 1`,
     );
     const lastDbMigration = dbMigrations[0] ?? void 0;
     session2.run(sql`BEGIN`);
     try {
       for (const migration of migrations) {
-        if (!lastDbMigration || Number(lastDbMigration[2]) < migration.folderMillis) {
+        if (
+          !lastDbMigration ||
+          Number(lastDbMigration[2]) < migration.folderMillis
+        ) {
           for (const stmt of migration.sql) {
             session2.run(sql.raw(stmt));
           }
           session2.run(
-            sql`INSERT INTO ${sql.identifier(migrationsTable)} ("hash", "created_at") VALUES(${migration.hash}, ${migration.folderMillis})`
+            sql`INSERT INTO ${sql.identifier(migrationsTable)} ("hash", "created_at") VALUES(${migration.hash}, ${migration.folderMillis})`,
           );
         }
       }
@@ -13071,7 +16232,12 @@ var SQLiteAsyncDialect = class extends SQLiteDialect {
   }
   static [entityKind] = "SQLiteAsyncDialect";
   async migrate(migrations, session2, config) {
-    const migrationsTable = config === void 0 ? "__drizzle_migrations" : typeof config === "string" ? "__drizzle_migrations" : config.migrationsTable ?? "__drizzle_migrations";
+    const migrationsTable =
+      config === void 0
+        ? "__drizzle_migrations"
+        : typeof config === "string"
+          ? "__drizzle_migrations"
+          : (config.migrationsTable ?? "__drizzle_migrations");
     const migrationTableCreate = sql`
 			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
 				id SERIAL PRIMARY KEY,
@@ -13081,17 +16247,20 @@ var SQLiteAsyncDialect = class extends SQLiteDialect {
 		`;
     await session2.run(migrationTableCreate);
     const dbMigrations = await session2.values(
-      sql`SELECT id, hash, created_at FROM ${sql.identifier(migrationsTable)} ORDER BY created_at DESC LIMIT 1`
+      sql`SELECT id, hash, created_at FROM ${sql.identifier(migrationsTable)} ORDER BY created_at DESC LIMIT 1`,
     );
     const lastDbMigration = dbMigrations[0] ?? void 0;
     await session2.transaction(async (tx) => {
       for (const migration of migrations) {
-        if (!lastDbMigration || Number(lastDbMigration[2]) < migration.folderMillis) {
+        if (
+          !lastDbMigration ||
+          Number(lastDbMigration[2]) < migration.folderMillis
+        ) {
           for (const stmt of migration.sql) {
             await tx.run(sql.raw(stmt));
           }
           await tx.run(
-            sql`INSERT INTO ${sql.identifier(migrationsTable)} ("hash", "created_at") VALUES(${migration.hash}, ${migration.folderMillis})`
+            sql`INSERT INTO ${sql.identifier(migrationsTable)} ("hash", "created_at") VALUES(${migration.hash}, ${migration.folderMillis})`,
           );
         }
       }
@@ -13136,7 +16305,7 @@ var SQLiteSelectBuilder = class {
       fields = this.fields;
     } else if (is(source, Subquery)) {
       fields = Object.fromEntries(
-        Object.keys(source._.selectedFields).map((key) => [key, source[key]])
+        Object.keys(source._.selectedFields).map((key) => [key, source[key]]),
       );
     } else if (is(source, SQLiteViewBase)) {
       fields = source[ViewBaseConfig].selectedFields;
@@ -13152,7 +16321,7 @@ var SQLiteSelectBuilder = class {
       session: this.session,
       dialect: this.dialect,
       withList: this.withList,
-      distinct: this.distinct
+      distinct: this.distinct,
     });
   }
 };
@@ -13169,39 +16338,58 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
   isPartialSelect;
   session;
   dialect;
-  constructor({ table, fields, isPartialSelect, session: session2, dialect, withList, distinct }) {
+  constructor({
+    table,
+    fields,
+    isPartialSelect,
+    session: session2,
+    dialect,
+    withList,
+    distinct,
+  }) {
     super();
     this.config = {
       withList,
       table,
       fields: { ...fields },
       distinct,
-      setOperators: []
+      setOperators: [],
     };
     this.isPartialSelect = isPartialSelect;
     this.session = session2;
     this.dialect = dialect;
     this._ = {
-      selectedFields: fields
+      selectedFields: fields,
     };
     this.tableName = getTableLikeName(table);
-    this.joinsNotNullableMap = typeof this.tableName === "string" ? { [this.tableName]: true } : {};
+    this.joinsNotNullableMap =
+      typeof this.tableName === "string" ? { [this.tableName]: true } : {};
   }
   createJoin(joinType) {
     return (table, on) => {
       const baseTableName = this.tableName;
       const tableName = getTableLikeName(table);
-      if (typeof tableName === "string" && this.config.joins?.some((join) => join.alias === tableName)) {
+      if (
+        typeof tableName === "string" &&
+        this.config.joins?.some((join) => join.alias === tableName)
+      ) {
         throw new Error(`Alias "${tableName}" is already used in this query`);
       }
       if (!this.isPartialSelect) {
-        if (Object.keys(this.joinsNotNullableMap).length === 1 && typeof baseTableName === "string") {
+        if (
+          Object.keys(this.joinsNotNullableMap).length === 1 &&
+          typeof baseTableName === "string"
+        ) {
           this.config.fields = {
-            [baseTableName]: this.config.fields
+            [baseTableName]: this.config.fields,
           };
         }
         if (typeof tableName === "string" && !is(table, SQL)) {
-          const selection = is(table, Subquery) ? table._.selectedFields : is(table, View) ? table[ViewBaseConfig].selectedFields : table[Table.Symbol.Columns];
+          const selection = is(table, Subquery)
+            ? table._.selectedFields
+            : is(table, View)
+              ? table[ViewBaseConfig].selectedFields
+              : table[Table.Symbol.Columns];
           this.config.fields[tableName] = selection;
         }
       }
@@ -13209,8 +16397,11 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
         on = on(
           new Proxy(
             this.config.fields,
-            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
-          )
+            new SelectionProxyHandler({
+              sqlAliasedBehavior: "sql",
+              sqlBehavior: "sql",
+            }),
+          ),
         );
       }
       if (!this.config.joins) {
@@ -13225,7 +16416,10 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
           }
           case "right": {
             this.joinsNotNullableMap = Object.fromEntries(
-              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [
+                key,
+                false,
+              ]),
             );
             this.joinsNotNullableMap[tableName] = true;
             break;
@@ -13236,7 +16430,10 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
           }
           case "full": {
             this.joinsNotNullableMap = Object.fromEntries(
-              Object.entries(this.joinsNotNullableMap).map(([key]) => [key, false])
+              Object.entries(this.joinsNotNullableMap).map(([key]) => [
+                key,
+                false,
+              ]),
             );
             this.joinsNotNullableMap[tableName] = false;
             break;
@@ -13360,10 +16557,15 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
   fullJoin = this.createJoin("full");
   createSetOperator(type, isAll) {
     return (rightSelection) => {
-      const rightSelect = typeof rightSelection === "function" ? rightSelection(getSQLiteSetOperators()) : rightSelection;
-      if (!haveSameKeys(this.getSelectedFields(), rightSelect.getSelectedFields())) {
+      const rightSelect =
+        typeof rightSelection === "function"
+          ? rightSelection(getSQLiteSetOperators())
+          : rightSelection;
+      if (
+        !haveSameKeys(this.getSelectedFields(), rightSelect.getSelectedFields())
+      ) {
         throw new Error(
-          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order"
+          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order",
         );
       }
       this.config.setOperators.push({ type, isAll, rightSelect });
@@ -13513,8 +16715,11 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
       where = where(
         new Proxy(
           this.config.fields,
-          new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "sql",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
     }
     this.config.where = where;
@@ -13547,8 +16752,11 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
       having = having(
         new Proxy(
           this.config.fields,
-          new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "sql",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
     }
     this.config.having = having;
@@ -13559,8 +16767,11 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
       const groupBy = columns[0](
         new Proxy(
           this.config.fields,
-          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "alias",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
       this.config.groupBy = Array.isArray(groupBy) ? groupBy : [groupBy];
     } else {
@@ -13573,8 +16784,11 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
       const orderBy = columns[0](
         new Proxy(
           this.config.fields,
-          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "alias",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
       const orderByArray = Array.isArray(orderBy) ? orderBy : [orderBy];
       if (this.config.setOperators.length > 0) {
@@ -13645,20 +16859,30 @@ var SQLiteSelectQueryBuilderBase = class extends TypedQueryBuilder {
     return this.dialect.buildSelectQuery(this.config);
   }
   toSQL() {
-    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(
+      this.getSQL(),
+    );
     return rest;
   }
   as(alias) {
     return new Proxy(
       new Subquery(this.getSQL(), this.config.fields, alias),
-      new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+      new SelectionProxyHandler({
+        alias,
+        sqlAliasedBehavior: "alias",
+        sqlBehavior: "error",
+      }),
     );
   }
   /** @internal */
   getSelectedFields() {
     return new Proxy(
       this.config.fields,
-      new SelectionProxyHandler({ alias: this.tableName, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+      new SelectionProxyHandler({
+        alias: this.tableName,
+        sqlAliasedBehavior: "alias",
+        sqlBehavior: "error",
+      }),
     );
   }
   $dynamic() {
@@ -13673,15 +16897,14 @@ var SQLiteSelectBase = class extends SQLiteSelectQueryBuilderBase {
   /** @internal */
   _prepare(isOneTimeQuery = true) {
     if (!this.session) {
-      throw new Error("Cannot execute a query on a query builder. Please use a database instance instead.");
+      throw new Error(
+        "Cannot execute a query on a query builder. Please use a database instance instead.",
+      );
     }
     const fieldsList = orderSelectedFields(this.config.fields);
-    const query = this.session[isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"](
-      this.dialect.sqlToQuery(this.getSQL()),
-      fieldsList,
-      "all",
-      true
-    );
+    const query = this.session[
+      isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"
+    ](this.dialect.sqlToQuery(this.getSQL()), fieldsList, "all", true);
     query.joinsNotNullableMap = this.joinsNotNullableMap;
     return query;
   }
@@ -13710,12 +16933,17 @@ function createSetOperator(type, isAll) {
     const setOperators = [rightSelect, ...restSelects].map((select) => ({
       type,
       isAll,
-      rightSelect: select
+      rightSelect: select,
     }));
     for (const setOperator of setOperators) {
-      if (!haveSameKeys(leftSelect.getSelectedFields(), setOperator.rightSelect.getSelectedFields())) {
+      if (
+        !haveSameKeys(
+          leftSelect.getSelectedFields(),
+          setOperator.rightSelect.getSelectedFields(),
+        )
+      ) {
         throw new Error(
-          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order"
+          "Set operator error (union / intersect / except): selected fields are not the same or are in a different order",
         );
       }
     }
@@ -13723,12 +16951,15 @@ function createSetOperator(type, isAll) {
   };
 }
 __name(createSetOperator, "createSetOperator");
-var getSQLiteSetOperators = /* @__PURE__ */ __name(() => ({
-  union,
-  unionAll,
-  intersect,
-  except
-}), "getSQLiteSetOperators");
+var getSQLiteSetOperators = /* @__PURE__ */ __name(
+  () => ({
+    union,
+    unionAll,
+    intersect,
+    except,
+  }),
+  "getSQLiteSetOperators",
+);
 var union = createSetOperator("union", false);
 var unionAll = createSetOperator("union", true);
 var intersect = createSetOperator("intersect", false);
@@ -13755,11 +16986,16 @@ var QueryBuilder = class {
       return new Proxy(
         new WithSubquery(
           qb.getSQL(),
-          selection ?? ("getSelectedFields" in qb ? qb.getSelectedFields() ?? {} : {}),
+          selection ??
+            ("getSelectedFields" in qb ? (qb.getSelectedFields() ?? {}) : {}),
           alias,
-          true
+          true,
         ),
-        new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+        new SelectionProxyHandler({
+          alias,
+          sqlAliasedBehavior: "alias",
+          sqlBehavior: "error",
+        }),
       );
     }, "as");
     return { as };
@@ -13771,7 +17007,7 @@ var QueryBuilder = class {
         fields: fields ?? void 0,
         session: void 0,
         dialect: self2.getDialect(),
-        withList: queries
+        withList: queries,
       });
     }
     __name(select, "select");
@@ -13781,21 +17017,25 @@ var QueryBuilder = class {
         session: void 0,
         dialect: self2.getDialect(),
         withList: queries,
-        distinct: true
+        distinct: true,
       });
     }
     __name(selectDistinct, "selectDistinct");
     return { select, selectDistinct };
   }
   select(fields) {
-    return new SQLiteSelectBuilder({ fields: fields ?? void 0, session: void 0, dialect: this.getDialect() });
+    return new SQLiteSelectBuilder({
+      fields: fields ?? void 0,
+      session: void 0,
+      dialect: this.getDialect(),
+    });
   }
   selectDistinct(fields) {
     return new SQLiteSelectBuilder({
       fields: fields ?? void 0,
       session: void 0,
       dialect: this.getDialect(),
-      distinct: true
+      distinct: true,
     });
   }
   // Lazy load dialect to avoid circular dependency
@@ -13829,20 +17069,41 @@ var SQLiteInsertBuilder = class {
       const cols = this.table[Table.Symbol.Columns];
       for (const colKey of Object.keys(entry)) {
         const colValue = entry[colKey];
-        result[colKey] = is(colValue, SQL) ? colValue : new Param(colValue, cols[colKey]);
+        result[colKey] = is(colValue, SQL)
+          ? colValue
+          : new Param(colValue, cols[colKey]);
       }
       return result;
     });
-    return new SQLiteInsertBase(this.table, mappedValues, this.session, this.dialect, this.withList);
+    return new SQLiteInsertBase(
+      this.table,
+      mappedValues,
+      this.session,
+      this.dialect,
+      this.withList,
+    );
   }
   select(selectQuery) {
-    const select = typeof selectQuery === "function" ? selectQuery(new QueryBuilder()) : selectQuery;
-    if (!is(select, SQL) && !haveSameKeys(this.table[Columns], select._.selectedFields)) {
+    const select =
+      typeof selectQuery === "function"
+        ? selectQuery(new QueryBuilder())
+        : selectQuery;
+    if (
+      !is(select, SQL) &&
+      !haveSameKeys(this.table[Columns], select._.selectedFields)
+    ) {
       throw new Error(
-        "Insert select error: selected fields are not the same or are in a different order compared to the table definition"
+        "Insert select error: selected fields are not the same or are in a different order compared to the table definition",
       );
     }
-    return new SQLiteInsertBase(this.table, select, this.session, this.dialect, this.withList, true);
+    return new SQLiteInsertBase(
+      this.table,
+      select,
+      this.session,
+      this.dialect,
+      this.withList,
+      true,
+    );
   }
 };
 var SQLiteInsertBase = class extends QueryPromise {
@@ -13885,14 +17146,17 @@ var SQLiteInsertBase = class extends QueryPromise {
    * ```
    */
   onConflictDoNothing(config = {}) {
-    if (!this.config.onConflict)
-      this.config.onConflict = [];
+    if (!this.config.onConflict) this.config.onConflict = [];
     if (config.target === void 0) {
       this.config.onConflict.push(sql` on conflict do nothing`);
     } else {
-      const targetSql = Array.isArray(config.target) ? sql`${config.target}` : sql`${[config.target]}`;
+      const targetSql = Array.isArray(config.target)
+        ? sql`${config.target}`
+        : sql`${[config.target]}`;
       const whereSql = config.where ? sql` where ${config.where}` : sql``;
-      this.config.onConflict.push(sql` on conflict ${targetSql} do nothing${whereSql}`);
+      this.config.onConflict.push(
+        sql` on conflict ${targetSql} do nothing${whereSql}`,
+      );
     }
     return this;
   }
@@ -13928,18 +17192,26 @@ var SQLiteInsertBase = class extends QueryPromise {
   onConflictDoUpdate(config) {
     if (config.where && (config.targetWhere || config.setWhere)) {
       throw new Error(
-        'You cannot use both "where" and "targetWhere"/"setWhere" at the same time - "where" is deprecated, use "targetWhere" or "setWhere" instead.'
+        'You cannot use both "where" and "targetWhere"/"setWhere" at the same time - "where" is deprecated, use "targetWhere" or "setWhere" instead.',
       );
     }
-    if (!this.config.onConflict)
-      this.config.onConflict = [];
+    if (!this.config.onConflict) this.config.onConflict = [];
     const whereSql = config.where ? sql` where ${config.where}` : void 0;
-    const targetWhereSql = config.targetWhere ? sql` where ${config.targetWhere}` : void 0;
-    const setWhereSql = config.setWhere ? sql` where ${config.setWhere}` : void 0;
-    const targetSql = Array.isArray(config.target) ? sql`${config.target}` : sql`${[config.target]}`;
-    const setSql = this.dialect.buildUpdateSet(this.config.table, mapUpdateSet(this.config.table, config.set));
+    const targetWhereSql = config.targetWhere
+      ? sql` where ${config.targetWhere}`
+      : void 0;
+    const setWhereSql = config.setWhere
+      ? sql` where ${config.setWhere}`
+      : void 0;
+    const targetSql = Array.isArray(config.target)
+      ? sql`${config.target}`
+      : sql`${[config.target]}`;
+    const setSql = this.dialect.buildUpdateSet(
+      this.config.table,
+      mapUpdateSet(this.config.table, config.set),
+    );
     this.config.onConflict.push(
-      sql` on conflict ${targetSql}${targetWhereSql} do update set ${setSql}${whereSql}${setWhereSql}`
+      sql` on conflict ${targetSql}${targetWhereSql} do update set ${setSql}${whereSql}${setWhereSql}`,
     );
     return this;
   }
@@ -13948,16 +17220,20 @@ var SQLiteInsertBase = class extends QueryPromise {
     return this.dialect.buildInsertQuery(this.config);
   }
   toSQL() {
-    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(
+      this.getSQL(),
+    );
     return rest;
   }
   /** @internal */
   _prepare(isOneTimeQuery = true) {
-    return this.session[isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"](
+    return this.session[
+      isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"
+    ](
       this.dialect.sqlToQuery(this.getSQL()),
       this.config.returning,
       this.config.returning ? "all" : "run",
-      true
+      true,
     );
   }
   prepare() {
@@ -14001,7 +17277,7 @@ var SQLiteUpdateBuilder = class {
       mapUpdateSet(this.table, values),
       this.session,
       this.dialect,
-      this.withList
+      this.withList,
     );
   }
 };
@@ -14025,20 +17301,38 @@ var SQLiteUpdateBase = class extends QueryPromise {
   createJoin(joinType) {
     return (table, on) => {
       const tableName = getTableLikeName(table);
-      if (typeof tableName === "string" && this.config.joins.some((join) => join.alias === tableName)) {
+      if (
+        typeof tableName === "string" &&
+        this.config.joins.some((join) => join.alias === tableName)
+      ) {
         throw new Error(`Alias "${tableName}" is already used in this query`);
       }
       if (typeof on === "function") {
-        const from = this.config.from ? is(table, SQLiteTable) ? table[Table.Symbol.Columns] : is(table, Subquery) ? table._.selectedFields : is(table, SQLiteViewBase) ? table[ViewBaseConfig].selectedFields : void 0 : void 0;
+        const from = this.config.from
+          ? is(table, SQLiteTable)
+            ? table[Table.Symbol.Columns]
+            : is(table, Subquery)
+              ? table._.selectedFields
+              : is(table, SQLiteViewBase)
+                ? table[ViewBaseConfig].selectedFields
+                : void 0
+          : void 0;
         on = on(
           new Proxy(
             this.config.table[Table.Symbol.Columns],
-            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
+            new SelectionProxyHandler({
+              sqlAliasedBehavior: "sql",
+              sqlBehavior: "sql",
+            }),
           ),
-          from && new Proxy(
-            from,
-            new SelectionProxyHandler({ sqlAliasedBehavior: "sql", sqlBehavior: "sql" })
-          )
+          from &&
+            new Proxy(
+              from,
+              new SelectionProxyHandler({
+                sqlAliasedBehavior: "sql",
+                sqlBehavior: "sql",
+              }),
+            ),
         );
       }
       this.config.joins.push({ on, table, joinType, alias: tableName });
@@ -14091,8 +17385,11 @@ var SQLiteUpdateBase = class extends QueryPromise {
       const orderBy = columns[0](
         new Proxy(
           this.config.table[Table.Symbol.Columns],
-          new SelectionProxyHandler({ sqlAliasedBehavior: "alias", sqlBehavior: "sql" })
-        )
+          new SelectionProxyHandler({
+            sqlAliasedBehavior: "alias",
+            sqlBehavior: "sql",
+          }),
+        ),
       );
       const orderByArray = Array.isArray(orderBy) ? orderBy : [orderBy];
       this.config.orderBy = orderByArray;
@@ -14115,16 +17412,20 @@ var SQLiteUpdateBase = class extends QueryPromise {
     return this.dialect.buildUpdateQuery(this.config);
   }
   toSQL() {
-    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(this.getSQL());
+    const { typings: _typings, ...rest } = this.dialect.sqlToQuery(
+      this.getSQL(),
+    );
     return rest;
   }
   /** @internal */
   _prepare(isOneTimeQuery = true) {
-    return this.session[isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"](
+    return this.session[
+      isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"
+    ](
       this.dialect.sqlToQuery(this.getSQL()),
       this.config.returning,
       this.config.returning ? "all" : "run",
-      true
+      true,
     );
   }
   prepare() {
@@ -14156,13 +17457,13 @@ var SQLiteCountBuilder = class _SQLiteCountBuilder extends SQL {
     __name(this, "SQLiteCountBuilder");
   }
   constructor(params) {
-    super(_SQLiteCountBuilder.buildEmbeddedCount(params.source, params.filters).queryChunks);
+    super(
+      _SQLiteCountBuilder.buildEmbeddedCount(params.source, params.filters)
+        .queryChunks,
+    );
     this.params = params;
     this.session = params.session;
-    this.sql = _SQLiteCountBuilder.buildCount(
-      params.source,
-      params.filters
-    );
+    this.sql = _SQLiteCountBuilder.buildCount(params.source, params.filters);
   }
   sql;
   static [entityKind] = "SQLiteCountBuilderAsync";
@@ -14177,7 +17478,7 @@ var SQLiteCountBuilder = class _SQLiteCountBuilder extends SQL {
   then(onfulfilled, onrejected) {
     return Promise.resolve(this.session.count(this.sql)).then(
       onfulfilled,
-      onrejected
+      onrejected,
     );
   }
   catch(onRejected) {
@@ -14192,7 +17493,7 @@ var SQLiteCountBuilder = class _SQLiteCountBuilder extends SQL {
       (reason) => {
         onFinally?.();
         throw reason;
-      }
+      },
     );
   }
 };
@@ -14202,7 +17503,16 @@ var RelationalQueryBuilder = class {
   static {
     __name(this, "RelationalQueryBuilder");
   }
-  constructor(mode, fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session2) {
+  constructor(
+    mode,
+    fullSchema,
+    schema,
+    tableNamesMap,
+    table,
+    tableConfig,
+    dialect,
+    session2,
+  ) {
     this.mode = mode;
     this.fullSchema = fullSchema;
     this.schema = schema;
@@ -14214,57 +17524,71 @@ var RelationalQueryBuilder = class {
   }
   static [entityKind] = "SQLiteAsyncRelationalQueryBuilder";
   findMany(config) {
-    return this.mode === "sync" ? new SQLiteSyncRelationalQuery(
-      this.fullSchema,
-      this.schema,
-      this.tableNamesMap,
-      this.table,
-      this.tableConfig,
-      this.dialect,
-      this.session,
-      config ? config : {},
-      "many"
-    ) : new SQLiteRelationalQuery(
-      this.fullSchema,
-      this.schema,
-      this.tableNamesMap,
-      this.table,
-      this.tableConfig,
-      this.dialect,
-      this.session,
-      config ? config : {},
-      "many"
-    );
+    return this.mode === "sync"
+      ? new SQLiteSyncRelationalQuery(
+          this.fullSchema,
+          this.schema,
+          this.tableNamesMap,
+          this.table,
+          this.tableConfig,
+          this.dialect,
+          this.session,
+          config ? config : {},
+          "many",
+        )
+      : new SQLiteRelationalQuery(
+          this.fullSchema,
+          this.schema,
+          this.tableNamesMap,
+          this.table,
+          this.tableConfig,
+          this.dialect,
+          this.session,
+          config ? config : {},
+          "many",
+        );
   }
   findFirst(config) {
-    return this.mode === "sync" ? new SQLiteSyncRelationalQuery(
-      this.fullSchema,
-      this.schema,
-      this.tableNamesMap,
-      this.table,
-      this.tableConfig,
-      this.dialect,
-      this.session,
-      config ? { ...config, limit: 1 } : { limit: 1 },
-      "first"
-    ) : new SQLiteRelationalQuery(
-      this.fullSchema,
-      this.schema,
-      this.tableNamesMap,
-      this.table,
-      this.tableConfig,
-      this.dialect,
-      this.session,
-      config ? { ...config, limit: 1 } : { limit: 1 },
-      "first"
-    );
+    return this.mode === "sync"
+      ? new SQLiteSyncRelationalQuery(
+          this.fullSchema,
+          this.schema,
+          this.tableNamesMap,
+          this.table,
+          this.tableConfig,
+          this.dialect,
+          this.session,
+          config ? { ...config, limit: 1 } : { limit: 1 },
+          "first",
+        )
+      : new SQLiteRelationalQuery(
+          this.fullSchema,
+          this.schema,
+          this.tableNamesMap,
+          this.table,
+          this.tableConfig,
+          this.dialect,
+          this.session,
+          config ? { ...config, limit: 1 } : { limit: 1 },
+          "first",
+        );
   }
 };
 var SQLiteRelationalQuery = class extends QueryPromise {
   static {
     __name(this, "SQLiteRelationalQuery");
   }
-  constructor(fullSchema, schema, tableNamesMap, table, tableConfig, dialect, session2, config, mode) {
+  constructor(
+    fullSchema,
+    schema,
+    tableNamesMap,
+    table,
+    tableConfig,
+    dialect,
+    session2,
+    config,
+    mode,
+  ) {
     super();
     this.fullSchema = fullSchema;
     this.schema = schema;
@@ -14288,26 +17612,34 @@ var SQLiteRelationalQuery = class extends QueryPromise {
       table: this.table,
       tableConfig: this.tableConfig,
       queryConfig: this.config,
-      tableAlias: this.tableConfig.tsName
+      tableAlias: this.tableConfig.tsName,
     }).sql;
   }
   /** @internal */
   _prepare(isOneTimeQuery = false) {
     const { query, builtQuery } = this._toSQL();
-    return this.session[isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"](
+    return this.session[
+      isOneTimeQuery ? "prepareOneTimeQuery" : "prepareQuery"
+    ](
       builtQuery,
       void 0,
       this.mode === "first" ? "get" : "all",
       true,
       (rawRows, mapColumnValue) => {
-        const rows = rawRows.map(
-          (row) => mapRelationalRow(this.schema, this.tableConfig, row, query.selection, mapColumnValue)
+        const rows = rawRows.map((row) =>
+          mapRelationalRow(
+            this.schema,
+            this.tableConfig,
+            row,
+            query.selection,
+            mapColumnValue,
+          ),
         );
         if (this.mode === "first") {
           return rows[0];
         }
         return rows;
-      }
+      },
     );
   }
   prepare() {
@@ -14321,7 +17653,7 @@ var SQLiteRelationalQuery = class extends QueryPromise {
       table: this.table,
       tableConfig: this.tableConfig,
       queryConfig: this.config,
-      tableAlias: this.tableConfig.tsName
+      tableAlias: this.tableConfig.tsName,
     });
     const builtQuery = this.dialect.sqlToQuery(query.sql);
     return { query, builtQuery };
@@ -14367,7 +17699,10 @@ var SQLiteRaw = class extends QueryPromise {
   /** @internal */
   config;
   getQuery() {
-    return { ...this.dialect.sqlToQuery(this.getSQL()), method: this.config.action };
+    return {
+      ...this.dialect.sqlToQuery(this.getSQL()),
+      method: this.config.action,
+    };
   }
   mapResult(result, isFromBatch) {
     return isFromBatch ? this.mapBatchResult(result) : result;
@@ -14390,15 +17725,17 @@ var BaseSQLiteDatabase = class {
     this.resultKind = resultKind;
     this.dialect = dialect;
     this.session = session2;
-    this._ = schema ? {
-      schema: schema.schema,
-      fullSchema: schema.fullSchema,
-      tableNamesMap: schema.tableNamesMap
-    } : {
-      schema: void 0,
-      fullSchema: {},
-      tableNamesMap: {}
-    };
+    this._ = schema
+      ? {
+          schema: schema.schema,
+          fullSchema: schema.fullSchema,
+          tableNamesMap: schema.tableNamesMap,
+        }
+      : {
+          schema: void 0,
+          fullSchema: {},
+          tableNamesMap: {},
+        };
     this.query = {};
     const query = this.query;
     if (this._.schema) {
@@ -14411,7 +17748,7 @@ var BaseSQLiteDatabase = class {
           schema.fullSchema[tableName],
           columns,
           dialect,
-          session2
+          session2,
         );
       }
     }
@@ -14459,11 +17796,16 @@ var BaseSQLiteDatabase = class {
       return new Proxy(
         new WithSubquery(
           qb.getSQL(),
-          selection ?? ("getSelectedFields" in qb ? qb.getSelectedFields() ?? {} : {}),
+          selection ??
+            ("getSelectedFields" in qb ? (qb.getSelectedFields() ?? {}) : {}),
           alias,
-          true
+          true,
         ),
-        new SelectionProxyHandler({ alias, sqlAliasedBehavior: "alias", sqlBehavior: "error" })
+        new SelectionProxyHandler({
+          alias,
+          sqlAliasedBehavior: "alias",
+          sqlBehavior: "error",
+        }),
       );
     }, "as");
     return { as };
@@ -14497,7 +17839,7 @@ var BaseSQLiteDatabase = class {
         fields: fields ?? void 0,
         session: self2.session,
         dialect: self2.dialect,
-        withList: queries
+        withList: queries,
       });
     }
     __name(select, "select");
@@ -14507,16 +17849,26 @@ var BaseSQLiteDatabase = class {
         session: self2.session,
         dialect: self2.dialect,
         withList: queries,
-        distinct: true
+        distinct: true,
       });
     }
     __name(selectDistinct, "selectDistinct");
     function update(table) {
-      return new SQLiteUpdateBuilder(table, self2.session, self2.dialect, queries);
+      return new SQLiteUpdateBuilder(
+        table,
+        self2.session,
+        self2.dialect,
+        queries,
+      );
     }
     __name(update, "update");
     function insert(into) {
-      return new SQLiteInsertBuilder(into, self2.session, self2.dialect, queries);
+      return new SQLiteInsertBuilder(
+        into,
+        self2.session,
+        self2.dialect,
+        queries,
+      );
     }
     __name(insert, "insert");
     function delete_(from) {
@@ -14526,14 +17878,18 @@ var BaseSQLiteDatabase = class {
     return { select, selectDistinct, update, insert, delete: delete_ };
   }
   select(fields) {
-    return new SQLiteSelectBuilder({ fields: fields ?? void 0, session: this.session, dialect: this.dialect });
+    return new SQLiteSelectBuilder({
+      fields: fields ?? void 0,
+      session: this.session,
+      dialect: this.dialect,
+    });
   }
   selectDistinct(fields) {
     return new SQLiteSelectBuilder({
       fields: fields ?? void 0,
       session: this.session,
       dialect: this.dialect,
-      distinct: true
+      distinct: true,
     });
   }
   /**
@@ -14628,7 +17984,7 @@ var BaseSQLiteDatabase = class {
         () => sequel,
         "run",
         this.dialect,
-        this.session.extractRawRunValueFromBatchResult.bind(this.session)
+        this.session.extractRawRunValueFromBatchResult.bind(this.session),
       );
     }
     return this.session.run(sequel);
@@ -14641,7 +17997,7 @@ var BaseSQLiteDatabase = class {
         () => sequel,
         "all",
         this.dialect,
-        this.session.extractRawAllValueFromBatchResult.bind(this.session)
+        this.session.extractRawAllValueFromBatchResult.bind(this.session),
       );
     }
     return this.session.all(sequel);
@@ -14654,7 +18010,7 @@ var BaseSQLiteDatabase = class {
         () => sequel,
         "get",
         this.dialect,
-        this.session.extractRawGetValueFromBatchResult.bind(this.session)
+        this.session.extractRawGetValueFromBatchResult.bind(this.session),
       );
     }
     return this.session.get(sequel);
@@ -14667,7 +18023,7 @@ var BaseSQLiteDatabase = class {
         () => sequel,
         "values",
         this.dialect,
-        this.session.extractRawValuesValueFromBatchResult.bind(this.session)
+        this.session.extractRawValuesValueFromBatchResult.bind(this.session),
       );
     }
     return this.session.values(sequel);
@@ -14716,7 +18072,10 @@ var PrimaryKey2 = class {
   columns;
   name;
   getName() {
-    return this.name ?? `${this.table[SQLiteTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`;
+    return (
+      this.name ??
+      `${this.table[SQLiteTable.Symbol.Name]}_${this.columns.map((column) => column.name).join("_")}_pk`
+    );
   }
 };
 
@@ -14765,7 +18124,9 @@ var SQLitePreparedQuery = class {
     if (this.mode === "async") {
       return this[this.executeMethod](placeholderValues);
     }
-    return new ExecuteResultSync(() => this[this.executeMethod](placeholderValues));
+    return new ExecuteResultSync(() =>
+      this[this.executeMethod](placeholderValues),
+    );
   }
   mapResult(response, isFromBatch) {
     switch (this.executeMethod) {
@@ -14790,14 +18151,22 @@ var SQLiteSession = class {
   }
   static [entityKind] = "SQLiteSession";
   prepareOneTimeQuery(query, fields, executeMethod, isResponseInArrayMode) {
-    return this.prepareQuery(query, fields, executeMethod, isResponseInArrayMode);
+    return this.prepareQuery(
+      query,
+      fields,
+      executeMethod,
+      isResponseInArrayMode,
+    );
   }
   run(query) {
     const staticQuery = this.dialect.sqlToQuery(query);
     try {
       return this.prepareOneTimeQuery(staticQuery, void 0, "run", false).run();
     } catch (err) {
-      throw new DrizzleError({ cause: err, message: `Failed to run the query '${staticQuery.sql}'` });
+      throw new DrizzleError({
+        cause: err,
+        message: `Failed to run the query '${staticQuery.sql}'`,
+      });
     }
   }
   /** @internal */
@@ -14805,21 +18174,36 @@ var SQLiteSession = class {
     return result;
   }
   all(query) {
-    return this.prepareOneTimeQuery(this.dialect.sqlToQuery(query), void 0, "run", false).all();
+    return this.prepareOneTimeQuery(
+      this.dialect.sqlToQuery(query),
+      void 0,
+      "run",
+      false,
+    ).all();
   }
   /** @internal */
   extractRawAllValueFromBatchResult(_result) {
     throw new Error("Not implemented");
   }
   get(query) {
-    return this.prepareOneTimeQuery(this.dialect.sqlToQuery(query), void 0, "run", false).get();
+    return this.prepareOneTimeQuery(
+      this.dialect.sqlToQuery(query),
+      void 0,
+      "run",
+      false,
+    ).get();
   }
   /** @internal */
   extractRawGetValueFromBatchResult(_result) {
     throw new Error("Not implemented");
   }
   values(query) {
-    return this.prepareOneTimeQuery(this.dialect.sqlToQuery(query), void 0, "run", false).values();
+    return this.prepareOneTimeQuery(
+      this.dialect.sqlToQuery(query),
+      void 0,
+      "run",
+      false,
+    ).values();
   }
   async count(sql2) {
     const result = await this.values(sql2);
@@ -14847,12 +18231,14 @@ var SQLiteTransaction = class extends BaseSQLiteDatabase {
 
 // src/schema/users.ts
 var users = sqliteTable("user", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
   email: text("email").unique(),
   emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
   image: text("image"),
-  password: text("password")
+  password: text("password"),
 });
 var users_default = users;
 
@@ -14883,7 +18269,9 @@ var DefaultLogger = class {
         return String(p3);
       }
     });
-    const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
+    const paramsStr = stringifiedParams.length
+      ? ` -- params: [${stringifiedParams.join(", ")}]`
+      : "";
     this.writer.write(`Query: ${query}${paramsStr}`);
   }
 };
@@ -14892,8 +18280,7 @@ var NoopLogger = class {
     __name(this, "NoopLogger");
   }
   static [entityKind] = "NoopLogger";
-  logQuery() {
-  }
+  logQuery() {}
 };
 
 // src/schema/accounts.ts
@@ -14909,21 +18296,23 @@ var accounts = sqliteTable("account", {
   token_type: text("token_type"),
   scope: text("scope"),
   id_token: text("id_token"),
-  session_state: text("session_state")
+  session_state: text("session_state"),
 });
 var accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, {
     fields: [accounts.userId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 var accounts_default = accounts;
 
 // src/schema/sessions.ts
 var sessions = sqliteTable("session", {
   sessionToken: text("sessionToken").primaryKey(),
-  userId: text("userId").notNull().references(() => users_default.id, { onDelete: "cascade" }),
-  expires: integer("expires", { mode: "timestamp_ms" }).notNull()
+  userId: text("userId")
+    .notNull()
+    .references(() => users_default.id, { onDelete: "cascade" }),
+  expires: integer("expires", { mode: "timestamp_ms" }).notNull(),
 });
 
 // src/schema/verificationTokens.ts
@@ -14932,13 +18321,13 @@ var verificationTokens = sqliteTable(
   {
     identifier: text("identifier").notNull(),
     token: text("token").notNull(),
-    expires: integer("expires", { mode: "timestamp_ms" }).notNull()
+    expires: integer("expires", { mode: "timestamp_ms" }).notNull(),
   },
   (verificationToken) => ({
     compositePk: primaryKey({
-      columns: [verificationToken.identifier, verificationToken.token]
-    })
-  })
+      columns: [verificationToken.identifier, verificationToken.token],
+    }),
+  }),
 );
 
 // src/schema/authenticators.ts
@@ -14946,169 +18335,195 @@ var authenticators = sqliteTable(
   "authenticator",
   {
     credentialID: text("credentialID").notNull().unique(),
-    userId: text("userId").notNull().references(() => users_default.id, { onDelete: "cascade" }),
+    userId: text("userId")
+      .notNull()
+      .references(() => users_default.id, { onDelete: "cascade" }),
     providerAccountId: text("providerAccountId").notNull(),
     credentialPublicKey: text("credentialPublicKey").notNull(),
     counter: integer("counter").notNull(),
     credentialDeviceType: text("credentialDeviceType").notNull(),
     credentialBackedUp: integer("credentialBackedUp", {
-      mode: "boolean"
+      mode: "boolean",
     }).notNull(),
-    transports: text("transports")
+    transports: text("transports"),
   },
   (authenticator) => ({
     compositePK: primaryKey({
-      columns: [authenticator.userId, authenticator.credentialID]
-    })
-  })
+      columns: [authenticator.userId, authenticator.credentialID],
+    }),
+  }),
 );
 
 // src/schema/groups.ts
 var groups = sqliteTable("group", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
-  patreonAccountId: integer("patreonAccountId").references(() => accounts.id).unique(),
-  deviantartAccountId: integer("deviantartAccountId").references(() => accounts.id).unique(),
+  patreonAccountId: integer("patreonAccountId")
+    .references(() => accounts.id)
+    .unique(),
+  deviantartAccountId: integer("deviantartAccountId")
+    .references(() => accounts.id)
+    .unique(),
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(
-    () => /* @__PURE__ */ new Date()
+    () => /* @__PURE__ */ new Date(),
   ),
-  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).$defaultFn(() => /* @__PURE__ */ new Date()).$onUpdateFn(() => /* @__PURE__ */ new Date())
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
+    .$defaultFn(() => /* @__PURE__ */ new Date())
+    .$onUpdateFn(() => /* @__PURE__ */ new Date()),
 });
 var groupsRelations = relations(groups, ({ one }) => ({
   user: one(users, {
     fields: [groups.userId],
-    references: [users.id]
+    references: [users.id],
   }),
   patreonAccount: one(accounts, {
     fields: [groups.patreonAccountId],
-    references: [accounts.id]
+    references: [accounts.id],
   }),
   deviantartAccount: one(accounts, {
     fields: [groups.deviantartAccountId],
-    references: [accounts.id]
-  })
+    references: [accounts.id],
+  }),
 }));
 var groups_default = groups;
 
 // src/routers/v1/groupRouter.ts
-var groupRouter = new Hono2().post("/", async (c3) => {
-  try {
-    const db = c3.get("db");
-    const { name } = await c3.req.json();
-    const newGroup = await db.insert(groups_default).values({
-      name
-    }).returning();
-    if (newGroup && newGroup.length > 0) {
-      return c3.json(
-        { message: "Group created successfully", group: newGroup[0] },
-        201
-      );
-    } else {
-      return c3.json({ message: "Failed to create group" }, 500);
-    }
-  } catch (error) {
-    console.error("Error creating group:", error);
-    return c3.json(
-      {
-        message: "Failed to create group",
-        error: error instanceof Error ? error.message : JSON.stringify(error)
-      },
-      500
-    );
-  }
-}).get("/", async (c3) => {
-  try {
-    const db = c3.get("db");
-    const allGroups = await db.select().from(groups_default);
-    if (allGroups && allGroups.length > 0) {
-      return c3.json(
-        { message: "Groups get successfully", groups: allGroups },
-        200
-      );
-    } else {
-      return c3.json({ message: "Failed to get groups" }, 500);
-    }
-  } catch (error) {
-    console.error("Error creating group:", error);
-    return c3.json(
-      {
-        message: "Failed to get groups",
-        error: error instanceof Error ? error.message : JSON.stringify(error)
-      },
-      500
-    );
-  }
-}).get("/connect/patreon/callback", async (c3) => {
-  const code = c3.req.query("code");
-  const state2 = c3.req.query("state");
-  const db = c3.get("db");
-  if (!code) {
-    return c3.text("Failed to get Patreon authorization code.", 400);
-  }
-  try {
-    const tokenResponse = await fetch(
-      "https://www.patreon.com/api/oauth2/token",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${btoa(
-            `${c3.env.ONE_CLIENT_ID}:${c3.env.ONE_CLIENT_SECRET}`
-          )}`
-        },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: `http://127.0.0.1:8787/api/v1/group/connect/patreon/callback`
+var groupRouter = new Hono2()
+  .post("/", async (c3) => {
+    try {
+      const db = c3.get("db");
+      const { name } = await c3.req.json();
+      const newGroup = await db
+        .insert(groups_default)
+        .values({
+          name,
         })
+        .returning();
+      if (newGroup && newGroup.length > 0) {
+        return c3.json(
+          { message: "Group created successfully", group: newGroup[0] },
+          201,
+        );
+      } else {
+        return c3.json({ message: "Failed to create group" }, 500);
       }
-    );
-    if (!tokenResponse.ok) {
-      console.error("Patreon Token Error:", await tokenResponse.text());
-      return c3.text("Failed to exchange Patreon code for token.", 500);
+    } catch (error) {
+      console.error("Error creating group:", error);
+      return c3.json(
+        {
+          message: "Failed to create group",
+          error: error instanceof Error ? error.message : JSON.stringify(error),
+        },
+        500,
+      );
     }
-    const tokenData = await tokenResponse.json();
-    const userResponse = await fetch(
-      "https://www.patreon.com/api/oauth2/v2/identity",
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.access_token}`
-        }
+  })
+  .get("/", async (c3) => {
+    try {
+      const db = c3.get("db");
+      const allGroups = await db.select().from(groups_default);
+      if (allGroups && allGroups.length > 0) {
+        return c3.json(
+          { message: "Groups get successfully", groups: allGroups },
+          200,
+        );
+      } else {
+        return c3.json({ message: "Failed to get groups" }, 500);
       }
-    );
-    if (!userResponse.ok) {
-      console.error("Patreon User Info Error:", await userResponse.text());
-      return c3.text("Failed to get Patreon user information.", 500);
+    } catch (error) {
+      console.error("Error creating group:", error);
+      return c3.json(
+        {
+          message: "Failed to get groups",
+          error: error instanceof Error ? error.message : JSON.stringify(error),
+        },
+        500,
+      );
     }
-    const userData = await userResponse.json();
-    const patreonUserId = userData.data.id;
-    const groupId = state2;
-    if (!groupId) {
-      return c3.text("Group ID not provided in the state.", 400);
+  })
+  .get("/connect/patreon/callback", async (c3) => {
+    const code = c3.req.query("code");
+    const state2 = c3.req.query("state");
+    const db = c3.get("db");
+    if (!code) {
+      return c3.text("Failed to get Patreon authorization code.", 400);
     }
-    const existingAccount = await db.select().from(accounts_default).where(
-      and(
-        eq(accounts_default.provider, "patreon"),
-        eq(accounts_default.providerAccountId, patreonUserId)
-      )
-    ).limit(1);
-    let patreonAccountId;
-    if (existingAccount.length === 0) {
-      const newAccount = await db.insert(accounts_default).values({
-        provider: "patreon",
-        providerAccountId: patreonUserId,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        type: "oauth"
-      }).returning({ id: accounts_default.id });
-      patreonAccountId = newAccount[0]?.id;
-    } else {
-      patreonAccountId = existingAccount[0]?.id;
-    }
-    if (patreonAccountId) {
-      await db.update(groups_default).set({ patreonAccountId }).where(eq(groups_default.id, groupId));
-      return c3.html(`
+    try {
+      const tokenResponse = await fetch(
+        "https://www.patreon.com/api/oauth2/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${btoa(
+              `${c3.env.ONE_CLIENT_ID}:${c3.env.ONE_CLIENT_SECRET}`,
+            )}`,
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code,
+            redirect_uri: `http://127.0.0.1:8787/api/v1/group/connect/patreon/callback`,
+          }),
+        },
+      );
+      if (!tokenResponse.ok) {
+        console.error("Patreon Token Error:", await tokenResponse.text());
+        return c3.text("Failed to exchange Patreon code for token.", 500);
+      }
+      const tokenData = await tokenResponse.json();
+      const userResponse = await fetch(
+        "https://www.patreon.com/api/oauth2/v2/identity",
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+          },
+        },
+      );
+      if (!userResponse.ok) {
+        console.error("Patreon User Info Error:", await userResponse.text());
+        return c3.text("Failed to get Patreon user information.", 500);
+      }
+      const userData = await userResponse.json();
+      const patreonUserId = userData.data.id;
+      const groupId = state2;
+      if (!groupId) {
+        return c3.text("Group ID not provided in the state.", 400);
+      }
+      const existingAccount = await db
+        .select()
+        .from(accounts_default)
+        .where(
+          and(
+            eq(accounts_default.provider, "patreon"),
+            eq(accounts_default.providerAccountId, patreonUserId),
+          ),
+        )
+        .limit(1);
+      let patreonAccountId;
+      if (existingAccount.length === 0) {
+        const newAccount = await db
+          .insert(accounts_default)
+          .values({
+            provider: "patreon",
+            providerAccountId: patreonUserId,
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            type: "oauth",
+          })
+          .returning({ id: accounts_default.id });
+        patreonAccountId = newAccount[0]?.id;
+      } else {
+        patreonAccountId = existingAccount[0]?.id;
+      }
+      if (patreonAccountId) {
+        await db
+          .update(groups_default)
+          .set({ patreonAccountId })
+          .where(eq(groups_default.id, groupId));
+        return c3.html(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -15122,83 +18537,94 @@ var groupRouter = new Hono2().post("/", async (c3) => {
                     </body>
                     </html>
                 `);
-    } else {
-      return c3.text("Failed to link Patreon account to group.", 500);
+      } else {
+        return c3.text("Failed to link Patreon account to group.", 500);
+      }
+    } catch (error) {
+      console.error("Error during Patreon OAuth callback:", error);
+      return c3.text("Error connecting Patreon.", 500);
     }
-  } catch (error) {
-    console.error("Error during Patreon OAuth callback:", error);
-    return c3.text("Error connecting Patreon.", 500);
-  }
-}).get("/connect/deviantart/callback", async (c3) => {
-  const code = c3.req.query("code");
-  const state2 = c3.req.query("state");
-  const db = c3.get("db");
-  if (!code) {
-    return c3.text("Failed to get DeviantArt authorization code.", 400);
-  }
-  try {
-    const tokenResponse = await fetch(
-      "https://www.deviantart.com/oauth2/token",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${btoa(
-            `${c3.env.TWO_CLIENT_ID}:${c3.env.TWO_CLIENT_SECRET}`
-          )}`
+  })
+  .get("/connect/deviantart/callback", async (c3) => {
+    const code = c3.req.query("code");
+    const state2 = c3.req.query("state");
+    const db = c3.get("db");
+    if (!code) {
+      return c3.text("Failed to get DeviantArt authorization code.", 400);
+    }
+    try {
+      const tokenResponse = await fetch(
+        "https://www.deviantart.com/oauth2/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${btoa(
+              `${c3.env.TWO_CLIENT_ID}:${c3.env.TWO_CLIENT_SECRET}`,
+            )}`,
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code,
+            redirect_uri: `http://127.0.0.1:8787/api/v1/group/connect/deviantart/callback`,
+          }),
         },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: `http://127.0.0.1:8787/api/v1/group/connect/deviantart/callback`
-        })
+      );
+      if (!tokenResponse.ok) {
+        console.error("DeviantArt Token Error:", await tokenResponse.text());
+        return c3.text("Failed to exchange DeviantArt code for token.", 500);
       }
-    );
-    if (!tokenResponse.ok) {
-      console.error("DeviantArt Token Error:", await tokenResponse.text());
-      return c3.text("Failed to exchange DeviantArt code for token.", 500);
-    }
-    const tokenData = await tokenResponse.json();
-    const userResponse = await fetch(
-      "https://www.deviantart.com/api/v1/oauth2/user/whoami",
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.access_token}`
-        }
+      const tokenData = await tokenResponse.json();
+      const userResponse = await fetch(
+        "https://www.deviantart.com/api/v1/oauth2/user/whoami",
+        {
+          headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+          },
+        },
+      );
+      if (!userResponse.ok) {
+        console.error("DeviantArt User Info Error:", await userResponse.text());
+        return c3.text("Failed to get DeviantArt user information.", 500);
       }
-    );
-    if (!userResponse.ok) {
-      console.error("DeviantArt User Info Error:", await userResponse.text());
-      return c3.text("Failed to get DeviantArt user information.", 500);
-    }
-    const userData = await userResponse.json();
-    const deviantartUserId = userData.userid;
-    const groupId = state2;
-    if (!groupId) {
-      return c3.text("Group ID not provided in the state.", 400);
-    }
-    const existingAccount = await db.select().from(accounts_default).where(
-      and(
-        eq(accounts_default.provider, "deviantart"),
-        eq(accounts_default.providerAccountId, deviantartUserId)
-      )
-    ).limit(1);
-    let deviantartAccountId;
-    if (existingAccount.length === 0) {
-      const newAccount = await db.insert(accounts_default).values({
-        provider: "deviantart",
-        providerAccountId: deviantartUserId,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        type: "oauth"
-      }).returning({ id: accounts_default.id });
-      deviantartAccountId = newAccount[0]?.id;
-    } else {
-      deviantartAccountId = existingAccount[0]?.id;
-    }
-    if (deviantartAccountId) {
-      await db.update(groups_default).set({ deviantartAccountId }).where(eq(groups_default.id, groupId));
-      return c3.html(`
+      const userData = await userResponse.json();
+      const deviantartUserId = userData.userid;
+      const groupId = state2;
+      if (!groupId) {
+        return c3.text("Group ID not provided in the state.", 400);
+      }
+      const existingAccount = await db
+        .select()
+        .from(accounts_default)
+        .where(
+          and(
+            eq(accounts_default.provider, "deviantart"),
+            eq(accounts_default.providerAccountId, deviantartUserId),
+          ),
+        )
+        .limit(1);
+      let deviantartAccountId;
+      if (existingAccount.length === 0) {
+        const newAccount = await db
+          .insert(accounts_default)
+          .values({
+            provider: "deviantart",
+            providerAccountId: deviantartUserId,
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            type: "oauth",
+          })
+          .returning({ id: accounts_default.id });
+        deviantartAccountId = newAccount[0]?.id;
+      } else {
+        deviantartAccountId = existingAccount[0]?.id;
+      }
+      if (deviantartAccountId) {
+        await db
+          .update(groups_default)
+          .set({ deviantartAccountId })
+          .where(eq(groups_default.id, groupId));
+        return c3.html(`
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -15212,18 +18638,20 @@ var groupRouter = new Hono2().post("/", async (c3) => {
                     </body>
                     </html>
                 `);
-    } else {
-      return c3.text("Failed to link DeviantArt account to group.", 500);
+      } else {
+        return c3.text("Failed to link DeviantArt account to group.", 500);
+      }
+    } catch (error) {
+      console.error("Error during DeviantArt OAuth callback:", error);
+      return c3.text("Error connecting DeviantArt.", 500);
     }
-  } catch (error) {
-    console.error("Error during DeviantArt OAuth callback:", error);
-    return c3.text("Error connecting DeviantArt.", 500);
-  }
-});
+  });
 var groupRouter_default = groupRouter;
 
 // src/routers/v1Router.ts
-var v1Router = new Hono2().route("/group", groupRouter_default).route("/auth", authRouter_default);
+var v1Router = new Hono2()
+  .route("/group", groupRouter_default)
+  .route("/auth", authRouter_default);
 var v1Router_default = v1Router;
 
 // node_modules/drizzle-orm/d1/session.js
@@ -15240,7 +18668,13 @@ var SQLiteD1Session = class extends SQLiteSession {
   }
   static [entityKind] = "SQLiteD1Session";
   logger;
-  prepareQuery(query, fields, executeMethod, isResponseInArrayMode, customResultMapper) {
+  prepareQuery(
+    query,
+    fields,
+    executeMethod,
+    isResponseInArrayMode,
+    customResultMapper,
+  ) {
     const stmt = this.client.prepare(query.sql);
     return new D1PreparedQuery(
       stmt,
@@ -15249,7 +18683,7 @@ var SQLiteD1Session = class extends SQLiteSession {
       fields,
       executeMethod,
       isResponseInArrayMode,
-      customResultMapper
+      customResultMapper,
     );
   }
   async batch(queries) {
@@ -15264,12 +18698,14 @@ var SQLiteD1Session = class extends SQLiteSession {
       } else {
         const builtQuery2 = preparedQuery.getQuery();
         builtQueries.push(
-          this.client.prepare(builtQuery2.sql).bind(...builtQuery2.params)
+          this.client.prepare(builtQuery2.sql).bind(...builtQuery2.params),
         );
       }
     }
     const batchResults = await this.client.batch(builtQueries);
-    return batchResults.map((result, i4) => preparedQueries[i4].mapResult(result, true));
+    return batchResults.map((result, i4) =>
+      preparedQueries[i4].mapResult(result, true),
+    );
   }
   extractRawAllValueFromBatchResult(result) {
     return result.results;
@@ -15282,7 +18718,9 @@ var SQLiteD1Session = class extends SQLiteSession {
   }
   async transaction(transaction, config) {
     const tx = new D1Transaction("async", this.dialect, this, this.schema);
-    await this.run(sql.raw(`begin${config?.behavior ? " " + config.behavior : ""}`));
+    await this.run(
+      sql.raw(`begin${config?.behavior ? " " + config.behavior : ""}`),
+    );
     try {
       const result = await transaction(tx);
       await this.run(sql`commit`);
@@ -15300,7 +18738,13 @@ var D1Transaction = class _D1Transaction extends SQLiteTransaction {
   static [entityKind] = "D1Transaction";
   async transaction(transaction) {
     const savepointName = `sp${this.nestedIndex}`;
-    const tx = new _D1Transaction("async", this.dialect, this.session, this.schema, this.nestedIndex + 1);
+    const tx = new _D1Transaction(
+      "async",
+      this.dialect,
+      this.session,
+      this.schema,
+      this.nestedIndex + 1,
+    );
     await this.session.run(sql.raw(`savepoint ${savepointName}`));
     try {
       const result = await transaction(tx);
@@ -15325,7 +18769,15 @@ var D1PreparedQuery = class extends SQLitePreparedQuery {
   static {
     __name(this, "D1PreparedQuery");
   }
-  constructor(stmt, query, logger, fields, executeMethod, _isResponseInArrayMode, customResultMapper) {
+  constructor(
+    stmt,
+    query,
+    logger,
+    fields,
+    executeMethod,
+    _isResponseInArrayMode,
+    customResultMapper,
+  ) {
     super("async", executeMethod, query);
     this.logger = logger;
     this._isResponseInArrayMode = _isResponseInArrayMode;
@@ -15350,7 +18802,10 @@ var D1PreparedQuery = class extends SQLitePreparedQuery {
     if (!fields && !customResultMapper) {
       const params = fillPlaceholders(query.params, placeholderValues ?? {});
       logger.logQuery(query.sql, params);
-      return stmt.bind(...params).all().then(({ results }) => this.mapAllResult(results));
+      return stmt
+        .bind(...params)
+        .all()
+        .then(({ results }) => this.mapAllResult(results));
     }
     const rows = await this.values(placeholderValues);
     return this.mapAllResult(rows);
@@ -15365,14 +18820,26 @@ var D1PreparedQuery = class extends SQLitePreparedQuery {
     if (this.customResultMapper) {
       return this.customResultMapper(rows);
     }
-    return rows.map((row) => mapResultRow(this.fields, row, this.joinsNotNullableMap));
+    return rows.map((row) =>
+      mapResultRow(this.fields, row, this.joinsNotNullableMap),
+    );
   }
   async get(placeholderValues) {
-    const { fields, joinsNotNullableMap, query, logger, stmt, customResultMapper } = this;
+    const {
+      fields,
+      joinsNotNullableMap,
+      query,
+      logger,
+      stmt,
+      customResultMapper,
+    } = this;
     if (!fields && !customResultMapper) {
       const params = fillPlaceholders(query.params, placeholderValues ?? {});
       logger.logQuery(query.sql, params);
-      return stmt.bind(...params).all().then(({ results }) => results[0]);
+      return stmt
+        .bind(...params)
+        .all()
+        .then(({ results }) => results[0]);
     }
     const rows = await this.values(placeholderValues);
     if (!rows[0]) {
@@ -15428,12 +18895,12 @@ function drizzle(client, config = {}) {
   if (config.schema) {
     const tablesConfig = extractTablesRelationalConfig(
       config.schema,
-      createTableRelationsHelpers
+      createTableRelationsHelpers,
     );
     schema = {
       fullSchema: config.schema,
       schema: tablesConfig.tables,
-      tableNamesMap: tablesConfig.tableNamesMap
+      tableNamesMap: tablesConfig.tableNamesMap,
     };
   }
   const session2 = new SQLiteD1Session(client, dialect, schema, { logger });
@@ -15449,23 +18916,23 @@ var cors = /* @__PURE__ */ __name((options) => {
     origin: "*",
     allowMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "PATCH"],
     allowHeaders: [],
-    exposeHeaders: []
+    exposeHeaders: [],
   };
   const opts = {
     ...defaults,
-    ...options
+    ...options,
   };
   const findAllowOrigin = ((optsOrigin) => {
     if (typeof optsOrigin === "string") {
       if (optsOrigin === "*") {
         return () => optsOrigin;
       } else {
-        return (origin) => optsOrigin === origin ? origin : null;
+        return (origin) => (optsOrigin === origin ? origin : null);
       }
     } else if (typeof optsOrigin === "function") {
       return optsOrigin;
     } else {
-      return (origin) => optsOrigin.includes(origin) ? origin : null;
+      return (origin) => (optsOrigin.includes(origin) ? origin : null);
     }
   })(opts.origin);
   return /* @__PURE__ */ __name(async function cors2(c3, next) {
@@ -15514,7 +18981,7 @@ var cors = /* @__PURE__ */ __name((options) => {
       return new Response(null, {
         headers: c3.res.headers,
         status: 204,
-        statusText: "No Content"
+        statusText: "No Content",
       });
     }
     await next();
@@ -15522,36 +18989,41 @@ var cors = /* @__PURE__ */ __name((options) => {
 }, "cors");
 
 // src/index.ts
-var app = new Hono2().use(
-  cors({
-    origin: "http://localhost:5173"
+var app = new Hono2()
+  .use(
+    cors({
+      origin: "http://localhost:5173",
+    }),
+  )
+  .use("*", (c3, next) => {
+    const db = drizzle(c3.env.DB);
+    c3.set("db", db);
+    return next();
   })
-).use("*", (c3, next) => {
-  const db = drizzle(c3.env.DB);
-  c3.set("db", db);
-  return next();
-}).route("/api/v1", v1Router_default);
+  .route("/api/v1", v1Router_default);
 var src_default = {
   port: 8080,
-  fetch: app.fetch
+  fetch: app.fetch,
 };
 
 // node_modules/wrangler/templates/middleware/middleware-ensure-req-body-drained.ts
-var drainBody = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env2);
-  } finally {
+var drainBody = /* @__PURE__ */ __name(
+  async (request, env2, _ctx, middlewareCtx) => {
     try {
-      if (request.body !== null && !request.bodyUsed) {
-        const reader = request.body.getReader();
-        while (!(await reader.read()).done) {
+      return await middlewareCtx.next(request, env2);
+    } finally {
+      try {
+        if (request.body !== null && !request.bodyUsed) {
+          const reader = request.body.getReader();
+          while (!(await reader.read()).done) {}
         }
+      } catch (e2) {
+        console.error("Failed to drain the unused request body.", e2);
       }
-    } catch (e2) {
-      console.error("Failed to drain the unused request body.", e2);
     }
-  }
-}, "drainBody");
+  },
+  "drainBody",
+);
 var middleware_ensure_req_body_drained_default = drainBody;
 
 // node_modules/wrangler/templates/middleware/middleware-miniflare3-json-error.ts
@@ -15560,27 +19032,30 @@ function reduceError(e2) {
     name: e2?.name,
     message: e2?.message ?? String(e2),
     stack: e2?.stack,
-    cause: e2?.cause === void 0 ? void 0 : reduceError(e2.cause)
+    cause: e2?.cause === void 0 ? void 0 : reduceError(e2.cause),
   };
 }
 __name(reduceError, "reduceError");
-var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx) => {
-  try {
-    return await middlewareCtx.next(request, env2);
-  } catch (e2) {
-    const error = reduceError(e2);
-    return Response.json(error, {
-      status: 500,
-      headers: { "MF-Experimental-Error-Stack": "true" }
-    });
-  }
-}, "jsonError");
+var jsonError = /* @__PURE__ */ __name(
+  async (request, env2, _ctx, middlewareCtx) => {
+    try {
+      return await middlewareCtx.next(request, env2);
+    } catch (e2) {
+      const error = reduceError(e2);
+      return Response.json(error, {
+        status: 500,
+        headers: { "MF-Experimental-Error-Stack": "true" },
+      });
+    }
+  },
+  "jsonError",
+);
 var middleware_miniflare3_json_error_default = jsonError;
 
 // .wrangler/tmp/bundle-zxvqge/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
-  middleware_miniflare3_json_error_default
+  middleware_miniflare3_json_error_default,
 ];
 var middleware_insertion_facade_default = src_default;
 
@@ -15596,7 +19071,7 @@ function __facade_invokeChain__(request, env2, ctx, dispatch, middlewareChain) {
     dispatch,
     next(newRequest, newEnv) {
       return __facade_invokeChain__(newRequest, newEnv, ctx, dispatch, tail);
-    }
+    },
   };
   return head(request, env2, ctx, middlewareCtx);
 }
@@ -15604,7 +19079,7 @@ __name(__facade_invokeChain__, "__facade_invokeChain__");
 function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
   return __facade_invokeChain__(request, env2, ctx, dispatch, [
     ...__facade_middleware__,
-    finalMiddleware
+    finalMiddleware,
   ]);
 }
 __name(__facade_invoke__, "__facade_invoke__");
@@ -15628,13 +19103,16 @@ var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   }
 };
 function wrapExportedHandler(worker) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
+  if (
+    __INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 ||
+    __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0
+  ) {
     return worker;
   }
   for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__) {
     __facade_register__(middleware);
   }
-  const fetchDispatcher = /* @__PURE__ */ __name(function(request, env2, ctx) {
+  const fetchDispatcher = /* @__PURE__ */ __name(function (request, env2, ctx) {
     if (worker.fetch === void 0) {
       throw new Error("Handler does not export a fetch() function.");
     }
@@ -15643,24 +19121,26 @@ function wrapExportedHandler(worker) {
   return {
     ...worker,
     fetch(request, env2, ctx) {
-      const dispatcher = /* @__PURE__ */ __name(function(type, init2) {
+      const dispatcher = /* @__PURE__ */ __name(function (type, init2) {
         if (type === "scheduled" && worker.scheduled !== void 0) {
           const controller = new __Facade_ScheduledController__(
             Date.now(),
             init2.cron ?? "",
-            () => {
-            }
+            () => {},
           );
           return worker.scheduled(controller, env2, ctx);
         }
       }, "dispatcher");
       return __facade_invoke__(request, env2, ctx, dispatcher, fetchDispatcher);
-    }
+    },
   };
 }
 __name(wrapExportedHandler, "wrapExportedHandler");
 function wrapWorkerEntrypoint(klass) {
-  if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
+  if (
+    __INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 ||
+    __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0
+  ) {
     return klass;
   }
   for (const middleware of __INTERNAL_WRANGLER_MIDDLEWARE__) {
@@ -15680,8 +19160,7 @@ function wrapWorkerEntrypoint(klass) {
         const controller = new __Facade_ScheduledController__(
           Date.now(),
           init2.cron ?? "",
-          () => {
-          }
+          () => {},
         );
         return super.scheduled(controller);
       }
@@ -15692,7 +19171,7 @@ function wrapWorkerEntrypoint(klass) {
         this.env,
         this.ctx,
         this.#dispatcher,
-        this.#fetchDispatcher
+        this.#fetchDispatcher,
       );
     }
   };
@@ -15707,7 +19186,7 @@ if (typeof middleware_insertion_facade_default === "object") {
 var middleware_loader_entry_default = WRAPPED_ENTRY;
 export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
-  middleware_loader_entry_default as default
+  middleware_loader_entry_default as default,
 };
 /*! Bundled license information:
 

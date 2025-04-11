@@ -1,4 +1,4 @@
 export interface WhatsappChats {
-    name: string;
-    fileId: string;
+  name: string;
+  fileId: string;
 }

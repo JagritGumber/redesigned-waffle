@@ -16,7 +16,7 @@ const verificationTokens = sqliteTable(
     compositePk: primaryKey({
       columns: [verificationToken.identifier, verificationToken.token],
     }),
-  })
+  }),
 );
 
 export default verificationTokens;
