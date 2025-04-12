@@ -194,6 +194,7 @@ const groupRouter = new Hono<ContextForHono>()
                         group: groups,
                         patreonAccount: accounts,
                         deviantartAccount: deviantartAccounts,
+                        
                     })
                     .from(groups)
                     .leftJoin(accounts, eq(groups.patreonAccountId, accounts.id))

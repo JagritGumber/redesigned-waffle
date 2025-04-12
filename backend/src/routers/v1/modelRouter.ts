@@ -5,11 +5,16 @@ import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
 import { eq } from "drizzle-orm";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { Model } from "@/client/types/civitai";
-import { InsertCivitaiModel } from "@/schema/models";
+import {
+  civitaiImages,
+  InsertCivitaiImage,
+  InsertCivitaiModel,
+} from "@/schema/models";
+import { sha256 } from "hono/utils/crypto";
 
 const modelRouter = new Hono<ContextForHono>()
   .post("/", async (c) => {
-    const modelId = c.req.param("modelId");
+    const { modelId } = await c.req.json<{ modelId: string }>();
     const civitaiApiToken = c.env.API_TOKEN;
     const db = c.get("db");
     const civitaiApiUrl = `https://civitai.com/api/v1/models/${modelId}?token=${civitaiApiToken}&nsfw=true`;
@@ -110,6 +115,7 @@ const modelRouter = new Hono<ContextForHono>()
               supportsGeneration: versionSupportsGeneration,
               downloadUrl: versionDownloadUrl,
               files,
+              images, // Get the images array
               // stats: we are ignoring this
             } = version;
 
@@ -169,13 +175,15 @@ const modelRouter = new Hono<ContextForHono>()
                 } = file;
 
                 // Define the path where you will store the model on Runpod volume
-                const runpodPath = `/workspace/${savedCivitaiModel.type}/${savedCivitaiModel.name.replace(
-                  /[^a-zA-Z0-9]/g,
+                const runpodPath = `/workspace/${
+                  savedCivitaiModel.type
+                }/${savedCivitaiModel.name.replace(
+                  /[^a-zA-Z0-9._-]/g,
                   "_"
                 )}/${versionName?.replace(
-                  /[^a-zA-Z0-9]/g,
+                  /[^a-zA-Z0-9._-]/g,
                   "_"
-                )}/${fileName.replace(/[^a-zA-Z0-9]/g, "_")}`; // Sanitize names for file paths
+                )}/${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`; // Sanitize names for file paths
 
                 await db
                   .insert(civitaiFiles)
@@ -216,6 +224,55 @@ const modelRouter = new Hono<ContextForHono>()
                       downloadUrl: fileDownloadUrl,
                       primary: primary ? true : false,
                       runpodPath,
+                      updatedAt: new Date(),
+                    },
+                  })
+                  .returning();
+              }
+
+              // 4. Save/Update images for each version
+              for (const image of images) {
+                const {
+                  url,
+                  nsfwLevel: imageNsfwLevel,
+                  width,
+                  height,
+                  hash,
+                  type: imageType,
+                  hasMeta,
+                  hasPositivePrompt,
+                  onSite,
+                  remixOfId,
+                } = image;
+
+                await db
+                  .insert(civitaiImages)
+                  .values({
+                    civitaiVersionId: savedCivitaiModelVersion.id,
+                    url,
+                    nsfwLevel: imageNsfwLevel,
+                    width,
+                    height,
+                    hash,
+                    type: imageType,
+                    hasMeta: hasMeta,
+                    hasPositivePrompt: hasPositivePrompt,
+                    onSite: onSite,
+                    remixOfId,
+                  } satisfies InsertCivitaiImage)
+                  .onConflictDoUpdate({
+                    target: civitaiImages.id,
+                    set: {
+                      url,
+                      nsfwLevel: imageNsfwLevel,
+                      width,
+                      height,
+                      hash,
+                      type: imageType,
+                      hasMeta: hasMeta,
+                      hasPositivePrompt: hasPositivePrompt,
+                      onSite: onSite,
+                      remixOfId,
                       updatedAt: new Date(),
                     },
                   })
@@ -263,6 +320,477 @@ const modelRouter = new Hono<ContextForHono>()
           message: "Failed to fetch models",
           error: error instanceof Error ? error.message : JSON.stringify(error),
         },
+        500
+      );
+    }
+  })
+  .get("/checkpoints", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "Checkpoint"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error("Error fetching Checkpoints with files and images:", error);
+      return c.json(
+        { error: "Failed to fetch Checkpoints with files and images" },
+        500
+      );
+    }
+  })
+  .get("/textual-inversions", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "TextualInversion"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error(
+        "Error fetching Textual Inversions with files and images:",
+        error
+      );
+      return c.json(
+        { error: "Failed to fetch Textual Inversions with files and images" },
+        500
+      );
+    }
+  })
+  .get("/hypernetworks", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "Hypernetwork"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error(
+        "Error fetching Hypernetworks with files and images:",
+        error
+      );
+      return c.json(
+        { error: "Failed to fetch Hypernetworks with files and images" },
+        500
+      );
+    }
+  })
+  .get("/aesthetic-gradients", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "AestheticGradient"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error(
+        "Error fetching Aesthetic Gradients with files and images:",
+        error
+      );
+      return c.json(
+        { error: "Failed to fetch Aesthetic Gradients with files and images" },
+        500
+      );
+    }
+  })
+  .get("/loras", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "LORA"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error("Error fetching LoRAs with files and images:", error);
+      return c.json(
+        { error: "Failed to fetch LoRAs with files and images" },
+        500
+      );
+    }
+  })
+  .get("/controlnets", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "Controlnet"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error("Error fetching Controlnets with files and images:", error);
+      return c.json(
+        { error: "Failed to fetch Controlnets with files and images" },
+        500
+      );
+    }
+  })
+  .get("/poses", async (c) => {
+    try {
+      const db = c.get("db");
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .where(eq(civitaiModels.type, "Poses"));
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
+      }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
+    } catch (error) {
+      console.error("Error fetching Poses with files and images:", error);
+      return c.json(
+        { error: "Failed to fetch Poses with files and images" },
         500
       );
     }

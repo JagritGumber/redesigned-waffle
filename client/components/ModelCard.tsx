@@ -53,7 +53,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
 
 const styles = StyleSheet.create({
   modelButton: {
-    width: '48%',
+    width: '100%',
     aspectRatio: 4 / 6, // Assuming desiredAspectRatio is 4/6
     borderRadius: 8,
     overflow: 'hidden',
