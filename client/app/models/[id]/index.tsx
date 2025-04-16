@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Progress, Image, ScrollView, View, Text, useTheme } from 'tamagui';
+import { Progress, Image, ScrollView, View, Text, useTheme, Button } from 'tamagui';
 import { Model, ModelVersion, FileVersion } from '~/types/civitai';
 import axios from 'axios';
 import RenderHTML from 'react-native-render-html';
@@ -51,6 +51,44 @@ const ModelDetailScreen = () => {
       fetchModelDetails();
     }
   }, [id, router, selectedModel]);
+
+  const htmlStyles = {
+    p: {
+      fontSize: 16,
+      color: theme.color.get(),
+      marginBottom: 8,
+    },
+    h1: {
+      fontSize: 22,
+      fontWeight: 'bold' as 'bold',
+      color: theme.color.get(),
+      marginBottom: 12,
+    },
+    h2: {
+      fontSize: 20,
+      fontWeight: 'bold' as 'bold',
+      color: theme.color.get(),
+      marginBottom: 10,
+    },
+    h3: {
+      fontSize: 18,
+      fontWeight: 'bold' as 'bold',
+      color: theme.color.get(),
+      marginBottom: 8,
+    },
+    ul: {
+      marginBottom: 8,
+    },
+    li: {
+      fontSize: 16,
+      color: theme.color.get(),
+      marginLeft: 16,
+      marginBottom: 4,
+    },
+    a: {
+      color: theme.accent10.get(),
+    }, // Add more styles as needed for other HTML elements
+  };
 
   if (loading) {
     return (
@@ -238,74 +276,62 @@ const ModelDetailScreen = () => {
         </View>
 
         {latestVersion && (
-          <View
-            marginBottom={16}
-            padding={10}
-            borderColor={theme.borderColor.get()}
-            borderWidth={1}
-            borderRadius={5}>
-            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
-              Latest Model Version
+          <>
+            <Text fontSize={16} fontWeight="bold" marginBottom={8}>
+              {latestVersion.name} (Base: {latestVersion.baseModel})
             </Text>
-            <View
-              marginBottom={16}
-              padding={10}
-              borderColor={theme.borderColor.get()}
-              borderWidth={1}
-              borderRadius={5}>
-              <Text fontSize={16} fontWeight="bold" marginBottom={8}>
-                {latestVersion.name} (Base: {latestVersion.baseModel})
-              </Text>
-              <Text>Published At: {new Date(latestVersion.publishedAt).toLocaleDateString()}</Text>
-              <Text>Availability: {latestVersion.availability}</Text>
-              <Text>NSFW Level: {latestVersion.nsfwLevel}</Text>
-              {latestVersion.description && (
-                <RenderHTML contentWidth={width} source={{ html: latestVersion.description }} />
-              )}
+            <Text>Published At: {new Date(latestVersion.publishedAt).toLocaleDateString()}</Text>
+            <Text>Availability: {latestVersion.availability}</Text>
+            <Text>NSFW Level: {latestVersion.nsfwLevel}</Text>
+            {latestVersion.description && (
+              <RenderHTML
+                contentWidth={width}
+                source={{ html: latestVersion.description }}
+                tagsStyles={htmlStyles}
+              />
+            )}
 
-              {latestVersion.files && latestVersion.files.length > 0 && (
-                <View marginTop={8} paddingLeft={10}>
-                  <Text fontWeight="bold" marginBottom={4}>
-                    Files
-                  </Text>
-                  {latestVersion.files.map((file: FileVersion) => (
-                    <View
-                      key={file.id}
-                      marginBottom={8}
-                      padding={8}
-                      borderColor={theme.borderColor.get()}
-                      borderWidth={1}
-                      borderRadius={3}
-                      backgroundColor={theme.background02.get()}>
-                      <Text fontWeight="bold">{file.name}</Text>
-                      <Text>Type: {file.type}</Text>
-                      <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
-                      <ModelDownloadButton model={modelToDisplay} />
-                      {file.primary && (
-                        <Text color="green" fontWeight="bold">
-                          Primary
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
+            {latestVersion.files && latestVersion.files.length > 0 && (
+              <View marginTop={8}>
+                <Text fontWeight="bold" marginBottom={4}>
+                  Files
+                </Text>
+                {latestVersion.files.map((file: FileVersion) => (
+                  <View
+                    key={file.id}
+                    marginBottom={8}
+                    padding={8}
+                    borderColor={theme.borderColor.get()}
+                    borderWidth={1}
+                    borderRadius={3}
+                    backgroundColor={theme.background02.get()}>
+                    <Text fontWeight="bold">{file.name}</Text>
+                    <Text>Type: {file.type}</Text>
+                    <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
+                    <ModelDownloadButton model={modelToDisplay} />
+                    {file.primary && (
+                      <Text color="green" fontWeight="bold">
+                        Primary
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         )}
 
         {modelToDisplay.description && (
-          <View
-            marginBottom={16}
-            padding={10}
-            borderColor={theme.borderColor.get()}
-            borderWidth={1}
-            borderRadius={5}>
-            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
+          <>
+            <Text fontSize={18} fontWeight="bold" my={16}>
               Description
             </Text>
-            <RenderHTML contentWidth={width} source={{ html: modelToDisplay.description,  }} />
-          </View>
+            <RenderHTML
+              contentWidth={width}
+              source={{ html: modelToDisplay.description }}
+              tagsStyles={htmlStyles}
+            />
+          </>
         )}
       </View>
 
@@ -319,19 +345,19 @@ const ModelDetailScreen = () => {
             enableSwipeDown={true}
             onSwipeDown={() => setModalVisible(false)}
             renderHeader={() => (
-              <TouchableOpacity
+              <Button
+                aspectRatio={1}
+                size={'$3'}
                 style={{
                   position: 'absolute',
                   top: 8,
                   right: 8,
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
                   padding: 8,
                   borderRadius: 15,
                   zIndex: 2,
                 }}
-                onPress={() => setModalVisible(false)}>
-                <X />
-              </TouchableOpacity>
+                icon={<X size={'$3'} />}
+                onPress={() => setModalVisible(false)}></Button>
             )}
             index={selectedImage}
             enableImageZoom={true}
