@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
-import { eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { Model } from "@/client/types/civitai";
 import {
@@ -14,10 +14,9 @@ import { sha256 } from "hono/utils/crypto";
 
 const modelRouter = new Hono<ContextForHono>()
   .post("/", async (c) => {
-    const { modelId } = await c.req.json<{ modelId: string }>();
+    const { model: civitaiModelData } = await c.req.json<{ model: Model }>();
     const civitaiApiToken = c.env.API_TOKEN;
     const db = c.get("db");
-    const civitaiApiUrl = `https://civitai.com/api/v1/models/${modelId}?token=${civitaiApiToken}&nsfw=true`;
 
     if (!civitaiApiToken) {
       return c.json(
@@ -27,18 +26,6 @@ const modelRouter = new Hono<ContextForHono>()
     }
 
     try {
-      const response = await fetch(civitaiApiUrl);
-      if (!response.ok) {
-        console.error(
-          `Failed to fetch model with ID ${modelId} from Civitai: ${response.status} ${response.statusText}`
-        );
-        return c.json(
-          { error: `Failed to fetch model with ID ${modelId} from Civitai.` },
-          response.status as ContentfulStatusCode
-        );
-      }
-      const civitaiModelData = (await response.json()) as Model;
-
       const {
         id: civitaiId,
         name,
@@ -233,6 +220,7 @@ const modelRouter = new Hono<ContextForHono>()
               // 4. Save/Update images for each version
               for (const image of images) {
                 const {
+                  id: imageId,
                   url,
                   nsfwLevel: imageNsfwLevel,
                   width,
@@ -249,6 +237,7 @@ const modelRouter = new Hono<ContextForHono>()
                   .insert(civitaiImages)
                   .values({
                     civitaiVersionId: savedCivitaiModelVersion.id,
+                    imageId,
                     url,
                     nsfwLevel: imageNsfwLevel,
                     width,
@@ -282,12 +271,14 @@ const modelRouter = new Hono<ContextForHono>()
           }
 
           return c.json(
-            { message: `Model with ID ${modelId} saved successfully.` },
+            {
+              message: `Model with ID ${civitaiModelData.id} saved successfully.`,
+            },
             200
           );
         } else {
           return c.json(
-            { error: `Failed to save model with ID ${modelId}.` },
+            { error: `Failed to save model with ID ${civitaiModelData.id}.` },
             500
           );
         }
@@ -347,7 +338,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Checkpoint"));
+        .where(eq(civitaiModels.type, "Checkpoint"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -413,7 +409,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "TextualInversion"));
+        .where(eq(civitaiModels.type, "TextualInversion"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -482,7 +483,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Hypernetwork"));
+        .where(eq(civitaiModels.type, "Hypernetwork"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -551,7 +557,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "AestheticGradient"));
+        .where(eq(civitaiModels.type, "AestheticGradient"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -620,7 +631,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "LORA"));
+        .where(eq(civitaiModels.type, "LORA"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -686,7 +702,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Controlnet"));
+        .where(eq(civitaiModels.type, "Controlnet"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -752,7 +773,12 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Poses"));
+        .where(eq(civitaiModels.type, "Poses"))
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
+        );
 
       const modelsMap = new Map();
 
@@ -820,6 +846,44 @@ const modelRouter = new Hono<ContextForHono>()
       return c.json(
         {
           message: `Failed to fetch model with ID ${c.req.param("id")}`,
+          error: error instanceof Error ? error.message : JSON.stringify(error),
+        },
+        500
+      );
+    }
+  })
+  .patch("/:id", async (c) => {
+    try {
+      const db = c.get("db");
+      const id = c.req.param("id");
+      const body = await c.req.json<{ defaultWeight: number }>();
+      const newWeight = body.defaultWeight;
+
+      const updatedModelResult = await db
+        .update(civitaiModels)
+        .set({ defaultWeight: newWeight, updatedAt: new Date() })
+        .where(eq(civitaiModels.id, id))
+        .returning();
+
+      if (updatedModelResult && updatedModelResult.length > 0) {
+        return c.json(
+          {
+            message: "Model weight updated successfully",
+            model: updatedModelResult[0],
+          },
+          200
+        );
+      } else {
+        return c.json({ message: `Model with ID ${id} not found` }, 404);
+      }
+    } catch (error) {
+      console.error(
+        `Error updating model weight with ID ${c.req.param("id")}:`,
+        error
+      );
+      return c.json(
+        {
+          message: `Failed to update model weight with ID ${c.req.param("id")}`,
           error: error instanceof Error ? error.message : JSON.stringify(error),
         },
         500

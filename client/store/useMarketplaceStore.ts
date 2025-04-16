@@ -31,7 +31,11 @@ export const useMarketplaceStore = create<MarketplaceStore>((set, get) => ({
   setHasSearchedOrFiltered: (value) => set({ hasSearchedOrFiltered: value }),
   setModels: (newModels) => set({ models: newModels }),
   fetchModels: async (pageNumber = 1, query = '', filters = {}) => {
-    set({ loading: pageNumber === 1 && !query && Object.keys(filters).length === 0, error: null });
+    set({
+      loading:
+        (pageNumber === 1 && !query && Object.keys(filters).length === 0) || query.length >= 0,
+      error: null,
+    });
     try {
       let url = `https://civitai.com/api/v1/models?page=${pageNumber}&query=${query}&token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=${true}`;
       if (filters.tag) {

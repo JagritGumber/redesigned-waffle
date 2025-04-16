@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
-import { Button } from 'tamagui';
+import { StyleSheet } from 'react-native';
+import { Button, Input, View } from 'tamagui';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -14,40 +14,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   }, [onSearch, searchText]);
 
   return (
-    <View style={styles.searchContainer}>
-      <TextInput
-        style={styles.searchBar}
+    <View flexDirection="row" alignItems="center" marginBottom={16}>
+      <Input
+        flex={1}
+        h={40}
+        borderColor="$color.gray700" // Using a theme color for border
+        borderWidth={1}
+        borderRadius={8}
+        px={10}
+        mr={8}
         placeholder="Search Models..."
         value={searchText}
         onChangeText={setSearchText}
         onSubmitEditing={handleSearchSubmit}
       />
-      <Button style={styles.searchButton} onPress={handleSearchSubmit}>
+      <Button h={40} mr={16} onPress={handleSearchSubmit}>
         Search
       </Button>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  searchBar: {
-    flex: 1,
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginRight: 8,
-  },
-  searchButton: {
-    height: 40,
-    marginRight: 8,
-  },
-});
 
 export default SearchBar;

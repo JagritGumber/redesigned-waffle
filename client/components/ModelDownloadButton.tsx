@@ -2,12 +2,13 @@ import { useCallback } from 'react';
 import { Button } from 'tamagui';
 import { StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
+import { Model } from '~/types/civitai';
 
 interface ModelDownloadButtonProps {
-  modelId: number;
+  model: Model;
 }
 
-function ModelDownloadButton({ modelId }: ModelDownloadButtonProps) {
+function ModelDownloadButton({ model }: ModelDownloadButtonProps) {
   const handleDownload = useCallback(async () => {
     try {
       // Construct the full backend download URL
@@ -15,13 +16,13 @@ function ModelDownloadButton({ modelId }: ModelDownloadButtonProps) {
 
       // Open the URL in the device's default browser
       const res = await axios.post(downloadUrl, {
-        modelId,
+        model,
       });
     } catch (error) {
       console.error('Download Trigger Error:', error);
       Alert.alert('Error', 'Failed to initiate download.');
     }
-  }, [modelId]);
+  }, [model]);
 
   return (
     <Button onPress={handleDownload} style={styles.downloadButton}>

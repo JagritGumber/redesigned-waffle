@@ -1,11 +1,5 @@
 // ./schema/civitaiModels.ts
-import {
-  integer,
-  primaryKey,
-  real,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 export const civitaiModels = sqliteTable("civitaiModel", {
@@ -50,6 +44,7 @@ export const civitaiModels = sqliteTable("civitaiModel", {
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
+  defaultWeight: real("defaultWeight").default(0.6), // Added the defaultWeight field
 });
 
 export const civitaiModelsRelations = relations(civitaiModels, ({ many }) => ({
@@ -156,6 +151,7 @@ export const civitaiImages = sqliteTable("civitaiImage", {
   civitaiVersionId: text("civitaiVersionId")
     .notNull()
     .references(() => civitaiModelVersions.id),
+  imageId: integer("imageId").notNull().unique(),
   url: text("url").notNull(),
   nsfwLevel: integer("nsfwLevel"),
   width: integer("width"),

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9b24fdf4-c7db-46d1-bf1a-1adfda7cb68c",
-  "prevId": "17d16e22-ec21-43cf-8e0d-d3051727cd5a",
+  "id": "641465a9-9b93-4825-b952-fd2d3d089205",
+  "prevId": "90253cf0-d881-4375-bbc4-42399fc043d5",
   "tables": {
     "account": {
       "name": "account",
@@ -397,6 +397,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "imageId": {
+          "name": "imageId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "url": {
           "name": "url",
           "type": "text",
@@ -482,7 +489,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "civitaiImage_imageId_unique": {
+          "name": "civitaiImage_imageId_unique",
+          "columns": [
+            "imageId"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "civitaiImage_civitaiVersionId_civitaiModelVersion_id_fk": {
           "name": "civitaiImage_civitaiVersionId_civitaiModelVersion_id_fk",
@@ -844,6 +859,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "defaultWeight": {
+          "name": "defaultWeight",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0.6
         }
       },
       "indexes": {

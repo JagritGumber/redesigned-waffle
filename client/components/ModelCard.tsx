@@ -1,15 +1,21 @@
-// components/ModelCard.tsx
 import React from 'react';
 import { Card, Text, View, Image } from 'tamagui';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Model } from '~/types/civitai';
 import { Link } from 'expo-router';
+import { useModelStore } from '~/store/useModalStore'; // Adjust path
 
 interface ModelCardProps {
   model: Model;
 }
 
 const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
+  const { setSelectedModel } = useModelStore();
+
+  const handlePress = () => {
+    setSelectedModel(model);
+  };
+
   return (
     <Link
       href={{
@@ -19,7 +25,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
         },
       }}
       asChild>
-      <TouchableOpacity activeOpacity={0.8} style={styles.modelButton}>
+      <TouchableOpacity activeOpacity={0.8} style={styles.modelButton} onPress={handlePress}>
         <Card key={model.id} style={styles.modelCard}>
           {model.modelVersions &&
             model.modelVersions.length > 0 &&

@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import { useCallback, useState } from 'react';
-
-import { StyleSheet, View } from 'react-native';
+import { View } from 'tamagui'; // Import View from Tamagui
 import GroupList from '~/components/GroupList';
 
 export default function Home() {
@@ -17,16 +16,9 @@ export default function Home() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'My Groups' }} />
-      <View style={styles.container}>
+      <View f={1} bg={"$background"}> {/* Use Tamagui's View and flex prop */}
         <GroupList onGroupUpdated={handleGroupUpdated} />
       </View>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});

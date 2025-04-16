@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ScrollView, StyleSheet, Dimensions, Modal, TextInput } from 'react-native';
-import { View, Button, Select, Checkbox, Text } from 'tamagui';
+import { Dimensions, Modal } from 'react-native';
+import { View, Button, Select, Checkbox, Text, YStack, XStack, Spacer, ScrollView, Input, TextArea } from 'tamagui';
 import { Check, ChevronDown } from '@tamagui/lucide-icons';
 import { modelTypes, sortOptions } from '~/constants/marketplace'; // Assuming you have these in a separate file
 import SearchBar from './SearchBar';
 import ModelList from './ModelList';
 import { useMarketplaceStore } from '~/store/useMarketplaceStore'; // Import the local store
+import { useTheme } from 'tamagui';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const cardMarginBase = 16;
 
 const CivitAIMarketplace = () => {
+  const theme = useTheme();
   const [isFilterVisible, setIsFilterVisible] = useState<boolean>(false);
   const [filterTag, setFilterTag] = useState<string>('');
   const [filterUsername, setFilterUsername] = useState<string>('');
@@ -20,21 +22,24 @@ const CivitAIMarketplace = () => {
 
   const { fetchModels, setModels, setHasSearchedOrFiltered } = useMarketplaceStore();
 
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = Dimensions.get('window').width;
-      if (width >= 900) {
-        setNumColumns(4);
-      } else if (width >= 600) {
-        setNumColumns(3);
-      } else {
-        setNumColumns(2);
-      }
-    };
+  const updateColumns = useCallback(() => {
+    const width = Dimensions.get('window').width;
+    if (width >= 900) {
+      setNumColumns(4);
+    } else if (width >= 600) {
+      setNumColumns(3);
+    } else {
+      setNumColumns(2);
+    }
+  }, [setNumColumns]);
 
+  useEffect(() => {
     Dimensions.addEventListener('change', updateColumns);
     updateColumns();
-  }, []);
+    return () => {
+      // Dimensions.removeEventListener('change', updateColumns); // Removed as per user feedback
+    };
+  }, [updateColumns]);
 
   useEffect(() => {
     setModels([]); // Clear models on initial load or refresh
@@ -100,41 +105,57 @@ const CivitAIMarketplace = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
+    <ScrollView contentContainerStyle={{
+      paddingBottom: cardMarginBase,
+      paddingLeft: 16,
+      paddingTop: 16,
+      backgroundColor: theme.background.get(),
+      height: screenHeight - 60
+    }}>
       <SearchBar onSearch={handleSearch} />
 
-      <View style={styles.filterContainer}>
-        <Button style={styles.filterButton} onPress={openFilterModal}>
+      <View mb={16} pr={16} bg={"$background"} > {/* filterContainer */}
+        <Button h={40} onPress={openFilterModal}> {/* filterButton */}
           Filter
         </Button>
       </View>
 
-      <Modal visible={isFilterVisible} onRequestClose={closeFilterModal} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text fontSize={20} fontWeight="bold" marginBottom={16}>
+      <Modal visible={isFilterVisible} onRequestClose={closeFilterModal} animationType="slide" >
+        <View flex={1} p={16} bg={theme.background.get()}> {/* modalContainer */}
+          <Text fs={20} fontWeight="bold" mb={16}>
             Filter Options
           </Text>
 
-          <TextInput
-            style={styles.filterInput}
+          <Input
+            h={40}
+            borderColor="$color.gray700"
+            borderWidth={1}
+            borderRadius={8}
+            px="$2" // Using Tamagui's padding token
+            mb={12}
             placeholder="Tag"
             value={filterTag}
             onChangeText={setFilterTag}
           />
 
-          <TextInput
-            style={styles.filterInput}
+          <Input
+            h={40}
+            borderColor="$color.gray700"
+            borderWidth={1}
+            borderRadius={8}
+            px="$2" // Using Tamagui's padding token
+            mb={12}
             placeholder="Username"
             value={filterUsername}
             onChangeText={setFilterUsername}
           />
 
-          <Text fontWeight="bold" marginTop={16} marginBottom={8}>
+          <Text fontWeight="bold" mt={16} mb={8}>
             Types:
           </Text>
           <View>
             {modelTypes.map((type) => (
-              <View key={type} style={styles.checkboxContainer}>
+              <XStack key={type} alignItems="center" mb={8}> {/* checkboxContainer */}
                 <Checkbox
                   value={type}
                   checked={filterTypes.includes(type)}
@@ -143,12 +164,12 @@ const CivitAIMarketplace = () => {
                     <Check size={16} />
                   </Checkbox.Indicator>
                 </Checkbox>
-                <Text style={styles.checkboxLabel}>{type}</Text>
-              </View>
+                <Text ml={8}>{type}</Text> {/* checkboxLabel */}
+              </XStack>
             ))}
           </View>
 
-          <Text fontWeight="bold" marginTop={16} marginBottom={8}>
+          <Text fontWeight="bold" mt={16} mb={8}>
             Sort By:
           </Text>
           <Select value={filterSort} onValueChange={setFilterSort}>
@@ -161,7 +182,6 @@ const CivitAIMarketplace = () => {
                   {sortOptions.map((option, index) => (
                     <Select.Item key={option} index={index} value={option}>
                       {' '}
-                      {/* Use the exact backend expected value */}
                       <Select.ItemText>{option}</Select.ItemText>
                       {filterSort === option && (
                         <Select.ItemIndicator marginLeft="auto">
@@ -175,12 +195,12 @@ const CivitAIMarketplace = () => {
             </Select.Content>
           </Select>
 
-          <View style={styles.modalButtons}>
+          <XStack jc="space-around" mt={24}> {/* modalButtons */}
             <Button onPress={applyFilters}>Apply Filters</Button>
-            <Button onPress={closeFilterModal} backgroundColor="$color.gray400">
+            <Button onPress={closeFilterModal} bg="$color.gray400">
               Cancel
             </Button>
-          </View>
+          </XStack>
         </View>
       </Modal>
 
@@ -188,46 +208,5 @@ const CivitAIMarketplace = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollViewContent: {
-    paddingBottom: cardMarginBase,
-    paddingLeft: 16,
-    paddingTop: 16,
-  },
-  filterContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  filterButton: {
-    height: 40,
-  },
-  modalContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '$color.white',
-  },
-  filterInput: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 12,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 24,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  checkboxLabel: {
-    marginLeft: 8,
-  },
-});
 
 export default CivitAIMarketplace;

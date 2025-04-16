@@ -1,9 +1,8 @@
 import React from 'react';
-import { StyleSheet, Dimensions } from 'react-native';
-import { Text } from 'tamagui';
+import { Dimensions } from 'react-native';
+import { Text, Spinner, Button, View } from 'tamagui';
 import ModelCard from './ModelCard';
 import { useMarketplaceStore } from '~/store/useMarketplaceStore'; // Adjust path if needed
-import { Spinner, Button, View } from 'tamagui';
 
 const { width: screenWidth } = Dimensions.get('window');
 const cardMarginBase = 16;
@@ -37,41 +36,30 @@ const ModelList: React.FC<ModelListProps> = ({ numColumns }) => {
   }
 
   return (
-    <View style={styles.marketplaceContainer}>
+    <View
+      flexDirection="row"
+      flexWrap="wrap"
+      justifyContent="flex-start"
+      bg={"$background"}
+    >
       {models.map((model, index) => (
         <View
           key={model.id}
-          style={[
-            { width: cardWidth, marginBottom: marginBottom },
-            (index + 1) % numColumns !== 0 && { marginRight: marginRight },
-          ]}>
+          width={cardWidth}
+          marginBottom={marginBottom}
+          marginRight={(index + 1) % numColumns !== 0 ? marginRight : undefined}
+        >
           <ModelCard model={model} />
         </View>
       ))}
-      {isFetchingMore && <Spinner style={styles.loadMoreIndicator} />}
+      {isFetchingMore && <Spinner mt={16} />}
       {hasMore && !isFetchingMore && (
-        <Button style={styles.loadMoreButton} onPress={loadMore}>
+        <Button mt={16} alignSelf="center" onPress={loadMore}>
           Load More
         </Button>
       )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  marketplaceContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    paddingHorizontal: cardMarginBase,
-  },
-  loadMoreButton: {
-    marginTop: 16,
-    alignSelf: 'center',
-  },
-  loadMoreIndicator: {
-    marginTop: 16,
-  },
-});
 
 export default ModelList;
