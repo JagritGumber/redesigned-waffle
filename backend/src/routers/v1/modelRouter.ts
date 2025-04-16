@@ -162,7 +162,7 @@ const modelRouter = new Hono<ContextForHono>()
                 } = file;
 
                 // Define the path where you will store the model on Runpod volume
-                const runpodPath = `/workspace/${
+                const runpodPath = `/runpod-volume/workspace/${
                   savedCivitaiModel.type
                 }/${savedCivitaiModel.name.replace(
                   /[^a-zA-Z0-9._-]/g,
@@ -215,9 +215,41 @@ const modelRouter = new Hono<ContextForHono>()
                     },
                   })
                   .returning();
+
+                // 4. Initiate background download for the primary file
+                if (primary && fileDownloadUrl && runpodPath) {
+                  const res = await fetch(
+                    `https://api.runpod.ai/v2/${c.env.RUNPOD_DOWNLOADER_ID}/run`,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        input: {
+                          save_path: runpodPath,
+                          download_url: fileDownloadUrl,
+                        },
+                      }),
+                    }
+                  );
+
+                  const runpodJob = await res.json<{ id: string }>();
+                  if (runpodJob.id) {
+                    console.log(
+                      `Download initiated for ${fileName} to ${runpodPath} with RunPod job ID: ${runpodJob.id}`
+                    );
+                    // You might want to store this job ID in your database
+                  } else {
+                    console.error(
+                      `Failed to initiate download for ${fileName}:`,
+                      runpodJob
+                    );
+                  }
+                }
               }
 
-              // 4. Save/Update images for each version
+              // 5. Save/Update images for each version (no download needed here)
               for (const image of images) {
                 const {
                   id: imageId,
@@ -272,7 +304,7 @@ const modelRouter = new Hono<ContextForHono>()
 
           return c.json(
             {
-              message: `Model with ID ${civitaiModelData.id} saved successfully.`,
+              message: `Model with ID ${civitaiModelData.id} saved successfully. Download initiated for primary files.`,
             },
             200
           );

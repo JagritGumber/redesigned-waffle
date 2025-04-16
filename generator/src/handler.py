@@ -1,7 +1,7 @@
 """ Example handler file. """
 
 import runpod
-from diffusers import AutoPipelineForText2Image
+from diffusers.pipelines.auto_pipeline import AutoPipelineForText2Image
 import torch
 import base64
 import io

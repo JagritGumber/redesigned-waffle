@@ -15,6 +15,8 @@ declare namespace Cloudflare {
         S3_BUCKET_NAME: string;
         ASSETS: Fetcher;
         DB: D1Database;
+        RUNPOD_GENERATOR_ID: string
+        RUNPOD_DOWNLOADER_ID: string
     }
 }
 interface CloudflareBindings extends Cloudflare.Env { }
