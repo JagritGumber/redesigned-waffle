@@ -2,20 +2,21 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
-import { asc, desc, eq } from "drizzle-orm";
-import { ContentfulStatusCode } from "hono/utils/http-status";
+import { asc, eq } from "drizzle-orm";
 import { Model } from "@/client/types/civitai";
 import {
   civitaiImages,
   InsertCivitaiImage,
   InsertCivitaiModel,
 } from "@/schema/models";
-import { sha256 } from "hono/utils/crypto";
+import runpodSdk from "runpod-sdk";
 
 const modelRouter = new Hono<ContextForHono>()
   .post("/", async (c) => {
     const { model: civitaiModelData } = await c.req.json<{ model: Model }>();
     const civitaiApiToken = c.env.API_TOKEN;
+    const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
+    const webhookUrl = c.env.RUNPOD_WEBHOOK_URL + "/downloader";
     const db = c.get("db");
 
     if (!civitaiApiToken) {
@@ -24,6 +25,24 @@ const modelRouter = new Hono<ContextForHono>()
         500
       );
     }
+
+    if (!runpodDownloaderId) {
+      return c.json(
+        { error: "RUNPOD_DOWNLOADER_ID environment variable is not set." },
+        500
+      );
+    }
+
+    if (!webhookUrl) {
+      return c.json(
+        { error: "RUNPOD_WEBHOOK_URL environment variable is not set." },
+        500
+      );
+    }
+
+    // Initialize RunPod SDK
+    const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
+    const endpoint = runpod.endpoint(runpodDownloaderId);
 
     try {
       const {
@@ -86,8 +105,14 @@ const modelRouter = new Hono<ContextForHono>()
           .returning();
 
         if (savedCivitaiModel) {
-          // 2. Save/Update model versions
-          for (const version of modelVersions) {
+          // Sort model versions by publishedAt to get the latest
+          const latestVersion = modelVersions.sort(
+            (a, b) =>
+              new Date(b.publishedAt).getTime() -
+              new Date(a.publishedAt).getTime()
+          )[0];
+
+          if (latestVersion) {
             const {
               id: civitaiVersionId,
               index,
@@ -102,9 +127,8 @@ const modelRouter = new Hono<ContextForHono>()
               supportsGeneration: versionSupportsGeneration,
               downloadUrl: versionDownloadUrl,
               files,
-              images, // Get the images array
-              // stats: we are ignoring this
-            } = version;
+              images,
+            } = latestVersion;
 
             const [savedCivitaiModelVersion] = await db
               .insert(civitaiModelVersions)
@@ -143,8 +167,10 @@ const modelRouter = new Hono<ContextForHono>()
               .returning();
 
             if (savedCivitaiModelVersion) {
-              // 3. Save/Update files for each version
-              for (const file of files) {
+              // Find the primary file of the latest version
+              const primaryFile = files.find((file) => file.primary);
+
+              if (primaryFile) {
                 const {
                   id: civitaiFileId,
                   name: fileName,
@@ -159,7 +185,7 @@ const modelRouter = new Hono<ContextForHono>()
                   hashes,
                   downloadUrl: fileDownloadUrl,
                   primary,
-                } = file;
+                } = primaryFile;
 
                 // Define the path where you will store the model on Runpod volume
                 const runpodPath = `/runpod-volume/workspace/${
@@ -172,7 +198,7 @@ const modelRouter = new Hono<ContextForHono>()
                   "_"
                 )}/${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`; // Sanitize names for file paths
 
-                await db
+                const [savedCivitaiFile] = await db
                   .insert(civitaiFiles)
                   .values({
                     civitaiVersionId: savedCivitaiModelVersion.id,
@@ -216,60 +242,74 @@ const modelRouter = new Hono<ContextForHono>()
                   })
                   .returning();
 
-                // 4. Initiate background download for the primary file
+                // 4. Initiate background download for the primary file with webhook using runpod-sdk
                 if (primary && fileDownloadUrl && runpodPath) {
-                  const res = await fetch(
-                    `https://api.runpod.ai/v2/${c.env.RUNPOD_DOWNLOADER_ID}/run`,
-                    {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
+                  try {
+                    const runpodJob = await endpoint!.run({
+                      input: {
+                        save_path: runpodPath,
+                        download_url: fileDownloadUrl,
                       },
-                      body: JSON.stringify({
-                        input: {
-                          save_path: runpodPath,
-                          download_url: fileDownloadUrl,
-                        },
-                      }),
-                    }
-                  );
+                      webhook: webhookUrl, // Include the webhook URL here
+                    });
 
-                  const runpodJob = await res.json<{ id: string }>();
-                  if (runpodJob.id) {
-                    console.log(
-                      `Download initiated for ${fileName} to ${runpodPath} with RunPod job ID: ${runpodJob.id}`
-                    );
-                    // You might want to store this job ID in your database
-                  } else {
-                    console.error(
-                      `Failed to initiate download for ${fileName}:`,
-                      runpodJob
-                    );
+                    if (runpodJob.id && savedCivitaiFile) {
+                      console.log(
+                        `Download initiated for ${fileName} to ${runpodPath} with RunPod job ID: ${runpodJob.id}`
+                      );
+                      // Optionally store the runpodJob.id in your database
+                      await db
+                        .update(civitaiFiles)
+                        .set({ runpodJobId: runpodJob.id })
+                        .where(eq(civitaiFiles.id, savedCivitaiFile.id));
+                    } else {
+                      console.error(
+                        `Failed to initiate download for ${fileName}:`,
+                        runpodJob
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Error initiating RunPod job:", error);
                   }
                 }
               }
+            }
 
-              // 5. Save/Update images for each version (no download needed here)
-              for (const image of images) {
-                const {
-                  id: imageId,
+            // 5. Save/Update images for the latest version
+            for (const image of images) {
+              const {
+                id: imageId,
+                url,
+                nsfwLevel: imageNsfwLevel,
+                width,
+                height,
+                hash,
+                type: imageType,
+                hasMeta,
+                hasPositivePrompt,
+                onSite,
+                remixOfId,
+              } = image;
+
+              await db
+                .insert(civitaiImages)
+                .values({
+                  civitaiVersionId: savedCivitaiModelVersion.id,
+                  imageId,
                   url,
                   nsfwLevel: imageNsfwLevel,
                   width,
                   height,
                   hash,
                   type: imageType,
-                  hasMeta,
-                  hasPositivePrompt,
-                  onSite,
+                  hasMeta: hasMeta,
+                  hasPositivePrompt: hasPositivePrompt,
+                  onSite: onSite,
                   remixOfId,
-                } = image;
-
-                await db
-                  .insert(civitaiImages)
-                  .values({
-                    civitaiVersionId: savedCivitaiModelVersion.id,
-                    imageId,
+                } satisfies InsertCivitaiImage)
+                .onConflictDoUpdate({
+                  target: civitaiImages.id,
+                  set: {
                     url,
                     nsfwLevel: imageNsfwLevel,
                     width,
@@ -280,31 +320,16 @@ const modelRouter = new Hono<ContextForHono>()
                     hasPositivePrompt: hasPositivePrompt,
                     onSite: onSite,
                     remixOfId,
-                  } satisfies InsertCivitaiImage)
-                  .onConflictDoUpdate({
-                    target: civitaiImages.id,
-                    set: {
-                      url,
-                      nsfwLevel: imageNsfwLevel,
-                      width,
-                      height,
-                      hash,
-                      type: imageType,
-                      hasMeta: hasMeta,
-                      hasPositivePrompt: hasPositivePrompt,
-                      onSite: onSite,
-                      remixOfId,
-                      updatedAt: new Date(),
-                    },
-                  })
-                  .returning();
-              }
+                    updatedAt: new Date(),
+                  },
+                })
+                .returning();
             }
           }
 
           return c.json(
             {
-              message: `Model with ID ${civitaiModelData.id} saved successfully. Download initiated for primary files.`,
+              message: `Model with ID ${civitaiModelData.id} saved successfully. Download initiated for the latest primary file (check webhook for status).`,
             },
             200
           );

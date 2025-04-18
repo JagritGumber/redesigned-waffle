@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet } from 'react-native';
 import { Button, Input, View } from 'tamagui';
 
 interface SearchBarProps {
@@ -14,7 +13,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   }, [onSearch, searchText]);
 
   return (
-    <View flexDirection="row" alignItems="center" marginBottom={16}>
+    <View flexDirection="row" alignItems="center" marginBottom={16} mx={'$4'} gap={'$4'}>
       <Input
         flex={1}
         h={40}
@@ -22,13 +21,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         borderWidth={1}
         borderRadius={8}
         px={10}
-        mr={8}
         placeholder="Search Models..."
         value={searchText}
         onChangeText={setSearchText}
         onSubmitEditing={handleSearchSubmit}
       />
-      <Button h={40} mr={16} onPress={handleSearchSubmit}>
+      <Button h={40} onPress={handleSearchSubmit}>
         Search
       </Button>
     </View>

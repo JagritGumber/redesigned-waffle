@@ -40,15 +40,14 @@ const ModelList: React.FC<ModelListProps> = ({ numColumns }) => {
       flexDirection="row"
       flexWrap="wrap"
       justifyContent="flex-start"
-      bg={"$background"}
-    >
+      bg={'$background'}
+      pl={'$4'}>
       {models.map((model, index) => (
         <View
           key={model.id}
           width={cardWidth}
           marginBottom={marginBottom}
-          marginRight={(index + 1) % numColumns !== 0 ? marginRight : undefined}
-        >
+          marginRight={(index + 1) % numColumns !== 0 ? marginRight : undefined}>
           <ModelCard model={model} />
         </View>
       ))}

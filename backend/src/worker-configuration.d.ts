@@ -2,21 +2,23 @@
 // Runtime types generated with workerd@1.20250404.0 2025-04-05
 declare namespace Cloudflare {
     interface Env {
-        API_TOKEN: string;
-        PROD_URL: string;
-        ONE_CLIENT_ID: string;
-        ONE_CLIENT_SECRET: string;
-        TWO_CLIENT_ID: string;
-        TWO_CLIENT_SECRET: string;
-        S3_ACCOUNT_ID: string;
-        S3_ACCESS_KEY_ID: string;
-        S3_SECRET_ACCESS_KEY: string;
-        S3_PUBLIC_BUCKET_URL: string;
-        S3_BUCKET_NAME: string;
-        ASSETS: Fetcher;
-        DB: D1Database;
-        RUNPOD_GENERATOR_ID: string
-        RUNPOD_DOWNLOADER_ID: string
+      API_TOKEN: string;
+      PROD_URL: string;
+      ONE_CLIENT_ID: string;
+      ONE_CLIENT_SECRET: string;
+      TWO_CLIENT_ID: string;
+      TWO_CLIENT_SECRET: string;
+      S3_ACCOUNT_ID: string;
+      S3_ACCESS_KEY_ID: string;
+      S3_SECRET_ACCESS_KEY: string;
+      S3_PUBLIC_BUCKET_URL: string;
+      S3_BUCKET_NAME: string;
+      ASSETS: Fetcher;
+      DB: D1Database;
+      RUNPOD_GENERATOR_ID: string;
+      RUNPOD_DOWNLOADER_ID: string;
+      RUNPOD_WEBHOOK_URL: string;
+      RUNPOD_API_KEY: string
     }
 }
 interface CloudflareBindings extends Cloudflare.Env { }

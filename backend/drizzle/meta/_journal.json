@@ -29,6 +29,13 @@
       "when": 1744492404401,
       "tag": "0003_groovy_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1744843680752,
+      "tag": "0004_lethal_wiccan",
+      "breakpoints": true
     }
   ]
 }

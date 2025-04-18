@@ -122,6 +122,8 @@ export const civitaiFiles = sqliteTable("civitaiFile", {
   metadataSize: text("metadataSize"),
   metadataFp: text("metadataFp"),
   sha256Hash: text("sha256Hash"),
+  downloadStatus: text("downloadStatus"),
+  downloadOutput: text("downloadOutput"),
   downloadUrl: text("downloadUrl").notNull(),
   primary: integer("primary", { mode: "boolean" }),
   runpodPath: text("runpodPath").notNull(),
@@ -131,6 +133,7 @@ export const civitaiFiles = sqliteTable("civitaiFile", {
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
+  runpodJobId: text("runpodJobId"), // Added the runpodJobId field
 });
 
 export const civitaiFilesRelations = relations(civitaiFiles, ({ one }) => ({

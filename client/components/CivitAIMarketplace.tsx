@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dimensions, Modal } from 'react-native';
-import { View, Button, Select, Checkbox, Text, YStack, XStack, Spacer, ScrollView, Input, TextArea } from 'tamagui';
+import {
+  View,
+  Button,
+  Select,
+  Checkbox,
+  Text,
+  YStack,
+  XStack,
+  Spacer,
+  ScrollView,
+  Input,
+  TextArea,
+} from 'tamagui';
 import { Check, ChevronDown } from '@tamagui/lucide-icons';
 import { modelTypes, sortOptions } from '~/constants/marketplace'; // Assuming you have these in a separate file
 import SearchBar from './SearchBar';
@@ -105,27 +117,26 @@ const CivitAIMarketplace = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={{
-      paddingBottom: cardMarginBase,
-      paddingLeft: 16,
-      paddingTop: 16,
-      backgroundColor: theme.background.get(),
-      height: screenHeight - 60
-    }}>
+    <ScrollView py={cardMarginBase} bg={'$background'} h={screenHeight - 60}>
       <SearchBar onSearch={handleSearch} />
 
-      <View mb={16} pr={16} bg={"$background"} > {/* filterContainer */}
-        <Button h={40} onPress={openFilterModal}> {/* filterButton */}
+      <View mb={16} px={16} bg={'$background'}>
+        {' '}
+        {/* filterContainer */}
+        <Button h={40} onPress={openFilterModal}>
+          {' '}
+          {/* filterButton */}
           Filter
         </Button>
       </View>
 
-      <Modal visible={isFilterVisible} onRequestClose={closeFilterModal} animationType="slide" >
-        <View flex={1} p={16} bg={theme.background.get()}> {/* modalContainer */}
+      <Modal visible={isFilterVisible} onRequestClose={closeFilterModal} animationType="slide">
+        <View flex={1} p={16} bg={theme.background.get()}>
+          {' '}
+          {/* modalContainer */}
           <Text fs={20} fontWeight="bold" mb={16}>
             Filter Options
           </Text>
-
           <Input
             h={40}
             borderColor="$color.gray700"
@@ -137,7 +148,6 @@ const CivitAIMarketplace = () => {
             value={filterTag}
             onChangeText={setFilterTag}
           />
-
           <Input
             h={40}
             borderColor="$color.gray700"
@@ -149,13 +159,14 @@ const CivitAIMarketplace = () => {
             value={filterUsername}
             onChangeText={setFilterUsername}
           />
-
           <Text fontWeight="bold" mt={16} mb={8}>
             Types:
           </Text>
           <View>
             {modelTypes.map((type) => (
-              <XStack key={type} alignItems="center" mb={8}> {/* checkboxContainer */}
+              <XStack key={type} alignItems="center" mb={8}>
+                {' '}
+                {/* checkboxContainer */}
                 <Checkbox
                   value={type}
                   checked={filterTypes.includes(type)}
@@ -168,7 +179,6 @@ const CivitAIMarketplace = () => {
               </XStack>
             ))}
           </View>
-
           <Text fontWeight="bold" mt={16} mb={8}>
             Sort By:
           </Text>
@@ -194,8 +204,9 @@ const CivitAIMarketplace = () => {
               </Select.Viewport>
             </Select.Content>
           </Select>
-
-          <XStack jc="space-around" mt={24}> {/* modalButtons */}
+          <XStack jc="space-around" mt={24}>
+            {' '}
+            {/* modalButtons */}
             <Button onPress={applyFilters}>Apply Filters</Button>
             <Button onPress={closeFilterModal} bg="$color.gray400">
               Cancel
