@@ -11,7 +11,6 @@ class InputPayload(BaseModel):
     download_url: t.Optional[str] = None
     save_path: t.Optional[str] = None
     action: t.Literal["download", "delete"] = "download"
-    file_path: t.Optional[str] = None
 
 
 def download_file(download_url: str, save_path: str):
@@ -74,7 +73,7 @@ def handler(job: t.Dict) -> t.Dict:
             return download_file(download_url, save_path)
 
         elif action == "delete":
-            file_path: t.Optional[str] = job_input.file_path
+            file_path: t.Optional[str] = job_input.save_path
             if not file_path:
                 return {
                     "status": "error",

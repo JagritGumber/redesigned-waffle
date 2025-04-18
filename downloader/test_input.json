@@ -1,0 +1,7 @@
+{
+  "input": {
+    "download_url": "https://civitai.com/api/download/models/9536",
+    "save_path": "/runpod-volume/workspace/TextualInversion/EasyNegative/EasyNegative_pt/easynegative.pt",
+    "action": "download"
+  }
+}
