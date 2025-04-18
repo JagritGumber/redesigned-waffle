@@ -24,6 +24,7 @@ RUN python3.11 -m pip install --upgrade pip && \
 
 
 # Add src files (Worker Template)
+ADD downloader/test_input.json .
 ADD downloader/src .
 
 RUN python3.11 /handler.py
