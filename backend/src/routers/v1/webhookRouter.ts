@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { eq } from "drizzle-orm";
 import { civitaiFiles } from "@/schema";
+import { updateStorageInfo } from "@/utils/updateStorageInfo";
 
 const webhookRouter = new Hono<ContextForHono>()
   .all("/runpod/downloader", async (c) => {
@@ -39,6 +40,23 @@ const webhookRouter = new Hono<ContextForHono>()
         console.warn(
           `Could not find database entry for RunPod job ID ${runpodJobId} (downloader)`
         );
+      }
+
+      if (jobStatus === "COMPLETED") {
+        const storageUpdateResult = await updateStorageInfo(
+          c,
+          Number(payload.output?.storage_used) ?? 0
+        ); // Call the function to update storage
+        if (storageUpdateResult.success) {
+          console.log(
+            "Storage info updated successfully after download completion."
+          );
+        } else {
+          console.error(
+            "Failed to update storage info after download completion:",
+            storageUpdateResult.error
+          );
+        }
       }
 
       return c.text("OK", 200);

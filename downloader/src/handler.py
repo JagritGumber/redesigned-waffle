@@ -15,6 +15,18 @@ class InputPayload(BaseModel):
     action: t.Literal["download", "delete"] = "download"
 
 
+def get_directory_size(directory: str) -> int:
+    """Calculates the total size of a directory in bytes."""
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # Skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size
+
+
 def download_file(download_url: str, save_path: str):
     """Downloads a file from a URL and saves it to the specified path."""
     try:
@@ -35,7 +47,12 @@ def download_file(download_url: str, save_path: str):
                 file.write(chunk)
 
         print(f"Download completed for {download_url} to {save_path}")
-        return {"status": "completed", "message": f"Download completed to {save_path}"}
+        storage_used_bytes = get_directory_size("/runpod-volume/")
+        return {
+            "status": "completed",
+            "message": f"Download completed to {save_path}",
+            "storage_used": storage_used_bytes,
+        }
 
     except requests.exceptions.RequestException as e:
         print(f"Error downloading {download_url}: {e}")
@@ -51,14 +68,20 @@ def download_file(download_url: str, save_path: str):
 def delete_file(file_path: str) -> t.Dict:
     """Deletes a file at the specified path."""
     try:
+        storage_used_bytes = get_directory_size("/runpod-volume/")
         if os.path.exists(file_path):
             os.remove(file_path)
             return {
                 "status": "success",
                 "message": f"File deleted successfully: {file_path}",
+                "storage_used": storage_used_bytes,
             }
         else:
-            return {"status": "error", "message": f"File not found: {file_path}"}
+            return {
+                "status": "error",
+                "message": f"File not found: {file_path}",
+                "storage_used": storage_used_bytes,
+            }
     except Exception as e:
         return {"status": "error", "message": f"Error deleting file: {e}"}
 
