@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { civitaiFiles } from "@/schema";
 
 const webhookRouter = new Hono<ContextForHono>()
-  .post("/runpod/downloader", async (c) => {
+  .all("/runpod/downloader", async (c) => {
     try {
       const payload = await c.req.json<{
         id: string;

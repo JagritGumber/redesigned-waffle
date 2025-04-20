@@ -19,6 +19,7 @@
     "@tamagui/react-native-media-driver": "^1.125.8",
     "@tamagui/shorthands": "^1.125.8",
     "@tamagui/themes": "^1.125.8",
+    "@tanstack/react-query": "^5.74.4",
     "axios": "^1.8.4",
     "expo": "^52.0.44",
     "expo-constants": "~16.0.1",

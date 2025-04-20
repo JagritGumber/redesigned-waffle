@@ -9,4 +9,8 @@ export {
   civitaiFiles,
   civitaiModelVersions,
   civitaiImages,
+  civitaiFilesRelations,
+  civitaiImagesRelations,
+  civitaiModelsRelations,
+  civitaiModelVersionsRelations,
 } from "./models";

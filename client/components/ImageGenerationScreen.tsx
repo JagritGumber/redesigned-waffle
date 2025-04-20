@@ -1,26 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dimensions } from 'react-native';
-import { Text, Input, Button, Select, Checkbox, Theme, Image, View, ScrollView, XStack } from 'tamagui';
+import { Text, Input, Button, Image, View, ScrollView } from 'tamagui';
 import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Adjust path if needed
 import ModelSelectList from './ModelSelectList'; // Adjust path if needed
 import { ASPECT_RATIOS } from '~/constants/generation'; // Assuming this constant exists
+import useModels from '~/utils/fetchModels';
 
 const ImageGenerationScreen = () => {
-  const [checkpoints, setCheckpoints] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<CivitaiModelWithRelations | null>(
     null
   );
-  const [loras, setLoras] = useState<CivitaiModelWithRelations[]>([]);
+  const { data: checkpoints } = useModels('checkpoints');
+  const { data: loras } = useModels('loras');
+  const { data: textualInversions } = useModels('textual-inversions');
+  const { data: hypernetworks } = useModels('hypernetworks');
+  const { data: aestheticGradients } = useModels('aesthetic-gradients');
+  const { data: controlnets } = useModels('controlnets');
+  const { data: poses } = useModels('poses');
   const [selectedLoras, setSelectedLoras] = useState<string[]>([]);
-  const [textualInversions, setTextualInversions] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedTextualInversions, setSelectedTextualInversions] = useState<string[]>([]);
-  const [hypernetworks, setHypernetworks] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedHypernetworks, setSelectedHypernetworks] = useState<string[]>([]);
-  const [aestheticGradients, setAestheticGradients] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedAestheticGradients, setSelectedAestheticGradients] = useState<string[]>([]);
-  const [controlnets, setControlnets] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedControlnets, setSelectedControlnets] = useState<string[]>([]);
-  const [poses, setPoses] = useState<CivitaiModelWithRelations[]>([]);
   const [selectedPose, setSelectedPose] = useState<CivitaiModelWithRelations | null>(null);
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
@@ -35,50 +36,6 @@ const ImageGenerationScreen = () => {
   const [otherModelColumns, setOtherModelColumns] = useState<number>(4);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string | 'custom'>('1024*1024'); // Default ratio
   const [useCustomRatio, setUseCustomRatio] = useState(false);
-
-  const fetchModels = useCallback(
-    async (
-      type: string,
-      setter: React.Dispatch<React.SetStateAction<CivitaiModelWithRelations[]>>
-    ) => {
-      try {
-        const response = await fetch(
-          `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/model/${type.toLowerCase().replace(/ /g, '-')}`
-        );
-        if (!response.ok) {
-          console.error(`Failed to fetch ${type}:`, response.status);
-          return;
-        }
-        const data = await response.json();
-        setter(data.models);
-      } catch (error) {
-        console.error(`Error fetching ${type}:`, error);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    fetchModels('checkpoints', setCheckpoints);
-    fetchModels('loras', setLoras);
-    fetchModels('textual-inversions', setTextualInversions);
-    fetchModels('hypernetworks', setHypernetworks);
-    fetchModels('aesthetic-gradients', setAestheticGradients);
-    fetchModels('controlnets', setControlnets);
-    fetchModels('poses', setPoses);
-
-    const intervalId = setInterval(() => {
-      fetchModels('checkpoints', setCheckpoints);
-      fetchModels('loras', setLoras);
-      fetchModels('textual-inversions', setTextualInversions);
-      fetchModels('hypernetworks', setHypernetworks);
-      fetchModels('aesthetic-gradients', setAestheticGradients);
-      fetchModels('controlnets', setControlnets);
-      fetchModels('poses', setPoses);
-    }, 10_000);
-
-    return () => clearInterval(intervalId);
-  }, [fetchModels]);
 
   useEffect(() => {
     const updateColumns = () => {
@@ -172,19 +129,19 @@ const ImageGenerationScreen = () => {
     const payload = {
       checkpointName: selectedCheckpoint.name,
       loraNames: selectedLoras.map(
-        (id) => loras.find((lora) => lora.id.toString() === id)?.name || ''
+        (id) => loras?.find((lora) => lora.id.toString() === id)?.name || ''
       ),
       textualInversionNames: selectedTextualInversions.map(
-        (id) => textualInversions.find((ti) => ti.id.toString() === id)?.name || ''
+        (id) => textualInversions?.find((ti) => ti.id.toString() === id)?.name || ''
       ),
       hypernetworkNames: selectedHypernetworks.map(
-        (id) => hypernetworks.find((hn) => hn.id.toString() === id)?.name || ''
+        (id) => hypernetworks?.find((hn) => hn.id.toString() === id)?.name || ''
       ),
       aestheticGradientNames: selectedAestheticGradients.map(
-        (id) => aestheticGradients.find((ag) => ag.id.toString() === id)?.name || ''
+        (id) => aestheticGradients?.find((ag) => ag.id.toString() === id)?.name || ''
       ),
       controlnetNames: selectedControlnets.map(
-        (id) => controlnets.find((cn) => cn.id.toString() === id)?.name || ''
+        (id) => controlnets?.find((cn) => cn.id.toString() === id)?.name || ''
       ),
       poseName: selectedPose?.name || '',
       prompt,
@@ -222,19 +179,19 @@ const ImageGenerationScreen = () => {
     const payload = {
       checkpointName: selectedCheckpoint.name,
       loraNames: selectedLoras.map(
-        (id) => loras.find((lora) => lora.id.toString() === id)?.name || ''
+        (id) => loras?.find((lora) => lora.id.toString() === id)?.name || ''
       ),
       textualInversionNames: selectedTextualInversions.map(
-        (id) => textualInversions.find((ti) => ti.id.toString() === id)?.name || ''
+        (id) => textualInversions?.find((ti) => ti.id.toString() === id)?.name || ''
       ),
       hypernetworkNames: selectedHypernetworks.map(
-        (id) => hypernetworks.find((hn) => hn.id.toString() === id)?.name || ''
+        (id) => hypernetworks?.find((hn) => hn.id.toString() === id)?.name || ''
       ),
       aestheticGradientNames: selectedAestheticGradients.map(
-        (id) => aestheticGradients.find((ag) => ag.id.toString() === id)?.name || ''
+        (id) => aestheticGradients?.find((ag) => ag.id.toString() === id)?.name || ''
       ),
       controlnetNames: selectedControlnets.map(
-        (id) => controlnets.find((cn) => cn.id.toString() === id)?.name || ''
+        (id) => controlnets?.find((cn) => cn.id.toString() === id)?.name || ''
       ),
       poseName: selectedPose?.name || '',
       prompt,
@@ -263,95 +220,95 @@ const ImageGenerationScreen = () => {
   };
 
   return (
-    <ScrollView flex={1} padding={16} bg={"$background"} >
+    <ScrollView flex={1} padding={16} bg={'$background'}>
       <Text fontWeight="bold" fontSize={16} marginBottom={5}>
         Select Checkpoint (Required):
       </Text>
       <ModelSelectList
         numColumns={checkpointColumns}
-        models={checkpoints}
+        models={checkpoints ?? []}
         selectedModelId={selectedCheckpoint?.id}
         onModelPress={handleCheckpointPress}
       />
 
-      {loras.length > 0 && (
+      {(loras?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select LoRAs (Max 6):
           </Text>
           <ModelSelectList
             numColumns={loraColumns}
-            models={loras}
+            models={loras ?? []}
             selectedModelIds={selectedLoras}
             onModelSelect={handleLoraSelect}
           />
         </>
       )}
 
-      {textualInversions.length > 0 && (
+      {(textualInversions?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select Textual Inversions:
           </Text>
           <ModelSelectList
             numColumns={otherModelColumns}
-            models={textualInversions}
+            models={textualInversions ?? []}
             selectedModelIds={selectedTextualInversions}
             onModelSelect={handleTextualInversionSelect}
           />
         </>
       )}
 
-      {hypernetworks.length > 0 && (
+      {(hypernetworks?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select Hypernetworks:
           </Text>
           <ModelSelectList
             numColumns={otherModelColumns}
-            models={hypernetworks}
+            models={hypernetworks ?? []}
             selectedModelIds={selectedHypernetworks}
             onModelSelect={handleHypernetworkSelect}
           />
         </>
       )}
 
-      {aestheticGradients.length > 0 && (
+      {(aestheticGradients?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select Aesthetic Gradients:
           </Text>
           <ModelSelectList
             numColumns={otherModelColumns}
-            models={aestheticGradients}
+            models={aestheticGradients ?? []}
             selectedModelIds={selectedAestheticGradients}
             onModelSelect={handleAestheticGradientSelect}
           />
         </>
       )}
 
-      {controlnets.length > 0 && (
+      {(controlnets?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select Controlnets:
           </Text>
           <ModelSelectList
             numColumns={otherModelColumns}
-            models={controlnets}
+            models={controlnets ?? []}
             selectedModelIds={selectedControlnets}
             onModelSelect={handleControlnetSelect}
           />
         </>
       )}
 
-      {poses.length > 0 && (
+      {(poses?.length ?? 0) > 0 && (
         <>
           <Text fontWeight="bold" fontSize={16} marginTop={10} marginBottom={5}>
             Select Pose:
           </Text>
           <ModelSelectList
             numColumns={otherModelColumns}
-            models={poses}
+            models={poses ?? []}
             selectedModelId={selectedPose?.id}
             onModelPress={handlePosePress}
           />
@@ -371,8 +328,7 @@ const ImageGenerationScreen = () => {
             color={selectedAspectRatio === ratio ? '$accent12' : '$accent1'}
             onPress={() =>
               ratio === 'Custom' ? handleCustomRatioSelect() : handleAspectRatioSelect(ratio)
-            }
-          >
+            }>
             {ratio}
           </Button>
         ))}
@@ -440,7 +396,13 @@ const ImageGenerationScreen = () => {
       {generatedImage && (
         <View marginTop={10}>
           <Text>Generated Image:</Text>
-          <Image source={{ uri: generatedImage }} width={256} height={256} resizeMode="contain" marginTop={8} />
+          <Image
+            source={{ uri: generatedImage }}
+            width={256}
+            height={256}
+            resizeMode="contain"
+            marginTop={8}
+          />
         </View>
       )}
     </ScrollView>

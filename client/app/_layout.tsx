@@ -1,10 +1,11 @@
 // _layout.tsx
 import React, { useEffect } from 'react';
-import { TamaguiProvider } from 'tamagui';
+import { PortalProvider, TamaguiProvider } from 'tamagui';
 import { SplashScreen, Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 
 import config from '../tamagui.config';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -12,6 +13,8 @@ export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -28,13 +31,17 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <TamaguiProvider config={config} defaultTheme='dark' >
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        {/* Add this line to hide the header for the model details screen */}
-        <Stack.Screen name="models/[id]/index" options={{ headerShown: false }} />
-      </Stack>
+    <TamaguiProvider config={config} defaultTheme="dark">
+      <PortalProvider>
+        <QueryClientProvider client={queryClient}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            {/* Add this line to hide the header for the model details screen */}
+            <Stack.Screen name="models/[id]" options={{ headerShown: false }} />
+          </Stack>
+        </QueryClientProvider>
+      </PortalProvider>
     </TamaguiProvider>
   );
 }

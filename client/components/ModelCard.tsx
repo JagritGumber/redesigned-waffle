@@ -3,7 +3,7 @@ import { Card, Text, View, Image } from 'tamagui';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Model } from '~/types/civitai';
 import { Link } from 'expo-router';
-import { useModelStore } from '~/store/useModalStore'; // Adjust path
+import { useModelStore } from '~/store/useModelStore'; // Adjust path
 
 interface ModelCardProps {
   model: Model;

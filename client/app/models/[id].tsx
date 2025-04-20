@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Progress, Image, ScrollView, View, Text, useTheme, Button } from 'tamagui';
-import { Model, ModelVersion, FileVersion } from '~/types/civitai';
+import { Progress, Image, ScrollView, View, Text, useTheme, Button, AlertDialog } from 'tamagui';
+import { Model, FileVersion } from '~/types/civitai';
 import axios from 'axios';
 import RenderHTML from 'react-native-render-html';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import { X } from '@tamagui/lucide-icons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import ModelDownloadButton from '~/components/ModelDownloadButton';
-import { useModelStore } from '~/store/useModalStore';
+import { useModelStore } from '~/store/useModelStore';
 import { formatBytes } from '~/utils/formatBytes';
+import { CivitaiModelWithRelations } from '~/backend/schema/models';
+import fetchModelById from '~/utils/fetchModelById';
+import ModelDeleteButton from '~/components/ModelDeleteButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -22,6 +25,7 @@ const ModelDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const carouselRef = useRef<ICarouselInstance>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [downloadedModel, setDownloadedModel] = useState<CivitaiModelWithRelations | null>(null);
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [isCarouselDragging, setIsCarouselDragging] = useState<boolean>(false);
@@ -29,9 +33,16 @@ const ModelDetailScreen = () => {
   const { selectedModel } = useModelStore();
   const theme = useTheme();
 
+  const handleModelUpdate = useCallback(() => {
+    if (id) {
+      fetchModelById(id, setDownloadedModel);
+    }
+  }, [id]); // useCallback with id as dependency
+
   useEffect(() => {
     if (selectedModel && selectedModel.id.toString() === id) {
       setLocalModel(selectedModel);
+      fetchModelById(id, setDownloadedModel);
       setLoading(false);
     } else {
       const fetchModelDetails = async () => {
@@ -41,6 +52,7 @@ const ModelDetailScreen = () => {
           const apiUrl = `https://civitai.com/api/v1/models/${id}?token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=true`;
           const response = await axios.get(apiUrl);
           setLocalModel(response.data);
+          return response.data;
         } catch (e: any) {
           setError(e.message);
           console.error('Error fetching model details:', e);
@@ -48,7 +60,13 @@ const ModelDetailScreen = () => {
           setLoading(false);
         }
       };
-      fetchModelDetails();
+      fetchModelDetails()
+        .then(({ id }) => {
+          fetchModelById(id, setDownloadedModel); // Initial fetch of downloadedModel
+        })
+        .catch((err) => {
+          console.error('Error while trying to fetch this model from civitAi', err);
+        });
     }
   }, [id, router, selectedModel]);
 
@@ -123,6 +141,26 @@ const ModelDetailScreen = () => {
       setSelectedImage(imageIndex);
       setModalVisible(true);
     }
+  };
+
+  const handleDelete = () => {
+    async () => {
+      setLoading(true); // Show loading indicator during deletion
+      setError(null); // Clear any previous errors
+      try {
+        if (!id) {
+          setError('Model ID is missing.');
+          return;
+        }
+        await axios.delete(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/model/${id}`); // Call the DELETE route
+        console.log(`Model with ID ${id} deleted successfully`);
+      } catch (err: any) {
+        setError(err.response?.data?.error || err.message || 'Failed to delete model.');
+        console.error('Error deleting model:', err);
+      } finally {
+        setLoading(false); // Hide loading indicator
+      }
+    };
   };
 
   const renderItem = ({ item, index }: { item: string; index: number }) => (
@@ -309,6 +347,7 @@ const ModelDetailScreen = () => {
                     <Text>Type: {file.type}</Text>
                     <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
                     <ModelDownloadButton model={modelToDisplay} />
+                    {downloadedModel ? <ModelDeleteButton model={downloadedModel} /> : null}
                     {file.primary && (
                       <Text color="green" fontWeight="bold">
                         Primary

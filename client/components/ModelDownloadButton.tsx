@@ -3,12 +3,15 @@ import { Button } from 'tamagui';
 import { StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import { Model } from '~/types/civitai';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ModelDownloadButtonProps {
   model: Model;
 }
 
 function ModelDownloadButton({ model }: ModelDownloadButtonProps) {
+  const queryClient = useQueryClient();
+
   const handleDownload = useCallback(async () => {
     try {
       // Construct the full backend download URL
@@ -17,6 +20,9 @@ function ModelDownloadButton({ model }: ModelDownloadButtonProps) {
       // Open the URL in the device's default browser
       const res = await axios.post(downloadUrl, {
         model,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['models', model.type.toLowerCase().replace(/ /g, '-')],
       });
     } catch (error) {
       console.error('Download Trigger Error:', error);

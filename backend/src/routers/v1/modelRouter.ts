@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, or } from "drizzle-orm";
 import { Model } from "@/client/types/civitai";
 import {
   civitaiImages,
@@ -250,12 +250,12 @@ const modelRouter = new Hono<ContextForHono>()
                         save_path: runpodPath,
                         download_url: fileDownloadUrl,
                       },
-                      webhook: webhookUrl, // Include the webhook URL here
+                      webhook: webhookUrl,
                     });
 
                     if (runpodJob.id && savedCivitaiFile) {
                       console.log(
-                        `Download initiated for ${fileName} to ${runpodPath} with RunPod job ID: ${runpodJob.id}`
+                        `Download initiated for ${fileName} to ${runpodPath} with RunPod job ID: ${runpodJob.id}, Webhook url ${webhookUrl}`
                       );
                       // Optionally store the runpodJob.id in your database
                       await db
@@ -885,7 +885,9 @@ const modelRouter = new Hono<ContextForHono>()
       const model = await db
         .select()
         .from(civitaiModels)
-        .where(eq(civitaiModels.id, id));
+        .where(
+          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id)))
+        );
 
       if (model && model.length > 0) {
         return c.json(
@@ -945,6 +947,123 @@ const modelRouter = new Hono<ContextForHono>()
         },
         500
       );
+    }
+  })
+  .delete("/:id", async (c) => {
+    const id = c.req.param("id");
+    const db = c.get("db");
+    const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
+    const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
+    const endpoint = runpod.endpoint(runpodDownloaderId);
+
+    if (!runpodDownloaderId) {
+      return c.json(
+        { error: "RUNPOD_DOWNLOADER_ID environment variable is not set." },
+        500
+      );
+    }
+
+    try {
+      // 1. Fetch the model, latest version, and primary file to get runpodPath
+      const model = await db.query.civitaiModels.findFirst({
+        where: (civitaiModels, { eq }) => eq(civitaiModels.id, id),
+        with: {
+          versions: {
+            orderBy: (versions, { desc }) => desc(versions.createdAt),
+            with: {
+              files: {
+                orderBy: (files, { desc }) => desc(files.createdAt),
+                where: (files, { eq }) => eq(files.primary, true),
+              },
+            },
+          },
+        },
+      });
+
+      if (!model) {
+        return c.json({ message: `Model with ID ${id} not found` }, 404);
+      }
+
+      const latestVersion = model.versions[0]; // Latest version is now the first one due to desc order
+      if (
+        !latestVersion ||
+        !latestVersion.files ||
+        latestVersion.files.length === 0
+      ) {
+        return c.json(
+          { message: `No version or primary file found for model ID ${id}` },
+          404
+        );
+      }
+      const primaryFile = latestVersion.files[0];
+      const runpodPath = primaryFile?.runpodPath;
+
+      if (!runpodPath) {
+        return c.json(
+          { error: "Runpod path not found for the model file." },
+          500
+        );
+      }
+
+      // 2. Initiate Runpod task to delete the file
+      try {
+        const runpodJob = await endpoint!.run({
+          input: {
+            action: "delete",
+            save_path: runpodPath,
+          },
+        });
+
+        if (runpodJob.id) {
+          console.log(
+            `Deletion initiated for ${runpodPath} with RunPod job ID: ${runpodJob.id}`
+          );
+
+          // 3. Delete database records using db.batch
+          try {
+            await db.batch([
+              db
+                .delete(civitaiFiles)
+                .where(eq(civitaiFiles.civitaiVersionId, latestVersion.id)), // Delete files of the version
+              db
+                .delete(civitaiImages)
+                .where(eq(civitaiImages.civitaiVersionId, latestVersion.id)), // Delete images of the version
+              db
+                .delete(civitaiModelVersions)
+                .where(eq(civitaiModelVersions.civitaiModelId, model.id)), // Delete versions of the model
+              db.delete(civitaiModels).where(eq(civitaiModels.id, model.id)), // Finally delete the model
+            ]);
+          } catch (batchError) {
+            console.error("Error during db.batch operation:", batchError);
+            return c.json(
+              {
+                error:
+                  "Failed to delete database records using batch operation.",
+              },
+              500
+            );
+          }
+
+          return c.json(
+            {
+              message: `Model with ID ${id} and associated files deletion initiated. Runpod Job ID: ${runpodJob.id}`,
+            },
+            200
+          );
+        } else {
+          console.error("Failed to initiate Runpod deletion job:", runpodJob);
+          return c.json(
+            { error: "Failed to initiate Runpod deletion job." },
+            500
+          );
+        }
+      } catch (runpodError) {
+        console.error("Error initiating Runpod deletion job:", runpodError);
+        return c.json({ error: "Error initiating Runpod deletion job." }, 500);
+      }
+    } catch (dbError) {
+      console.error("Error fetching model data for deletion:", dbError);
+      return c.json({ error: "Failed to fetch model data for deletion." }, 500);
     }
   });
 
