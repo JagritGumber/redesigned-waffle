@@ -93,6 +93,7 @@ export const civitaiModelVersionsRelations = relations(
       references: [civitaiModels.id],
     }),
     files: many(civitaiFiles),
+    images: many(civitaiImages)
   })
 );
 

@@ -3,20 +3,21 @@ import { Button, Input, View } from 'tamagui';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  initialQuery?: string;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
-  const [searchText, setSearchText] = useState<string>('');
+const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialQuery }) => {
+  const [searchText, setSearchText] = useState<string>(initialQuery ?? '');
 
   const handleSearchSubmit = useCallback(() => {
     onSearch(searchText);
   }, [onSearch, searchText]);
 
   return (
-    <View flexDirection="row" alignItems="center" marginBottom={16} mx={'$4'} gap={'$4'}>
+    <View flexDirection="row" alignItems="center" gap={'$4'}>
       <Input
         flex={1}
-        h={40}
+        size={'$3'}
         borderColor="$color.gray700" // Using a theme color for border
         borderWidth={1}
         borderRadius={8}
@@ -26,7 +27,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         onChangeText={setSearchText}
         onSubmitEditing={handleSearchSubmit}
       />
-      <Button h={40} onPress={handleSearchSubmit}>
+      <Button size={'$3'} onPress={handleSearchSubmit} theme={'accent'}>
         Search
       </Button>
     </View>

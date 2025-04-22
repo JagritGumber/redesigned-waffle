@@ -39,6 +39,7 @@ export default function RootLayout() {
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             {/* Add this line to hide the header for the model details screen */}
             <Stack.Screen name="models/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="marketplace" options={{ headerShown: false }} />
           </Stack>
         </QueryClientProvider>
       </PortalProvider>

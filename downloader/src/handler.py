@@ -7,6 +7,7 @@ from runpod import RunPodLogger
 import requests
 import typing as t
 import os
+import shutil
 from pydantic import BaseModel
 import urllib
 import time
@@ -17,7 +18,7 @@ log = RunPodLogger()
 class InputPayload(BaseModel):
     download_url: t.Optional[str] = None
     save_path: t.Optional[str] = None
-    action: t.Literal["download", "delete"] = "download"
+    action: t.Literal["download", "delete", "deleteAll"] = "download"
 
 
 def get_directory_size(directory: str) -> int:
@@ -162,14 +163,87 @@ def delete_file(file_path: str) -> t.Dict:
         }
 
 
+def delete_all_files(directory_path: str) -> t.Dict:
+    """Deletes all files and directories within the specified directory."""
+    log.info(f"Starting deleteAll action for directory: {directory_path}")
+
+    if not os.path.isdir(directory_path):
+        log.error(f"Directory not found or is not a directory: {directory_path}")
+        # Get storage size here too, even on error
+        storage_used_bytes = get_directory_size("/runpod-volume/")
+        return {
+            "status": "error",
+            "message": f"Directory not found or is not a directory: {directory_path}",
+            "storage_used": storage_used_bytes,
+        }
+
+    items_deleted = 0
+    errors = []
+    total_items = 0
+
+    # Iterate through items IN the directory, not the directory itself
+    # List items first to avoid issues with modifying the directory during iteration
+    try:
+        items_to_delete = [
+            os.path.join(directory_path, item) for item in os.listdir(directory_path)
+        ]
+        total_items = len(items_to_delete)
+        log.info(f"Found {total_items} items to attempt deletion in {directory_path}")
+    except Exception as e:
+        log.error(f"Error listing items in {directory_path}: {e}")
+        storage_used_bytes = get_directory_size("/runpod-volume/")
+        return {
+            "status": "error",
+            "message": f"Error listing items in {directory_path}: {e}",
+            "storage_used": storage_used_bytes,
+        }
+
+    for item_path in items_to_delete:
+        try:
+            if os.path.isfile(item_path) or os.path.islink(item_path):
+                os.remove(item_path)
+                log.debug(f"Deleted file: {item_path}")
+                items_deleted += 1
+            elif os.path.isdir(item_path):
+                # Use shutil.rmtree for recursive directory deletion
+                # This is generally safe for deleting directory trees
+                shutil.rmtree(item_path)
+                log.debug(f"Deleted directory tree: {item_path}")
+                items_deleted += 1
+            else:
+                log.warn(f"Skipping unknown file type during deleteAll: {item_path}")
+        except Exception as e:
+            log.error(f"Error deleting item {item_path}: {e}")
+            errors.append(f"Error deleting {item_path}: {e}")
+
+    # After attempting deletion, get the final storage size
+    storage_used_bytes = get_directory_size(directory_path)
+
+    status = "success" if not errors else "partial_success"
+    message = f"Attempted to delete all items in {directory_path}. Deleted {items_deleted}/{total_items} items."
+    if errors:
+        message += f" Errors encountered: {len(errors)}."
+
+    log.info(
+        f"Finished deleteAll action for directory {directory_path}. Status: {status}, Items deleted: {items_deleted}/{total_items}"
+    )
+
+    return {
+        "status": status,
+        "message": message,
+        "errors": errors if errors else None,  # Include errors list if any
+        "items_deleted": items_deleted,
+        "total_items_attempted": total_items,
+        "storage_used": storage_used_bytes,  # Return storage after deletion attempt
+    }
+
+
 def handler(job: t.Dict) -> t.Dict:
     """
-    Handles the job by either downloading a file or deleting a file.
+    Handles the job by either downloading a file or deleting a file, or deleting all files.
     """
     try:
-        # Log the full job input at DEBUG level (can be chatty)
         log.debug(f"Starting handler, raw job input: {job}")
-        # Log job input ID and action at INFO level
         job_id = job.get("id", "N/A")
         action = job.get("input", {}).get("action", "N/A")
         log.info(f"Processing job ID: {job_id}, Action: {action}")
@@ -186,7 +260,9 @@ def handler(job: t.Dict) -> t.Dict:
                 return {
                     "status": "error",
                     "message": "Missing download_url or save_path for download action.",
-                    "storage_used": get_directory_size("/runpod-volume/"),
+                    "storage_used": get_directory_size(
+                        "/runpod-volume/"
+                    ),  # Include storage on error
                 }
             return download_file(download_url, save_path)
 
@@ -197,17 +273,37 @@ def handler(job: t.Dict) -> t.Dict:
                 return {
                     "status": "error",
                     "message": "Missing file_path for delete action.",
-                    "storage_used": get_directory_size("/runpod-volume/"),
+                    "storage_used": get_directory_size(
+                        "/runpod-volume/"
+                    ),  # Include storage on error
                 }
             return delete_file(file_path)
 
+        # New branch for the 'deleteAll' action
+        elif action == "deleteAll":
+            # The target directory is hardcoded for this action for safety/simplicity
+            delete_target_directory = "/runpod-volume/workspace/"
+            return delete_all_files(delete_target_directory)
+
         else:
             log.error(f"Unknown action received: {action}")
-            return {"status": "error", "message": f"Unknown action: {action}"}
+            # Include storage usage even on unknown action
+            storage_used_bytes = get_directory_size("/runpod-volume/")
+            return {
+                "status": "error",
+                "message": f"Unknown action: {action}",
+                "storage_used": storage_used_bytes,
+            }
 
     except Exception as e:
         log.error(f"Error processing job in handler: {e}")
-        return {"status": "error", "message": f"Error processing job: {e}"}
+        # Include storage usage even if a top-level handler error occurs
+        storage_used_bytes = get_directory_size("/runpod-volume/")
+        return {
+            "status": "error",
+            "message": f"Error processing job: {e}",
+            "storage_used": storage_used_bytes,
+        }
 
 
 # Start the RunPod serverless worker

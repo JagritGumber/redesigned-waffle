@@ -351,23 +351,121 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/", async (c) => {
     try {
       const db = c.get("db");
-      const allModels = await db.select().from(civitaiModels);
-
-      if (allModels && allModels.length > 0) {
-        return c.json(
-          { message: "Models fetched successfully", models: allModels },
-          200
+      const results = await db
+        .select({
+          model: civitaiModels,
+          version: civitaiModelVersions,
+          file: civitaiFiles,
+          image: civitaiImages, // Select the image data
+        })
+        .from(civitaiModels)
+        .innerJoin(
+          civitaiModelVersions,
+          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
+        )
+        .innerJoin(
+          civitaiFiles,
+          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
+        )
+        .innerJoin(
+          civitaiImages, // Join with the images table
+          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
+        )
+        .orderBy(
+          asc(civitaiModels.createdAt),
+          asc(civitaiModelVersions.createdAt),
+          asc(civitaiImages.createdAt)
         );
-      } else {
-        return c.json({ message: "No models found" }, 200); // Or 404
+
+      const modelsMap = new Map();
+
+      for (const row of results) {
+        const model = row.model;
+        const version = row.version;
+        const file = row.file;
+        const image = row.image; // Get the image data
+
+        if (!modelsMap.has(model.id)) {
+          modelsMap.set(model.id, { ...model, versions: new Map() });
+        }
+
+        const modelEntry = modelsMap.get(model.id);
+
+        if (!modelEntry.versions.has(version.id)) {
+          modelEntry.versions.set(version.id, {
+            ...version,
+            files: [],
+            images: [],
+          }); // Initialize images array
+        }
+
+        const versionEntry = modelEntry.versions.get(version.id);
+        versionEntry.files.push(file);
+        versionEntry.images.push(image); // Add the image to the version
       }
+
+      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
+        ...modelEntry,
+        versions: Array.from(modelEntry.versions.values()),
+      }));
+
+      return c.json({ models }, 200);
     } catch (error) {
-      console.error("Error fetching models:", error);
+      console.error("Error fetching Poses with files and images:", error);
+      return c.json(
+        { error: "Failed to fetch Poses with files and images" },
+        500
+      );
+    }
+  })
+  .delete("/", async (c) => {
+    const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
+    const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
+    const webhookUrl = c.env.RUNPOD_WEBHOOK_URL + "/downloader";
+    const endpoint = runpod.endpoint(runpodDownloaderId);
+    const db = c.get("db");
+
+    // --- SECURITY CHECK: Require confirmation parameter ---
+    const confirm = c.req.query("confirm");
+    if (confirm !== "true") {
+      console.warn(
+        "DELETE / rejected: Confirmation parameter missing or incorrect."
+      );
       return c.json(
         {
-          message: "Failed to fetch models",
-          error: error instanceof Error ? error.message : JSON.stringify(error),
+          error:
+            "Confirmation required to delete all data. Add ?confirm=true to the URL.",
         },
+        400 // Bad Request
+      );
+    }
+
+    try {
+      const runpodJob = await endpoint!.run({
+        input: {
+          action: "deleteAll",
+          save_path: "/runpod-volume/workspace/",
+        },
+        webhook: webhookUrl,
+      });
+      // Delete from child tables first due to foreign key constraints
+      // Use db.batch for atomic operation in Cloudflare D1
+      await db.batch([
+        db.delete(civitaiFiles), // Delete all files
+        db.delete(civitaiImages), // Delete all images
+        db.delete(civitaiModelVersions), // Delete all versions
+        db.delete(civitaiModels), // Finally delete all models
+      ]);
+
+      console.log("Successfully deleted all models and related data.");
+      return c.json(
+        { message: "All models and related data deleted successfully." },
+        200
+      );
+    } catch (error) {
+      console.error("Error deleting all models and related data:", error);
+      return c.json(
+        { error: "Failed to delete all models and related data." },
         500
       );
     }
@@ -954,6 +1052,7 @@ const modelRouter = new Hono<ContextForHono>()
     const db = c.get("db");
     const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
     const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
+    const webhookUrl = c.env.RUNPOD_WEBHOOK_URL + "/downloader";
     const endpoint = runpod.endpoint(runpodDownloaderId);
 
     if (!runpodDownloaderId) {
@@ -1012,6 +1111,7 @@ const modelRouter = new Hono<ContextForHono>()
             action: "delete",
             save_path: runpodPath,
           },
+          webhook: webhookUrl,
         });
 
         if (runpodJob.id) {

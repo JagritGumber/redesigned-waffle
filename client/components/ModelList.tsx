@@ -3,35 +3,49 @@ import { Dimensions } from 'react-native';
 import { Text, Spinner, Button, View } from 'tamagui';
 import ModelCard from './ModelCard';
 import { useMarketplaceStore } from '~/store/useMarketplaceStore'; // Adjust path if needed
+import { Model } from '~/types/civitai';
 
 const { width: screenWidth } = Dimensions.get('window');
 const cardMarginBase = 16;
 const cardGapBase = 16;
 
 interface ModelListProps {
+  models: Model[];
   numColumns: number;
+  isLoadingMore?: boolean; // Optional: To display loading within individual cards
+  hasNextPage?: boolean; // Do we have a next page
+  loadMore?: () => void; // Action for loading more
+  isLoadingInitial: boolean;
+  isError: boolean;
 }
 
-const ModelList: React.FC<ModelListProps> = ({ numColumns }) => {
-  const { models, loading, error, hasMore, isFetchingMore, loadMore, hasSearchedOrFiltered } =
-    useMarketplaceStore();
+const ModelList: React.FC<ModelListProps> = ({
+  numColumns,
+  models,
+  loadMore,
+  isLoadingInitial,
+  isLoadingMore,
+  isError,
+  hasNextPage,
+}) => {
+  useMarketplaceStore();
   const cardWidth = `calc(${100 / numColumns}% - ${cardGapBase}px)`;
   const marginRight = cardGapBase;
   const marginBottom = cardGapBase;
 
-  if (loading) {
+  if (isLoadingInitial) {
     return <Text>Loading Civit AI Models...</Text>;
   }
 
-  if (error) {
-    return <Text>Error loading Civit AI Models: {error}</Text>;
+  if (isError) {
+    return <Text>Error loading Civit AI Models</Text>;
   }
 
-  if (models.length === 0 && !loading && hasSearchedOrFiltered) {
+  if (models.length === 0 && !isLoadingInitial) {
     return <Text color="$color.gray300">No Civit AI models found based on your criteria.</Text>;
   }
 
-  if (models.length === 0 && !loading && !error && !hasSearchedOrFiltered) {
+  if (models.length === 0 && !isLoadingInitial && !isError) {
     return <Text color="$color.gray300">No Civit AI models found.</Text>;
   }
 
@@ -51,8 +65,8 @@ const ModelList: React.FC<ModelListProps> = ({ numColumns }) => {
           <ModelCard model={model} />
         </View>
       ))}
-      {isFetchingMore && <Spinner mt={16} />}
-      {hasMore && !isFetchingMore && (
+      {isLoadingMore && <Spinner mt={16} />}
+      {hasNextPage && !isLoadingMore && (
         <Button mt={16} alignSelf="center" onPress={loadMore}>
           Load More
         </Button>

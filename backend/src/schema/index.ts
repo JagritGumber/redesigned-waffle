@@ -14,3 +14,4 @@ export {
   civitaiModelsRelations,
   civitaiModelVersionsRelations,
 } from "./models";
+export { storageInfo } from "./storageInfo";
