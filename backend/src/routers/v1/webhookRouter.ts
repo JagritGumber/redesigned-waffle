@@ -13,8 +13,12 @@ const webhookRouter = new Hono<ContextForHono>()
         status: string;
         output?: any;
         error?: any;
+        input: {
+          action: "delete" | "download" | "deleteAll";
+          save_path?: string;
+        };
       }>();
-      const { id: runpodJobId, status: jobStatus, output } = payload;
+      const { id: runpodJobId, status: jobStatus, output, input } = payload;
       const db = c.get("db");
 
       console.log(
@@ -22,24 +26,29 @@ const webhookRouter = new Hono<ContextForHono>()
         payload
       );
 
-      // Update the database based on the job status (assuming this is for downloads)
-      const updatedFile = await db
-        .update(civitaiFiles)
-        .set({
-          downloadStatus: jobStatus,
-          downloadOutput: output ? JSON.stringify(output) : null,
-        })
-        .where(eq(civitaiFiles.runpodJobId, runpodJobId))
-        .returning();
+      if (["download"].includes(input.action)) {
+        const updatedFile = await db
+          .update(civitaiFiles)
+          .set({
+            downloadStatus: jobStatus,
+            downloadOutput: output ? JSON.stringify(output) : null,
+          })
+          .where(eq(civitaiFiles.runpodJobId, runpodJobId))
+          .returning();
 
-      if (updatedFile.length > 0) {
-        console.log(
-          `Updated download status for RunPod job ID ${runpodJobId} to ${jobStatus} (downloader)`
-        );
-      } else {
-        console.warn(
-          `Could not find database entry for RunPod job ID ${runpodJobId} (downloader)`
-        );
+        if (updatedFile.length > 0) {
+          console.log(
+            `Updated download status for RunPod job ID ${runpodJobId} to ${jobStatus} (downloader)`
+          );
+        } else {
+          console.warn(
+            `Could not find database entry for RunPod job ID ${runpodJobId} (downloader)`
+          );
+        }
+      }
+
+      if (["delete"].includes(input.action)){
+        
       }
 
       if (jobStatus === "COMPLETED") {

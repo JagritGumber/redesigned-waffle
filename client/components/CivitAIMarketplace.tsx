@@ -46,13 +46,11 @@ const CivitAIMarketplace = () => {
     username: '',
     types: [],
     sort: '',
-    // Add base params like nsfw if they can be controlled or are constant
-    nsfw: false,
-    limit: 20, // Match the limit used in buildInitialUrl
+    nsfw: true,
+    limit: 20,
   });
 
   const [numColumns, setNumColumns] = useState<number>(2);
-  const [debouncedSearchQuery] = useDebounceValue(searchQuery, 500);
 
   // == TanStack Infinite Query Hook ==
   const queryKey = useMemo(() => ['models', appliedFilters], [appliedFilters]);
@@ -108,8 +106,8 @@ const CivitAIMarketplace = () => {
   // Update applied filters when debounced search query changes
   useEffect(() => {
     // Reset to first page when search query changes
-    setAppliedFilters((prev) => ({ ...prev, query: debouncedSearchQuery }));
-  }, [debouncedSearchQuery]);
+    setAppliedFilters((prev) => ({ ...prev, query: searchQuery }));
+  }, [searchQuery]);
 
   const openFilterModal = () => {
     setModalFilterTag(appliedFilters.tag || '');

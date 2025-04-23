@@ -11,6 +11,7 @@ import shutil
 from pydantic import BaseModel
 import urllib
 import time
+import subprocess
 
 log = RunPodLogger()
 
@@ -105,14 +106,124 @@ def download_file(download_url: str, save_path: str):
         }
 
     except requests.exceptions.RequestException as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Error downloading {download_url}: {e}")
-        return {"status": "error", "message": f"Error downloading {download_url}: {e}"}
+        return {
+            "status": "error",
+            "message": f"Error downloading {download_url}: {e}",
+            "storage_used": storage_before_error,
+        }
     except OSError as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Error saving file to {save_path}: {e}")
-        return {"status": "error", "message": f"Error saving to {save_path}: {e}"}
+        return {
+            "status": "error",
+            "message": f"Error saving to {save_path}: {e}",
+            "storage_used": storage_before_error,
+        }
     except Exception as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Unexpected error during download: {e}")
-        return {"status": "error", "message": f"Unexpected error during download: {e}"}
+        return {
+            "status": "error",
+            "message": f"Unexpected error during download: {e}",
+            "storage_used": storage_before_error,
+        }
+
+
+def download_file_direct(download_url: str, save_path: str):
+    """Downloads a file directly using wget, bypassing temporary storage."""
+    start_time = time.time()
+    try:
+        log.info(
+            f"Starting direct download_file with wget for URL: {download_url}, save_path: {save_path}"
+        )
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        log.debug(f"Ensured save directory exists: {os.path.dirname(save_path)}")
+
+        parsed_download_url = urllib.parse.urlparse(download_url)
+        query_params = urllib.parse.parse_qs(parsed_download_url.query)
+        civitai_token = os.environ.get("RUNPOD_CIVITAI_TOKEN")
+        # It's safer to not log the full token value
+        log.debug(
+            f"Retrieved Civitai Token from environment variable: {civitai_token is not None}"
+        )
+
+        query_params["token"] = [civitai_token] if civitai_token is not None else [""]
+        updated_query_string = urllib.parse.urlencode(query_params, doseq=True)
+        updated_download_url = urllib.parse.urlunparse(
+            parsed_download_url._replace(query=updated_query_string)
+        )
+        log.debug(
+            f"Constructed download URL (with token query param): {updated_download_url}"
+        )  # Log constructed URL (be cautious if logging sensitive URLs)
+
+        # Construct the wget command
+        wget_command = [
+            "wget",
+            "-O",  # Specify output file
+            save_path,
+            updated_download_url,
+        ]
+        log.info(f"Executing wget command: {' '.join(wget_command)}")
+
+        # Execute wget using subprocess (capture output and errors)
+        process = subprocess.Popen(
+            wget_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        stdout, stderr = process.communicate()  # Wait for process to complete
+
+        if process.returncode != 0:
+            storage_before_error = get_directory_size("/runpod-volume/")
+            error_message = (
+                f"wget failed with exit code {process.returncode}: {stderr.decode()}"
+            )
+            log.error(error_message)
+            return {
+                "status": "error",
+                "message": error_message,
+                "storage_used": storage_before_error,
+            }
+
+        log.info(f"File downloaded successfully to {save_path}")
+
+        storage_used_bytes = get_directory_size("/runpod-volume/")  # Re-check storage
+
+        end_time = time.time()
+        duration = end_time - start_time
+        log.debug(f"Total wget execution time: {duration:.4f} seconds")
+
+        return {
+            "status": "completed",
+            "message": f"Download completed to {save_path} (using wget)",
+            "storage_used": storage_used_bytes,
+        }
+
+    except FileExistsError as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
+        log.error(f"File already exists at {save_path}: {e}")
+        return {
+            "status": "error",
+            "message": f"File already exists at {save_path}: {e}",
+            "storage_used": storage_before_error,
+        }
+
+    except OSError as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
+        log.error(f"Error saving file to {save_path}: {e}")
+        return {
+            "status": "error",
+            "message": f"Error saving to {save_path}: {e}",
+            "storage_used": storage_before_error,
+        }
+    except Exception as e:
+        storage_before_error = get_directory_size("/runpod-volume/")
+        log.error(f"Unexpected error during download: {e}")
+        return {
+            "status": "error",
+            "message": f"Unexpected error during download: {e}",
+            "storage_used": storage_before_error,
+        }
 
 
 def delete_file(file_path: str) -> t.Dict:
@@ -282,7 +393,7 @@ def handler(job: t.Dict) -> t.Dict:
         # New branch for the 'deleteAll' action
         elif action == "deleteAll":
             # The target directory is hardcoded for this action for safety/simplicity
-            delete_target_directory = "/runpod-volume/workspace/"
+            delete_target_directory = "/runpod-volume/"
             return delete_all_files(delete_target_directory)
 
         else:

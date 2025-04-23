@@ -55,18 +55,9 @@ export const fetchCivitAIModelsPage = async ({
 // Helper to construct the *initial* URL based on filters
 export const buildInitialUrl = (baseParams: FetchModelsParams): string => {
   const urlParams = new URLSearchParams({
-    // Add default/base parameters here
-    limit: (baseParams.limit || 20).toString(), // Default limit
-    nsfw: (baseParams.nsfw ?? true).toString(), // Default nsfw
-    // token: process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN || '', // Add token if needed
-    page: '1', // Always start at page 1 for initial load
+    token: process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN,
+    nsfw: `${baseParams.nsfw ?? true}`,
   });
-
-  // Append token only if it exists
-  const token = process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN;
-  if (token) {
-    urlParams.set('token', token);
-  }
 
   // Add dynamic filters/query
   if (baseParams.query) urlParams.set('query', baseParams.query);
