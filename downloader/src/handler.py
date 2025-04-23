@@ -20,6 +20,7 @@ class InputPayload(BaseModel):
     download_url: t.Optional[str] = None
     save_path: t.Optional[str] = None
     action: t.Literal["download", "delete", "deleteAll"] = "download"
+    model_id: t.Optional[str] = None
 
 
 def get_directory_size(directory: str) -> int:
@@ -100,7 +101,7 @@ def download_file(download_url: str, save_path: str):
         log.debug(f"Total download_file execution time: {duration:.4f} seconds")
 
         return {
-            "status": "completed",
+            "status": "COMPLETED",
             "message": f"Download completed to {save_path}",
             "storage_used": storage_used_bytes,
         }
@@ -109,7 +110,7 @@ def download_file(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Error downloading {download_url}: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error downloading {download_url}: {e}",
             "storage_used": storage_before_error,
         }
@@ -117,7 +118,7 @@ def download_file(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Error saving file to {save_path}: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error saving to {save_path}: {e}",
             "storage_used": storage_before_error,
         }
@@ -125,7 +126,7 @@ def download_file(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Unexpected error during download: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Unexpected error during download: {e}",
             "storage_used": storage_before_error,
         }
@@ -180,7 +181,7 @@ def download_file_direct(download_url: str, save_path: str):
             )
             log.error(error_message)
             return {
-                "status": "error",
+                "status": "ERROR",
                 "message": error_message,
                 "storage_used": storage_before_error,
             }
@@ -194,7 +195,7 @@ def download_file_direct(download_url: str, save_path: str):
         log.debug(f"Total wget execution time: {duration:.4f} seconds")
 
         return {
-            "status": "completed",
+            "status": "COMPLETED",
             "message": f"Download completed to {save_path} (using wget)",
             "storage_used": storage_used_bytes,
         }
@@ -203,7 +204,7 @@ def download_file_direct(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"File already exists at {save_path}: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"File already exists at {save_path}: {e}",
             "storage_used": storage_before_error,
         }
@@ -212,7 +213,7 @@ def download_file_direct(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Error saving file to {save_path}: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error saving to {save_path}: {e}",
             "storage_used": storage_before_error,
         }
@@ -220,7 +221,7 @@ def download_file_direct(download_url: str, save_path: str):
         storage_before_error = get_directory_size("/runpod-volume/")
         log.error(f"Unexpected error during download: {e}")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Unexpected error during download: {e}",
             "storage_used": storage_before_error,
         }
@@ -248,7 +249,7 @@ def delete_file(file_path: str) -> t.Dict:
             )
 
             return {
-                "status": "success",
+                "status": "COMPLETED",
                 "message": f"File deleted successfully: {file_path}",
                 "storage_used": storage_after_delete,  # Return storage after deletion
             }
@@ -259,7 +260,7 @@ def delete_file(file_path: str) -> t.Dict:
             storage_used_bytes = get_directory_size("/runpod-volume/")
 
             return {
-                "status": "error",
+                "status": "ERROR",
                 "message": f"File not found: {file_path}",
                 "storage_used": storage_used_bytes,  # Return storage even if file not found
             }
@@ -268,7 +269,7 @@ def delete_file(file_path: str) -> t.Dict:
         # Get storage usage on error
         storage_used_bytes = get_directory_size("/runpod-volume/")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error deleting file: {e}",
             "storage_used": storage_used_bytes,
         }
@@ -283,7 +284,7 @@ def delete_all_files(directory_path: str) -> t.Dict:
         # Get storage size here too, even on error
         storage_used_bytes = get_directory_size("/runpod-volume/")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Directory not found or is not a directory: {directory_path}",
             "storage_used": storage_used_bytes,
         }
@@ -304,7 +305,7 @@ def delete_all_files(directory_path: str) -> t.Dict:
         log.error(f"Error listing items in {directory_path}: {e}")
         storage_used_bytes = get_directory_size("/runpod-volume/")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error listing items in {directory_path}: {e}",
             "storage_used": storage_used_bytes,
         }
@@ -330,7 +331,7 @@ def delete_all_files(directory_path: str) -> t.Dict:
     # After attempting deletion, get the final storage size
     storage_used_bytes = get_directory_size(directory_path)
 
-    status = "success" if not errors else "partial_success"
+    status = "COMPLETED" if not errors else "PARTIAL_COMPLETED"
     message = f"Attempted to delete all items in {directory_path}. Deleted {items_deleted}/{total_items} items."
     if errors:
         message += f" Errors encountered: {len(errors)}."
@@ -369,7 +370,7 @@ def handler(job: t.Dict) -> t.Dict:
             if not download_url or not save_path:
                 log.warn("Download action missing download_url or save_path.")
                 return {
-                    "status": "error",
+                    "status": "ERROR",
                     "message": "Missing download_url or save_path for download action.",
                     "storage_used": get_directory_size(
                         "/runpod-volume/"
@@ -382,7 +383,7 @@ def handler(job: t.Dict) -> t.Dict:
             if not file_path:
                 log.warn("Delete action missing file_path.")
                 return {
-                    "status": "error",
+                    "status": "ERROR",
                     "message": "Missing file_path for delete action.",
                     "storage_used": get_directory_size(
                         "/runpod-volume/"
@@ -401,7 +402,7 @@ def handler(job: t.Dict) -> t.Dict:
             # Include storage usage even on unknown action
             storage_used_bytes = get_directory_size("/runpod-volume/")
             return {
-                "status": "error",
+                "status": "ERROR",
                 "message": f"Unknown action: {action}",
                 "storage_used": storage_used_bytes,
             }
@@ -411,7 +412,7 @@ def handler(job: t.Dict) -> t.Dict:
         # Include storage usage even if a top-level handler error occurs
         storage_used_bytes = get_directory_size("/runpod-volume/")
         return {
-            "status": "error",
+            "status": "ERROR",
             "message": f"Error processing job: {e}",
             "storage_used": storage_used_bytes,
         }

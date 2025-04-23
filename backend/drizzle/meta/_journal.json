@@ -43,6 +43,13 @@
       "when": 1745182224452,
       "tag": "0005_stormy_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1745405794847,
+      "tag": "0006_wet_earthquake",
+      "breakpoints": true
     }
   ]
 }

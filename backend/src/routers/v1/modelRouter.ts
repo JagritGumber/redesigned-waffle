@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
-import { asc, eq, or } from "drizzle-orm";
+import { and, asc, eq, not, or } from "drizzle-orm";
 import { Model } from "@/client/types/civitai";
 import {
   civitaiImages,
@@ -43,6 +43,7 @@ const modelRouter = new Hono<ContextForHono>()
     // Initialize RunPod SDK
     const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
     const endpoint = runpod.endpoint(runpodDownloaderId);
+    let runpodJobId: string = "";
 
     try {
       const {
@@ -249,9 +250,11 @@ const modelRouter = new Hono<ContextForHono>()
                       input: {
                         save_path: runpodPath,
                         download_url: fileDownloadUrl,
+                        model_id: savedCivitaiModel.id,
                       },
                       webhook: webhookUrl,
                     });
+                    runpodJobId = runpodJob.id;
 
                     if (runpodJob.id && savedCivitaiFile) {
                       console.log(
@@ -262,14 +265,38 @@ const modelRouter = new Hono<ContextForHono>()
                         .update(civitaiFiles)
                         .set({ runpodJobId: runpodJob.id })
                         .where(eq(civitaiFiles.id, savedCivitaiFile.id));
+
+                      // Return IN_PROGRESS status and RunPod job ID
+                      return c.json(
+                        {
+                          message: `Download initiated for ${fileName} to ${runpodPath}. RunPod Job ID: ${runpodJob.id}`,
+                          status: "IN_PROGRESS", // Indicate that the download is in progress
+                          runpodJobId: runpodJob.id,
+                        },
+                        200
+                      );
                     } else {
                       console.error(
                         `Failed to initiate download for ${fileName}:`,
                         runpodJob
                       );
+                      return c.json(
+                        {
+                          error: `Failed to initiate download for ${fileName}.`,
+                          status: "ERROR", // Or handle the error appropriately
+                        },
+                        500
+                      );
                     }
                   } catch (error) {
                     console.error("Error initiating RunPod job:", error);
+                    return c.json(
+                      {
+                        error: "Error initiating RunPod job.",
+                        status: "ERROR",
+                      },
+                      500
+                    );
                   }
                 }
               }
@@ -330,6 +357,9 @@ const modelRouter = new Hono<ContextForHono>()
           return c.json(
             {
               message: `Model with ID ${civitaiModelData.id} saved successfully. Download initiated for the latest primary file (check webhook for status).`,
+              status: "IN_PROGRESS",
+              runpodJobId: runpodJobId,
+              civitaiId: civitaiId,
             },
             200
           );
@@ -448,20 +478,27 @@ const modelRouter = new Hono<ContextForHono>()
         },
         webhook: webhookUrl,
       });
-      // Delete from child tables first due to foreign key constraints
-      // Use db.batch for atomic operation in Cloudflare D1
-      await db.batch([
-        db.delete(civitaiFiles), // Delete all files
-        db.delete(civitaiImages), // Delete all images
-        db.delete(civitaiModelVersions), // Delete all versions
-        db.delete(civitaiModels), // Finally delete all models
-      ]);
 
-      console.log("Successfully deleted all models and related data.");
-      return c.json(
-        { message: "All models and related data deleted successfully." },
-        200
-      );
+      if (runpodJob.id) {
+        console.log(
+          `Deletion initiated for all files. RunPod Job ID: ${runpodJob.id}`
+        );
+
+        return c.json(
+          {
+            message: "Deletion initiated for all files.",
+            status: "IN_PROGRESS",
+            runpodJobId: runpodJob.id,
+          },
+          200
+        );
+      } else {
+        console.error("Failed to initiate Runpod deletion job:", runpodJob);
+        return c.json(
+          { error: "Failed to initiate Runpod deletion job." },
+          500
+        );
+      }
     } catch (error) {
       console.error("Error deleting all models and related data:", error);
       return c.json(
@@ -980,16 +1017,23 @@ const modelRouter = new Hono<ContextForHono>()
     try {
       const db = c.get("db");
       const id = c.req.param("id");
-      const model = await db
+      const [model] = await db
         .select()
         .from(civitaiModels)
         .where(
-          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id)))
-        );
+          and(
+            or(
+              eq(civitaiModels.id, id),
+              eq(civitaiModels.civitaiId, Number(id))
+            ),
+            not(eq(civitaiModels.status, "DELETED"))
+          )
+        )
+        .limit(1);
 
-      if (model && model.length > 0) {
+      if (model) {
         return c.json(
-          { message: "Model fetched successfully", model: model[0] },
+          { message: "Model fetched successfully", model: model },
           200
         );
       } else {
@@ -1019,7 +1063,9 @@ const modelRouter = new Hono<ContextForHono>()
       const updatedModelResult = await db
         .update(civitaiModels)
         .set({ defaultWeight: newWeight, updatedAt: new Date() })
-        .where(eq(civitaiModels.id, id))
+        .where(
+          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id)))
+        )
         .returning();
 
       if (updatedModelResult && updatedModelResult.length > 0) {
@@ -1065,7 +1111,8 @@ const modelRouter = new Hono<ContextForHono>()
     try {
       // 1. Fetch the model, latest version, and primary file to get runpodPath
       const model = await db.query.civitaiModels.findFirst({
-        where: (civitaiModels, { eq }) => eq(civitaiModels.id, id),
+        where: (civitaiModels, { eq, or }) =>
+          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id))),
         with: {
           versions: {
             orderBy: (versions, { desc }) => desc(versions.createdAt),
@@ -1110,6 +1157,7 @@ const modelRouter = new Hono<ContextForHono>()
           input: {
             action: "delete",
             save_path: runpodPath,
+            model_id: model.id,
           },
           webhook: webhookUrl,
         });
@@ -1119,34 +1167,13 @@ const modelRouter = new Hono<ContextForHono>()
             `Deletion initiated for ${runpodPath} with RunPod job ID: ${runpodJob.id}`
           );
 
-          // 3. Delete database records using db.batch
-          try {
-            await db.batch([
-              db
-                .delete(civitaiFiles)
-                .where(eq(civitaiFiles.civitaiVersionId, latestVersion.id)), // Delete files of the version
-              db
-                .delete(civitaiImages)
-                .where(eq(civitaiImages.civitaiVersionId, latestVersion.id)), // Delete images of the version
-              db
-                .delete(civitaiModelVersions)
-                .where(eq(civitaiModelVersions.civitaiModelId, model.id)), // Delete versions of the model
-              db.delete(civitaiModels).where(eq(civitaiModels.id, model.id)), // Finally delete the model
-            ]);
-          } catch (batchError) {
-            console.error("Error during db.batch operation:", batchError);
-            return c.json(
-              {
-                error:
-                  "Failed to delete database records using batch operation.",
-              },
-              500
-            );
-          }
-
           return c.json(
             {
               message: `Model with ID ${id} and associated files deletion initiated. Runpod Job ID: ${runpodJob.id}`,
+              status: "IN_PROGRESS",
+              runpodJobId: runpodJob.id,
+              modelId: model.id,
+              civitaiId: model.civitaiId,
             },
             200
           );

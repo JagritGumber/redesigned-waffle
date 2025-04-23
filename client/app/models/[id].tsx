@@ -1,74 +1,70 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+// ./app/model/[id].tsx
+import { useState, useEffect, useRef } from 'react';
 import { Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Progress, Image, ScrollView, View, Text, useTheme, Button, AlertDialog } from 'tamagui';
-import { Model, FileVersion } from '~/types/civitai';
+import { Model as CivitaiApiModel, FileVersion, Model } from '~/types/civitai'; // Use alias for Civitai API Model
 import axios from 'axios';
 import RenderHTML from 'react-native-render-html';
 import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import { X } from '@tamagui/lucide-icons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import ModelDownloadButton from '~/components/ModelDownloadButton';
-import { useModelStore } from '~/store/useModelStore';
 import { formatBytes } from '~/utils/formatBytes';
-import { CivitaiModelWithRelations } from '~/backend/schema/models';
-import fetchModelById from '~/utils/fetchModelById';
+import { useGetDownloadedModel } from '~/hooks/useGetDownloadedModel'; // Import the custom hook
 import ModelDeleteButton from '~/components/ModelDeleteButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const ModelDetailScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>(); // Civitai ID as string
   const router = useRouter();
-  const [localModel, setLocalModel] = useState<Model | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [civitaiModel, setCivitaiModel] = useState<CivitaiApiModel | null>(null); // Data directly from Civitai API
+  const [loadingCivitai, setLoadingCivitai] = useState<boolean>(true); // Loading state for Civitai fetch
+  const [civitaiError, setCivitaiError] = useState<string | null>(null); // Error state for Civitai fetch
+
   const carouselRef = useRef<ICarouselInstance>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [downloadedModel, setDownloadedModel] = useState<CivitaiModelWithRelations | null>(null);
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [isCarouselDragging, setIsCarouselDragging] = useState<boolean>(false);
 
-  const { selectedModel } = useModelStore();
   const theme = useTheme();
 
-  const handleModelUpdate = useCallback(() => {
-    if (id) {
-      fetchModelById(id, setDownloadedModel);
-    }
-  }, [id]); // useCallback with id as dependency
+  // Use TanStack Query to fetch the model data from YOUR backend
+  const {
+    downloadedModel, // This is the data from YOUR backend DB (CivitaiModelWithRelations)
+    isLoading: isLoadingDownloadedModel, // Loading state from TanStack Query
+    error: downloadedModelError, // Error state from TanStack Query
+    // We don't need manual re-fetch handlers because invalidateQueries handles it
+  } = useGetDownloadedModel(id);
 
+  // Effect to fetch initial Civitai API data (only once on mount or id change)
   useEffect(() => {
-    if (selectedModel && selectedModel.id.toString() === id) {
-      setLocalModel(selectedModel);
-      fetchModelById(id, setDownloadedModel);
-      setLoading(false);
-    } else {
-      const fetchModelDetails = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const apiUrl = `https://civitai.com/api/v1/models/${id}?token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=true`;
-          const response = await axios.get(apiUrl);
-          setLocalModel(response.data);
-          return response.data;
-        } catch (e: any) {
-          setError(e.message);
-          console.error('Error fetching model details:', e);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchModelDetails()
-        .then(({ id }) => {
-          fetchModelById(id, setDownloadedModel); // Initial fetch of downloadedModel
-        })
-        .catch((err) => {
-          console.error('Error while trying to fetch this model from civitAi', err);
-        });
+    if (!id) {
+      setLoadingCivitai(false);
+      setCivitaiError('Model ID is missing.');
+      return;
     }
-  }, [id, router, selectedModel]);
+
+    const fetchCivitaiDetails = async () => {
+      setLoadingCivitai(true);
+      setCivitaiError(null);
+      try {
+        // Use the id from route params (which is the Civitai ID)
+        const apiUrl = `https://civitai.com/api/v1/models/${id}?token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=true`;
+        const response = await axios.get<CivitaiApiModel>(apiUrl);
+        setCivitaiModel(response.data);
+      } catch (e: any) {
+        setCivitaiError(e.message);
+        console.error('Error fetching Civitai model details:', e);
+      } finally {
+        setLoadingCivitai(false);
+      }
+    };
+
+    fetchCivitaiDetails();
+  }, [id]); // Depend only on id
 
   const htmlStyles = {
     p: {
@@ -105,10 +101,11 @@ const ModelDetailScreen = () => {
     },
     a: {
       color: theme.accent10.get(),
-    }, // Add more styles as needed for other HTML elements
+    },
   };
 
-  if (loading) {
+  // Show loading indicator if either Civitai data or backend data is loading
+  if (loadingCivitai || isLoadingDownloadedModel) {
     return (
       <View flex={1} justifyContent="center" alignItems="center">
         <Progress size="large" />
@@ -116,14 +113,22 @@ const ModelDetailScreen = () => {
     );
   }
 
-  if (error) {
-    return <Text>Error loading model details: {error}</Text>;
+  // Show error if Civitai fetch failed OR backend fetch failed
+  if (civitaiError) {
+    return <Text>Error loading Civitai model details: {civitaiError}</Text>;
+  }
+  if (downloadedModelError) {
+    return (
+      <Text>
+        Error loading local model status: {downloadedModelError.message || 'Unknown error'}
+      </Text>
+    );
   }
 
-  const modelToDisplay = localModel || selectedModel;
+  const modelToDisplay = civitaiModel; // Use the full Civitai data for display
 
   if (!modelToDisplay) {
-    return <Text>Model not found.</Text>;
+    return <Text>Model data not found.</Text>;
   }
 
   const { width } = Dimensions.get('window');
@@ -143,25 +148,9 @@ const ModelDetailScreen = () => {
     }
   };
 
-  const handleDelete = () => {
-    async () => {
-      setLoading(true); // Show loading indicator during deletion
-      setError(null); // Clear any previous errors
-      try {
-        if (!id) {
-          setError('Model ID is missing.');
-          return;
-        }
-        await axios.delete(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/model/${id}`); // Call the DELETE route
-        console.log(`Model with ID ${id} deleted successfully`);
-      } catch (err: any) {
-        setError(err.response?.data?.error || err.message || 'Failed to delete model.');
-        console.error('Error deleting model:', err);
-      } finally {
-        setLoading(false); // Hide loading indicator
-      }
-    };
-  };
+  // The delete logic should be handled by the ModelDeleteButton component itself,
+  // using its internal mutation hook. We don't need a handleDelete function here anymore.
+  // const handleDelete = () => { ... };
 
   const renderItem = ({ item, index }: { item: string; index: number }) => (
     <TouchableOpacity
@@ -171,7 +160,7 @@ const ModelDetailScreen = () => {
         source={{ uri: item }}
         width={screenWidth * 0.8}
         height={screenHeight * 0.6}
-        resizeMode={'contain'}
+        objectFit={'contain'}
       />
     </TouchableOpacity>
   );
@@ -184,8 +173,16 @@ const ModelDetailScreen = () => {
     carouselRef.current?.next();
   };
 
-  // Get the latest model version
-  const latestVersion = modelToDisplay.modelVersions?.[modelToDisplay.modelVersions.length - 1];
+  // Get the latest model version from Civitai data for display
+  // We need the latest version from the *downloadedModel* to get the file status
+  const latestCivitaiVersion = modelToDisplay.modelVersions?.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  )[0];
+
+  // Find the corresponding latest version in the downloadedModel to get file status
+  const latestDownloadedVersion = downloadedModel?.versions?.find(
+    (v) => v.civitaiVersionId === latestCivitaiVersion?.id
+  );
 
   return (
     <ScrollView flex={1} padding={16} bg={'$background'}>
@@ -220,6 +217,14 @@ const ModelDetailScreen = () => {
             onScrollStart={() => setIsCarouselDragging(true)}
             onScrollEnd={() => setIsCarouselDragging(false)}
           />
+          {/* Image index indicator */}
+          {allImages.length > 1 && (
+            <Text position="absolute" bottom={8} left={screenWidth / 2 - 10}>
+              {currentIndex + 1}/{allImages.length}
+            </Text>
+          )}
+          {/* Navigation buttons (optional, carousel gestures often suffice) */}
+          {/*
           <View
             position="absolute"
             bottom={16}
@@ -240,10 +245,13 @@ const ModelDetailScreen = () => {
               <Text>Next</Text>
             </TouchableOpacity>
           </View>
+          */}
         </View>
       )}
 
       <View marginTop={16}>
+        {/* ... Creator, Stats, License, Tags views (these use civitaiModel) ... */}
+
         <View
           marginBottom={16}
           padding={10}
@@ -313,48 +321,66 @@ const ModelDetailScreen = () => {
           <Text>{modelToDisplay.tags.join(', ') || 'No tags available'}</Text>
         </View>
 
-        {latestVersion && (
+        {latestCivitaiVersion && (
           <>
             <Text fontSize={16} fontWeight="bold" marginBottom={8}>
-              {latestVersion.name} (Base: {latestVersion.baseModel})
+              {latestCivitaiVersion.name} (Base: {latestCivitaiVersion.baseModel})
             </Text>
-            <Text>Published At: {new Date(latestVersion.publishedAt).toLocaleDateString()}</Text>
-            <Text>Availability: {latestVersion.availability}</Text>
-            <Text>NSFW Level: {latestVersion.nsfwLevel}</Text>
-            {latestVersion.description && (
+            <Text>
+              Published At: {new Date(latestCivitaiVersion.publishedAt).toLocaleDateString()}
+            </Text>
+            <Text>Availability: {latestCivitaiVersion.availability}</Text>
+            <Text>NSFW Level: {latestCivitaiVersion.nsfwLevel}</Text>
+            {latestCivitaiVersion.description && (
               <RenderHTML
                 contentWidth={width}
-                source={{ html: latestVersion.description }}
+                source={{ html: latestCivitaiVersion.description }}
                 tagsStyles={htmlStyles}
               />
             )}
 
-            {latestVersion.files && latestVersion.files.length > 0 && (
+            {latestCivitaiVersion.files && latestCivitaiVersion.files.length > 0 && (
               <View marginTop={8}>
                 <Text fontWeight="bold" marginBottom={4}>
                   Files
                 </Text>
-                {latestVersion.files.map((file: FileVersion) => (
-                  <View
-                    key={file.id}
-                    marginBottom={8}
-                    padding={8}
-                    borderColor={theme.borderColor.get()}
-                    borderWidth={1}
-                    borderRadius={3}
-                    backgroundColor={theme.background02.get()}>
-                    <Text fontWeight="bold">{file.name}</Text>
-                    <Text>Type: {file.type}</Text>
-                    <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
-                    <ModelDownloadButton model={modelToDisplay} />
-                    {downloadedModel ? <ModelDeleteButton model={downloadedModel} /> : null}
-                    {file.primary && (
-                      <Text color="green" fontWeight="bold">
-                        Primary
-                      </Text>
-                    )}
-                  </View>
-                ))}
+                {latestCivitaiVersion.files.map((file: FileVersion) => {
+                  // Find the corresponding file in the downloadedModel data to get its status
+                  const downloadedFile = latestDownloadedVersion?.files?.find(
+                    (f) => f.civitaiFileId === file.id
+                  );
+                  const fileDownloadStatus = downloadedFile?.downloadStatus; // Status from your backend DB
+
+                  return (
+                    <View
+                      key={file.id}
+                      marginBottom={8}
+                      padding={8}
+                      borderColor={theme.borderColor.get()}
+                      borderWidth={1}
+                      borderRadius={3}
+                      backgroundColor={theme.background02.get()}>
+                      <Text fontWeight="bold">{file.name}</Text>
+                      <Text>Type: {file.type}</Text>
+                      <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
+
+                      {/* Pass the original Civitai model data and the downloaded model data to the button */}
+                      <ModelDownloadButton
+                        civitaiModel={modelToDisplay satisfies Model}
+                        downloadedModel={downloadedModel}
+                      />
+
+                      {/* Only show delete button if the model exists in our DB (downloadedModel is not null) */}
+                      {downloadedModel ? <ModelDeleteButton model={downloadedModel} /> : null}
+
+                      {file.primary && (
+                        <Text color="green" fontWeight="bold">
+                          Primary
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             )}
           </>
@@ -374,6 +400,7 @@ const ModelDetailScreen = () => {
         )}
       </View>
 
+      {/* Image Viewer Modal */}
       <Modal
         visible={isModalVisible}
         transparent={true}

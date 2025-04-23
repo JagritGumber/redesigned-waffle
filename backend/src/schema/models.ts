@@ -45,6 +45,8 @@ export const civitaiModels = sqliteTable("civitaiModel", {
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
   defaultWeight: real("defaultWeight").default(0.6), // Added the defaultWeight field
+  status: text("status"),
+  runpodJobId: text("runpodJobId"),
 });
 
 export const civitaiModelsRelations = relations(civitaiModels, ({ many }) => ({
@@ -93,7 +95,7 @@ export const civitaiModelVersionsRelations = relations(
       references: [civitaiModels.id],
     }),
     files: many(civitaiFiles),
-    images: many(civitaiImages)
+    images: many(civitaiImages),
   })
 );
 
@@ -134,7 +136,7 @@ export const civitaiFiles = sqliteTable("civitaiFile", {
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-  runpodJobId: text("runpodJobId"), // Added the runpodJobId field
+  runpodJobId: text("runpodJobId"),
 });
 
 export const civitaiFilesRelations = relations(civitaiFiles, ({ one }) => ({
