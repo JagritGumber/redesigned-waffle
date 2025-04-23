@@ -375,7 +375,7 @@ def handler(job: t.Dict) -> t.Dict:
                         "/runpod-volume/"
                     ),  # Include storage on error
                 }
-            return download_file(download_url, save_path)
+            return download_file_direct(download_url, save_path)
 
         elif action == "delete":
             file_path: t.Optional[str] = job_input.save_path
