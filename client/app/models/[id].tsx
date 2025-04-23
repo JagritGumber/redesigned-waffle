@@ -1,5 +1,5 @@
 // ./app/model/[id].tsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Progress, Image, ScrollView, View, Text, useTheme, Button, AlertDialog } from 'tamagui';
@@ -160,7 +160,7 @@ const ModelDetailScreen = () => {
         source={{ uri: item }}
         width={screenWidth * 0.8}
         height={screenHeight * 0.6}
-        objectFit={'contain'}
+        resizeMode={'contain'}
       />
     </TouchableOpacity>
   );

@@ -46,7 +46,6 @@ export interface FileVersion {
 }
 
 export interface ImageInfo {
-  id: number;
   url: string;
   nsfwLevel: number;
   width: number;

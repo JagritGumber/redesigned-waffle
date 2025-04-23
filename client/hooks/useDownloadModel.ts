@@ -16,6 +16,7 @@ export const useDownloadModel = () => {
     mutationFn: async (modelData: CivitaiApiModel) => {
       // Expecting the Civitai API model data
       // Your current backend POST returns { message, status, runpodJobId }
+      console.log(modelData);
       const response = await axios.post<{
         message: string;
         status: string; // 'IN_PROGRESS' or 'ERROR' from your backend

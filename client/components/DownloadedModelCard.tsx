@@ -17,7 +17,7 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
       href={{
         pathname: `/models/[id]`,
         params: {
-          id: model.id,
+          id: model.civitaiId,
         },
       }}
       asChild>
@@ -31,7 +31,7 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
               <Image
                 source={{ uri: model.versions[0].images[0].url }}
                 style={styles.modelImage}
-                resizeMode="cover"
+                objectFit="cover"
               />
             )}
           <View style={styles.cardTextContainer}>

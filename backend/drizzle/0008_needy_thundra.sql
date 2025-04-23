@@ -1,0 +1,1 @@
+ALTER TABLE `civitaiImage` ADD `index` integer NOT NULL;

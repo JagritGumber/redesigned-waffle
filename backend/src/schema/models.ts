@@ -157,12 +157,12 @@ export const civitaiImages = sqliteTable("civitaiImage", {
   civitaiVersionId: text("civitaiVersionId")
     .notNull()
     .references(() => civitaiModelVersions.id),
-  imageId: integer("imageId").notNull().unique(),
+  index: integer("index").notNull(),
   url: text("url").notNull(),
   nsfwLevel: integer("nsfwLevel"),
   width: integer("width"),
   height: integer("height"),
-  hash: text("hash"),
+  hash: text("hash").notNull().unique(),
   type: text("type"),
   hasMeta: integer("hasMeta", { mode: "boolean" }),
   hasPositivePrompt: integer("hasPositivePrompt", { mode: "boolean" }),

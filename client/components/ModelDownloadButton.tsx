@@ -8,7 +8,7 @@ import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Your bac
 import { useDownloadModel } from '~/hooks/useDownloadModel'; // Import the hook
 
 interface ModelDownloadButtonProps {
-  civitaiModel: CivitaiApiModel; // The original Civitai API model data
+  civitaiModel: CivitaiApiModel | null; // The original Civitai API model data
   downloadedModel?: CivitaiModelWithRelations | null; // The model data fetched from your backend
 }
 
@@ -35,7 +35,7 @@ const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
       return;
     }
     // Call the mutation function
-    startDownload(civitaiModel);
+    startDownload(civitaiModel ?? downloadedModel);
   };
 
   // Determine button state and text based on status and loading
