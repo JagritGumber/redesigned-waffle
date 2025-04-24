@@ -13,5 +13,9 @@ export {
   civitaiImagesRelations,
   civitaiModelsRelations,
   civitaiModelVersionsRelations,
+  type InsertCivitaiFile,
+  type InsertCivitaiImage,
+  type InsertCivitaiModel,
+  type InsertCivitaiModelVersion,
 } from "./models";
 export { storageInfo } from "./storageInfo";

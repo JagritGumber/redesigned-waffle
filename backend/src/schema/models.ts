@@ -171,6 +171,13 @@ export const civitaiImages = sqliteTable("civitaiImage", {
   createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(
     () => new Date()
   ),
+  prompt: text("prompt"),
+  negativePrompt: text("negativePrompt"),
+  seed: integer("seed"),
+  steps: integer("steps"),
+  cfgScale: real("cfgScale"),
+  sampler: text("sampler"),
+  clipSkip: integer("clipSkip"),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),

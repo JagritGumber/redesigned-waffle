@@ -56,6 +56,7 @@ export interface ImageInfo {
   hasPositivePrompt: boolean;
   onSite: boolean;
   remixOfId: number | null;
+  meta: any | null;
 }
 
 export interface ModelVersion {

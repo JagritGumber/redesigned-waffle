@@ -3,500 +3,85 @@ import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
 import { and, asc, desc, eq, not, or, sql } from "drizzle-orm";
-import { Model } from "@/client/types/civitai";
-import {
-  civitaiImages,
-  InsertCivitaiFile,
-  InsertCivitaiImage,
-  InsertCivitaiModel,
-  InsertCivitaiModelVersion,
-} from "@/schema/models";
+import { civitaiImages } from "@/schema/models";
 import runpodSdk from "runpod-sdk";
-import { BatchItem } from "drizzle-orm/batch";
+import {
+  fetchCivitaiModel,
+  registerOrUpdateCivitaiModel,
+} from "@/services/civitaiService";
+
+const REQUIRED_MODEL_IDS = [
+  8762, 22428, 59525, 572670, 383163, 448716, 869634, 448770, 348620, 521384,
+  369943, 626419, 723963, 900346, 903161, 112170, 732013, 113516, 583686,
+  589918, 512070, 579218, 577378, 668558, 482572, 518864,
+];
 
 const modelRouter = new Hono<ContextForHono>()
   .post("/", async (c) => {
-    const { model: civitaiModelData } = await c.req.json<{ model: Model }>();
-    const civitaiApiToken = c.env.API_TOKEN; // Not used in the POST, but keep check
-    const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
-    const rawWebhookUrl = c.env.RUNPOD_WEBHOOK_URL; // Get raw URL
+    const { model: civitaiModelData } = await c.req.json<{ model: any }>(); // Use 'any' or your Model type
     const db = c.get("db");
 
-    // Environment variable checks moved upfront
-    if (!c.env.RUNPOD_API_KEY) {
+    // Construct the environment config object required by the service function
+    const envConfig = {
+      RUNPOD_API_KEY: c.env.RUNPOD_API_KEY,
+      RUNPOD_DOWNLOADER_ID: c.env.RUNPOD_DOWNLOADER_ID,
+      RUNPOD_WEBHOOK_URL: c.env.RUNPOD_WEBHOOK_URL,
+      // Add other necessary env vars here from c.env
+    };
+
+    // Basic check for required env vars before proceeding with service function
+    if (!envConfig.RUNPOD_API_KEY) {
       return c.json(
         { error: "RUNPOD_API_KEY environment variable is not set." },
         500
       );
     }
-    if (!runpodDownloaderId) {
+    if (!envConfig.RUNPOD_DOWNLOADER_ID) {
       return c.json(
         { error: "RUNPOD_DOWNLOADER_ID environment variable is not set." },
         500
       );
     }
-    if (!rawWebhookUrl) {
+    if (!envConfig.RUNPOD_WEBHOOK_URL) {
       return c.json(
         { error: "RUNPOD_WEBHOOK_URL environment variable is not set." },
         500
       );
     }
-    // Construct the full webhook URL path
-    const webhookUrl = `${rawWebhookUrl}/downloader`;
-
-    // Initialize RunPod SDK *after* checks
-    const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
-    const endpoint = runpod.endpoint(runpodDownloaderId);
-
-    let runpodJobId: string | undefined = undefined; // Initialize nullable job ID
-    let finalStatus: "IN_PROGRESS" | "ERROR" | "SAVED" = "SAVED"; // Default status if no download initiated
-    let finalMessage: string = `Model ${civitaiModelData.id} data saved successfully.`;
 
     try {
-      const {
-        id: civitaiId,
-        name,
-        description,
-        allowNoCredit,
-        allowCommercialUse,
-        allowDerivatives,
-        allowDifferentLicense,
-        type,
-        nsfw,
-        nsfwLevel,
-        availability,
-        supportsGeneration,
-        creator,
-        tags,
-        modelVersions,
-      } = civitaiModelData;
-
-      // --- 1. Save/Update to civitaiModels table ---
-      const [savedCivitaiModel] = await db
-        .insert(civitaiModels)
-        .values({
-          civitaiId,
-          name,
-          description,
-          allowNoCredit,
-          allowCommercialUse: JSON.stringify(allowCommercialUse),
-          allowDerivatives,
-          allowDifferentLicense,
-          type,
-          nsfw,
-          nsfwLevel,
-          availability,
-          supportsGeneration: supportsGeneration,
-          creatorUsername: creator.username,
-          tags: JSON.stringify(tags),
-        } satisfies InsertCivitaiModel)
-        .onConflictDoUpdate({
-          target: civitaiModels.civitaiId, // Target the unique Civitai ID
-          set: {
-            name,
-            description,
-            allowNoCredit,
-            allowCommercialUse: JSON.stringify(allowCommercialUse),
-            allowDerivatives,
-            allowDifferentLicense,
-            type,
-            nsfw,
-            nsfwLevel,
-            availability,
-            supportsGeneration,
-            creatorUsername: creator.username,
-            tags: JSON.stringify(tags),
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
-
-      if (!savedCivitaiModel) {
-        console.error(
-          `Failed to save or update model with Civitai ID ${civitaiId}.`
-        );
-        return c.json(
-          {
-            error: `Failed to save model with ID ${civitaiId}.`,
-            status: "ERROR",
-          },
-          500
-        );
-      }
-
-      // Sort model versions by publishedAt to get the latest
-      const latestVersion = modelVersions.sort(
-        (a, b) =>
-          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      )[0];
-
-      if (!latestVersion) {
-        console.warn(
-          `No versions found for model Civitai ID ${civitaiId}. Cannot save version, files, or images.`
-        );
-        // Still return success for saving the model itself, but indicate no version data processed
-        return c.json(
-          {
-            message: `Model ${civitaiId} data saved, but no versions found in the payload.`,
-            status: "SAVED",
-            civitaiId: civitaiId,
-          },
-          200
-        );
-      }
-
-      // --- 2. Save/Update to civitaiModelVersions table (for the latest version) ---
-      const {
-        id: civitaiVersionId,
-        index,
-        name: versionName,
-        baseModel,
-        baseModelType,
-        publishedAt,
-        availability: versionAvailability,
-        nsfwLevel: versionNsfwLevel,
-        description: versionDescription,
-        trainedWords,
-        supportsGeneration: versionSupportsGeneration,
-        downloadUrl: versionDownloadUrl,
-        files,
-        images,
-      } = latestVersion;
-
-      const [savedCivitaiModelVersion] = await db
-        .insert(civitaiModelVersions)
-        .values({
-          civitaiModelId: savedCivitaiModel.id, // Link to internal model ID
-          civitaiVersionId, // Use Civitai Version ID as unique target
-          index,
-          name: versionName,
-          baseModel,
-          baseModelType,
-          publishedAt,
-          availability: versionAvailability,
-          nsfwLevel: versionNsfwLevel,
-          description: versionDescription,
-          trainedWords: JSON.stringify(trainedWords),
-          supportsGeneration: versionSupportsGeneration,
-          downloadUrl: versionDownloadUrl,
-        } satisfies InsertCivitaiModelVersion)
-        .onConflictDoUpdate({
-          target: civitaiModelVersions.civitaiVersionId, // Target the unique Civitai Version ID
-          set: {
-            index,
-            name,
-            baseModel,
-            baseModelType,
-            publishedAt,
-            availability: versionAvailability,
-            nsfwLevel: versionNsfwLevel,
-            description: versionDescription,
-            trainedWords: JSON.stringify(trainedWords),
-            supportsGeneration: versionSupportsGeneration,
-            downloadUrl: versionDownloadUrl,
-          },
-        })
-        .returning();
-
-      if (!savedCivitaiModelVersion) {
-        console.error(
-          `Failed to save or update version with Civitai ID ${civitaiVersionId}.`
-        );
-        // Return success for model save, but indicate version failure
-        return c.json(
-          {
-            message: `Model ${civitaiId} data saved, but failed to save/update version ${civitaiVersionId}.`,
-            status: "ERROR", // Indicate partial error
-            civitaiId: civitaiId,
-          },
-          500
-        ); // Return 500 as version is crucial
-      }
-
-      // --- 3. Save/Update primary file for the latest version ---
-      const primaryFile = files.find((file) => file.primary);
-      let savedCivitaiFile = null; // Keep track of the saved primary file for RunPod update
-
-      if (primaryFile) {
-        const {
-          id: civitaiFileId,
-          name: fileName,
-          type: fileType,
-          sizeKB,
-          pickleScanResult,
-          pickleScanMessage,
-          virusScanResult,
-          virusScanMessage,
-          scannedAt,
-          metadata,
-          hashes,
-          downloadUrl: fileDownloadUrl,
-          primary,
-        } = primaryFile;
-
-        // Define the path where you will store the model on Runpod volume
-        // Sanitize names - IMPROVEMENT: Maybe centralize this logic
-        const sanitizedModelName = savedCivitaiModel.name.replace(
-          /[^a-zA-Z0-9._-]/g,
-          "_"
-        );
-        const sanitizedVersionName =
-          versionName?.replace(/[^a-zA-Z0-9._-]/g, "_") || "default";
-        const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-        const runpodPath = `/runpod-volume/workspace/${savedCivitaiModel.type}/${sanitizedModelName}/${sanitizedVersionName}/${sanitizedFileName}`;
-
-        [savedCivitaiFile] = await db
-          .insert(civitaiFiles)
-          .values({
-            civitaiVersionId: savedCivitaiModelVersion.id, // Link to internal version ID
-            civitaiFileId, // Use Civitai File ID as unique target
-            name: fileName,
-            type: fileType,
-            sizeKB,
-            pickleScanResult,
-            pickleScanMessage,
-            virusScanResult,
-            virusScanMessage,
-            scannedAt,
-            metadataFormat: metadata?.format,
-            metadataSize: metadata?.size,
-            metadataFp: metadata?.fp,
-            sha256Hash: hashes?.SHA256,
-            downloadUrl: fileDownloadUrl,
-            primary: primary ? true : false,
-            runpodPath,
-          } satisfies InsertCivitaiFile)
-          .onConflictDoUpdate({
-            target: civitaiFiles.civitaiFileId, // Target the unique Civitai File ID
-            set: {
-              civitaiVersionId: sql`excluded.civitaiVersionId`, // Link to the current version
-              name: sql`excluded.name`,
-              type: sql`excluded.type`,
-              sizeKB: sql`excluded.sizeKB`,
-              pickleScanResult: sql`excluded.pickleScanResult`,
-              pickleScanMessage: sql`excluded.pickleScanMessage`,
-              virusScanResult: sql`excluded.virusScanResult`,
-              virusScanMessage: sql`excluded.virusScanMessage`,
-              scannedAt: sql`excluded.scannedAt`,
-              metadataFormat: sql`excluded.metadataFormat`,
-              metadataSize: sql`excluded.metadataSize`,
-              metadataFp: sql`excluded.metadataFp`,
-              sha256Hash: sql`excluded.sha256Hash`,
-              downloadUrl: sql`excluded.downloadUrl`,
-              primary: sql`excluded."primary"`,
-              runpodPath: sql`excluded.runpodPath`,
-            },
-          })
-          .returning();
-
-        if (!savedCivitaiFile) {
-          console.error(
-            `Failed to save or update primary file with Civitai ID ${civitaiFileId}.`
-          );
-          // This is a significant failure, but doesn't stop image saving below.
-        }
-      } else {
-        console.warn(
-          `No primary file found for version Civitai ID ${civitaiVersionId}. Download will not be initiated.`
-        );
-      }
-
-      // --- 4. Save/Update images for the latest version (BATCH Insert/Upsert) ---
-      if (savedCivitaiModelVersion && images && images.length > 0) {
-        // Create an array of Drizzle statement builders for each image
-        const imageUpsertStatements = images
-          .map((image, index) => {
-            // Make sure the hash is available before trying to use it as a target
-            if (!image.hash) {
-              console.warn(
-                `Image with URL ${image.url} is missing hash. Skipping upsert for this image.`
-              );
-              return null; // Return null for images without a hash
-            }
-
-            // Return the statement builder *without* calling .returning()
-            return db
-              .insert(civitaiImages)
-              .values({
-                civitaiVersionId: savedCivitaiModelVersion.id, // Link to internal version ID
-                url: image.url,
-                index, // Store the original index
-                nsfwLevel: image.nsfwLevel,
-                width: image.width,
-                height: image.height,
-                hash: image.hash, // This is the conflict target
-                type: image.type,
-                hasMeta: image.hasMeta,
-                hasPositivePrompt: image.hasPositivePrompt,
-                onSite: image.onSite,
-                remixOfId: image.remixOfId,
-                // createdAt handled by $defaultFn
-                // updatedAt handled by $onUpdateFn
-              })
-              .onConflictDoUpdate({
-                target: civitaiImages.hash, // Target the unique hash column
-                set: {
-                  // Use sql`excluded.columnName` for batch updates within ON CONFLICT
-                  civitaiVersionId: sql`excluded.civitaiVersionId`, // Should link to the current version
-                  url: sql`excluded.url`,
-                  index: sql`excluded."index"`, // Update index
-                  nsfwLevel: sql`excluded.nsfwLevel`,
-                  width: sql`excluded.width`,
-                  height: sql`excluded.height`,
-                  // DO NOT update the hash column when hash is the target!
-                  // hash: sql`excluded.hash`,
-                  type: sql`excluded.type`,
-                  hasMeta: sql`excluded.hasMeta`,
-                  hasPositivePrompt: sql`excluded.hasPositivePrompt`,
-                  onSite: sql`excluded.onSite`,
-                  remixOfId: sql`excluded.remixOfId`,
-                  // Add updatedAt explicitly if $onUpdateFn doesn't fire on ON CONFLICT DO UPDATE in D1
-                  updatedAt: new Date(),
-                },
-              })
-              .returning();
-          })
-          .filter((s) => s !== null) as unknown as [
-          BatchItem<"sqlite">,
-          ...BatchItem<"sqlite">[]
-        ];
-
-        if (imageUpsertStatements.length > 0) {
-          try {
-            // Execute all image upsert statements in a single batch transaction
-            // Pass the statement builders directly
-            await db.batch(imageUpsertStatements);
-
-            console.log(
-              `Successfully saved/updated ${imageUpsertStatements.length} images for version Civitai ID ${civitaiVersionId} using db.batch()`
-            );
-          } catch (imageBatchError) {
-            console.error(
-              `Error saving images batch for version Civitai ID ${civitaiVersionId}:`,
-              imageBatchError
-            );
-            // If the batch fails, the transaction is rolled back.
-            // Indicate a partial success/error for the overall request.
-            finalMessage += " However, failed to save/update images.";
-            finalStatus = "ERROR";
-            // You might decide to re-throw the error here if image saving is critical
-            // throw imageBatchError;
-          }
-        } else {
-          console.log(
-            `No valid images with hashes found to save for version Civitai ID ${civitaiVersionId}.`
-          );
-        }
-      } else {
-        console.log(
-          `No images found in payload for version Civitai ID ${civitaiVersionId} or version not saved.`
-        );
-      }
-
-      // --- 5. Initiate background download for the primary file (if saved and exists) ---
-      // This happens *after* all DB writes are attempted
-      if (
-        savedCivitaiFile &&
-        savedCivitaiFile.primary &&
-        savedCivitaiFile.downloadUrl &&
-        savedCivitaiFile.runpodPath
-      ) {
-        try {
-          const runpodJob = await endpoint!.run({
-            input: {
-              save_path: savedCivitaiFile.runpodPath, // Use saved file data
-              download_url: savedCivitaiFile.downloadUrl, // Use saved file data
-              model_id: savedCivitaiModel.id, // Use saved model data (internal DB ID)
-              // Pass Civitai file ID or internal DB file ID if needed by webhook
-              civitai_file_id: savedCivitaiFile.civitaiFileId, // Use Civitai File ID
-              db_file_id: savedCivitaiFile.id, // Also pass internal DB ID, webhook should use this to update status
-            },
-            webhook: webhookUrl,
-          });
-
-          if (runpodJob?.id) {
-            // Check for job ID presence
-            runpodJobId = runpodJob.id;
-            console.log(
-              `Download initiated for ${savedCivitaiFile.name} to ${savedCivitaiFile.runpodPath} with RunPod job ID: ${runpodJobId}, Webhook url ${webhookUrl}`
-            );
-            // Update the saved file record with the RunPod job ID and set initial status
-            await db
-              .update(civitaiFiles)
-              .set({
-                runpodJobId: runpodJobId,
-                downloadStatus: "PENDING",
-                downloadOutput: "Job initiated with RunPod.",
-              }) // Set initial status
-              .where(eq(civitaiFiles.id, savedCivitaiFile.id)); // Use the internal DB ID
-
-            finalMessage = `Model ${civitaiId} data saved. Download initiated for primary file ${savedCivitaiFile.name}. RunPod Job ID: ${runpodJobId}`;
-            finalStatus = "IN_PROGRESS"; // Backend's status *about the initiation process*
-          } else {
-            console.error(
-              `RunPod endpoint!.run did not return a job ID for file ${savedCivitaiFile.civitaiFileId}. Full job response:`,
-              runpodJob
-            );
-            finalMessage = `Model ${civitaiId} data saved. Failed to get RunPod job ID for primary file ${savedCivitaiFile.name}.`;
-            finalStatus = "ERROR"; // Indicate failure in download initiation
-            // Update file status to ERROR in DB? Webhook won't fire.
-            if (savedCivitaiFile) {
-              await db
-                .update(civitaiFiles)
-                .set({
-                  downloadStatus: "ERROR",
-                  downloadOutput: `RunPod initiation failed: No job ID returned.`,
-                })
-                .where(eq(civitaiFiles.id, savedCivitaiFile.id));
-            }
-          }
-        } catch (runpodError: any) {
-          console.error("Error initiating RunPod job:", runpodError);
-          finalMessage = `Model ${civitaiId} data saved. Error initiating RunPod job for primary file ${savedCivitaiFile.name}.`;
-          finalStatus = "ERROR"; // Indicate failure in download initiation
-          // Update file status to ERROR in DB? Webhook won't fire.
-          if (savedCivitaiFile) {
-            await db
-              .update(civitaiFiles)
-              .set({
-                downloadStatus: "ERROR",
-                downloadOutput: `RunPod initiation failed: ${
-                  runpodError.message || "Unknown API error"
-                }`,
-              })
-              .where(eq(civitaiFiles.id, savedCivitaiFile.id));
-          }
-        }
-      } else if (primaryFile) {
-        finalMessage += ` No RunPod job initiated for primary file ${primaryFile.name} (check logs for save failure).`;
-        finalStatus = "ERROR"; // Indicates initiation couldn't happen
-      } else {
-        finalMessage += ` No primary file found in the payload to initiate download.`;
-      }
-
-      // --- 6. Final Response ---
-      return c.json(
-        {
-          message: finalMessage,
-          status: finalStatus,
-          runpodJobId: runpodJobId, // Will be undefined if initiation failed
-          civitaiId: civitaiId,
-          dbModelId: savedCivitaiModel.id, // Optionally return the internal DB ID
-        },
-        finalStatus === "ERROR" ? 500 : 200 // Return 500 if the final status is ERROR
+      // Call the reusable function to handle registration and download initiation
+      // Pass triggerDownload: true (which is the default)
+      const result = await registerOrUpdateCivitaiModel(
+        db,
+        envConfig,
+        civitaiModelData
       );
-    } catch (mainError) {
-      // This catch block handles errors during the initial model/version saves
-      console.error(
-        "Critical error during model data processing or initial DB saves:",
-        mainError
-      );
+
+      // Return Hono response based on the result
+      if (result.status === "FAILED") {
+        return c.json({ error: result.message, details: result.errors }, 500);
+      } else {
+        return c.json(
+          {
+            message: result.message,
+            status: result.status, // Could be SUCCESS or PARTIAL_SUCCESS
+            runpodJobId: result.runpodJobId,
+            civitaiId: result.civitaiId,
+            dbModelId: result.dbModelId,
+            errors: result.errors, // Include any non-critical errors
+          },
+          result.status === "PARTIAL_SUCCESS" ? 200 : 200
+        ); // Return 200 for both success and partial success
+        // Or perhaps 500 for partial success if you want clearer error reporting?
+        // Decided to return 200 for partial success, just include errors in body.
+      }
+    } catch (error: any) {
+      // This catch block handles errors *before* calling the function
+      // or unexpected errors that might escape the function's error handling
+      console.error("Unhandled error in POST / route handler:", error);
       return c.json(
-        {
-          error: "Failed to process model data or save to database.",
-          status: "ERROR",
-        },
+        { error: "An unexpected error occurred.", details: error.message },
         500
       );
     }
@@ -504,29 +89,136 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/", async (c) => {
     try {
       const db = c.get("db");
+
+      // Construct the environment config object required by the service function
+      const envConfig = {
+        RUNPOD_API_KEY: c.env.RUNPOD_API_KEY,
+        RUNPOD_DOWNLOADER_ID: c.env.RUNPOD_DOWNLOADER_ID,
+        RUNPOD_WEBHOOK_URL: c.env.RUNPOD_WEBHOOK_URL,
+        // Add other necessary env vars here from c.env
+      };
+
+      // Basic check for required env vars before proceeding
+      if (
+        !envConfig.RUNPOD_API_KEY ||
+        !envConfig.RUNPOD_DOWNLOADER_ID ||
+        !envConfig.RUNPOD_WEBHOOK_URL
+      ) {
+        console.error(
+          "Missing required RunPod environment variables for service function."
+        );
+        // Decide if you want to fail the GET request or just log a warning
+        // Let's log a warning and proceed without registration attempts
+      }
+
+      // 1. Get the list of required model IDs that are *already* in the DB
+      const existingModels = await db.query.civitaiModels.findMany({
+        where: (model, { inArray }) =>
+          inArray(model.civitaiId, REQUIRED_MODEL_IDS), // Use civitaiId here
+        columns: {
+          civitaiId: true, // Only fetch the civitaiId column
+        },
+      });
+
+      const existingModelIds = new Set(
+        existingModels.map((model) => model.civitaiId)
+      );
+
+      // 2. Identify the missing required model IDs
+      const missingModelIds = REQUIRED_MODEL_IDS.filter(
+        (id) => !existingModelIds.has(id)
+      );
+
+      console.log(`Required model IDs: ${REQUIRED_MODEL_IDS.join(", ")}`);
+      console.log(
+        `Existing model IDs from required list: ${Array.from(
+          existingModelIds
+        ).join(", ")}`
+      );
+
+      // 3. Fetch and insert missing models using the exported function
+      if (missingModelIds.length > 0) {
+        console.log(
+          `Found ${missingModelIds.length} missing required models. Attempting to register...`
+        );
+        console.log(`Missing IDs: ${missingModelIds.join(", ")}`);
+
+        // Use Promise.all to fetch and register concurrently
+        const registrationPromises = missingModelIds.map(async (modelId) => {
+          try {
+            // First, fetch the model data from Civitai API
+            const civitaiData = await fetchCivitaiModel(
+              modelId,
+              c.env.API_TOKEN
+            );
+
+            if (civitaiData) {
+              // Then, use the reusable function to register the model data
+              // Pass triggerDownload: false because we only want to register metadata here,
+              // not initiate downloads during a GET request. The downloader worker
+              // should pick these up based on their status ('PENDING_REGISTRATION').
+              return await registerOrUpdateCivitaiModel(
+                db,
+                envConfig,
+                civitaiData,
+                { triggerDownload: false }
+              );
+            } else {
+              // fetchCivitaiModel already logged the error
+              return {
+                civitaiId: modelId,
+                status: "FAILED",
+                message: "Failed to fetch data from Civitai API.",
+              };
+            }
+          } catch (error: any) {
+            console.error(
+              `Unhandled error during registration attempt for model ${modelId}:`,
+              error
+            );
+            return {
+              civitaiId: modelId,
+              status: "FAILED",
+              message: `Unhandled registration error: ${error.message}`,
+            };
+          }
+        });
+
+        const registrationResults = await Promise.all(registrationPromises);
+        console.log("Registration attempts completed:", registrationResults);
+
+        // You could inspect registrationResults to see which models failed to register
+        // and potentially include this information in the response or logs.
+      } else {
+        console.log("All required models are already in the database.");
+      }
+
+      // 4. Perform the original query to get all relevant models (including newly added ones)
       const models = await db.query.civitaiModels.findMany({
         where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
-        orderBy: (model, { asc }) => asc(model.createdAt),
+        orderBy: (model, { asc }) => asc(model.createdAt), // Ordering by creation date
         with: {
           versions: {
-            orderBy: (version, { asc }) => asc(version.index),
+            orderBy: (version, { desc }) => desc(version.publishedAt), // Order versions by published date
             with: {
               files: {
-                orderBy: (file, { asc }) => asc(file.createdAt),
+                orderBy: (file, { asc }) => asc(file.createdAt), // Or fileId, or name
               },
               images: {
-                orderBy: (image, { asc }) => asc(image.index),
+                orderBy: (image, { asc }) => asc(image.index), // Assuming 'index' for image order
               },
             },
           },
         },
       });
 
+      console.log(`Returning ${models.length} models from the database.`);
       return c.json({ models }, 200);
-    } catch (error) {
-      console.error("Error fetching Poses with files and images:", error);
+    } catch (error: any) {
+      console.error("Error in GET / route handler:", error);
+      // Catch any errors from initial query or registration process
       return c.json(
-        { error: "Failed to fetch Poses with files and images" },
+        { error: "Failed to process models", details: error.message },
         500
       );
     }

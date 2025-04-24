@@ -68,7 +68,7 @@ const DownloadedModels = () => {
 
   // == Render Logic ==
   return (
-    <YStack flex={1} backgroundColor="$background">
+    <YStack flex={1} backgroundColor="$background" height={Dimensions.get('window').height - 64}>
       {/* Header */}
       <XStack
         padding="$3"

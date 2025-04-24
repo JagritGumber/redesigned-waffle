@@ -23,6 +23,11 @@ RUN python3.11 -m pip install --upgrade pip && \
 #       It is reccommended to specify the version of Python when running your code.
 
 
+COPY generator/download_pretrained.py .
+
+RUN python3.11 ./download_pretrained.py
+RUN rm ./download_pretrained.py
+
 # Add src files (Worker Template)
 ADD generator/src .
 

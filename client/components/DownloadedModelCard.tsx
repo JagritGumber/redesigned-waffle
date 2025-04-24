@@ -35,17 +35,29 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
               />
             )}
           <View style={styles.cardTextContainer}>
-            <Text
-              style={styles.cardTitle}
-              fontSize={14}
-              fontWeight="bold"
-              numberOfLines={2}
-              ellipsizeMode="tail">
-              {model.name}
-            </Text>
-            <Text style={styles.cardSubtitle} fontSize={10} color="white">
-              Type: {model.type}
-            </Text>
+            <View>
+              <Text
+                style={styles.cardTitle}
+                fontSize={14}
+                fontWeight="bold"
+                numberOfLines={2}
+                ellipsizeMode="tail">
+                {model.name}
+              </Text>
+              <Text style={styles.cardSubtitle} fontSize={10} color="white">
+                Type: {model.type}
+              </Text>
+            </View>
+            <View
+              right={'$2'}
+              bg={'$background08'}
+              p={'$1'}
+              px={'$2'}
+              br={'$5'}
+              ai={'center'}
+              jc={'center'}>
+              <Text>{model.versions?.[0]?.baseModel}</Text>
+            </View>
           </View>
         </Card>
       </TouchableOpacity>
@@ -78,6 +90,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 8,
   },
   cardTitle: {

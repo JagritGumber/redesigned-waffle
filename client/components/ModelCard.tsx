@@ -26,7 +26,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
       }}
       asChild>
       <TouchableOpacity activeOpacity={0.8} style={styles.modelButton} onPress={handlePress}>
-        <Card key={model.id} style={styles.modelCard}>
+        <Card key={model.id} style={styles.modelCard} position="relative">
           {model.modelVersions &&
             model.modelVersions.length > 0 &&
             model.modelVersions[0].images &&
@@ -39,17 +39,31 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
               />
             )}
           <View style={styles.cardTextContainer}>
-            <Text
-              style={styles.cardTitle}
-              fontSize={14}
-              fontWeight="bold"
-              numberOfLines={2}
-              ellipsizeMode="tail">
-              {model.name}
-            </Text>
-            <Text style={styles.cardSubtitle} fontSize={10} color="white">
-              Type: {model.type}
-            </Text>
+            <View width={'calc(100% - 6rem)'}>
+              <Text
+                style={styles.cardTitle}
+                fontSize={14}
+                fontWeight="bold"
+                numberOfLines={2}
+                lineBreakMode="middle"
+                ellipsizeMode="tail">
+                {model.name}
+              </Text>
+              <Text style={styles.cardSubtitle} fontSize={10} color="white">
+                Type: {model.type}
+              </Text>
+            </View>
+            <View
+              fs={0}
+              right={'$2'}
+              bg={'$background08'}
+              p={'$1'}
+              px={'$2'}
+              br={'$5'}
+              ai={'center'}
+              jc={'center'}>
+              <Text>{model.modelVersions?.[0]?.baseModel}</Text>
+            </View>
           </View>
         </Card>
       </TouchableOpacity>
@@ -82,6 +96,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 8,
   },
   cardTitle: {
