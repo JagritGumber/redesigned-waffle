@@ -1,0 +1,35 @@
+{
+  "input": {
+    "prompt": "A futuristic city at sunset, digital painting, vibrant colors",
+    "model_conf": {
+      "local_path": "/runpod-volume/models/my-custom-sdxl-model",
+      "model_type": "SDXL",
+      "weight": 1.0 // This field is required by the Pydantic model, even if unused in logic
+    },
+    "loras": [
+      {
+        "local_path": "/runpod-volume/loras/some_style_lora_v1.safetensors",
+        "weight": 0.75
+      },
+      {
+        "local_path": "/runpod-volume/loras/another_lora_character.safetensors",
+        "weight": 0.9
+      }
+    ],
+    "textual_inversions": [
+      {
+        "local_path": "/runpod-volume/embeddings/easynegative.pt"
+      },
+      {
+        "local_path": "/runpod-volume/embeddings/my_embedding_style.safetensors"
+      }
+    ],
+    "generator_args": {
+      "num_inference_steps": 30,
+      "guidance_scale": 7.0,
+      "height": 1024, // Typical for SDXL
+      "width": 1024, // Typical for SDXL
+      "negative_prompt": "ugly, deformed, low quality, blurry"
+    }
+  }
+}
