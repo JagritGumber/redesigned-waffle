@@ -129,7 +129,7 @@ def download_file_direct(download_url: str, save_path: str):
 
         parsed_download_url = urllib.parse.urlparse(download_url)
         query_params = urllib.parse.parse_qs(parsed_download_url.query)
-        civitai_token = os.environ.get("RUNPOD_CIVITAI_TOKEN")
+        civitai_token = CIVITAI_API_TOKEN
         # It's safer to not log the full token value
         print(
             f"Retrieved Civitai Token from environment variable: {civitai_token is not None}"
