@@ -52,8 +52,9 @@ const ModelDetailScreen = () => {
       setCivitaiError(null);
       try {
         // Use the id from route params (which is the Civitai ID)
-        const apiUrl = `https://civitai.com/api/v1/models/${id}?token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=true`;
+        const apiUrl = `https://civitai.com/api/v1/models/${id}`;
         const response = await axios.get<CivitaiApiModel>(apiUrl);
+        console.log(response);
         setCivitaiModel(response.data);
       } catch (e: any) {
         setCivitaiError(e.message);

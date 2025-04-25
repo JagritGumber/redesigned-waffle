@@ -11,6 +11,7 @@
     "@auth/core": "^0.37.4",
     "@auth/drizzle-adapter": "^1.7.4",
     "@hono/auth-js": "^1.0.15",
+    "@sinclair/typebox": "^0.34.33",
     "drizzle-orm": "^0.39.3",
     "hono": "^4.7.2",
     "runpod-sdk": "^1.0.7"

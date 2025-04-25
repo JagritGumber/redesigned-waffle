@@ -1,9 +1,50 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { eq } from "drizzle-orm";
-import { civitaiFiles, civitaiModels } from "@/schema"; // Import civitaiModels
+import {
+  civitaiFiles,
+  civitaiModels,
+  generatorJobs,
+  InsertGeneratorJob,
+} from "@/schema"; // Import civitaiModels
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 // Make sure you have schema definitions imported
+
+// Define the structure of the output payload from the Python worker (on success)
+type WorkerResult = {
+  image?: string;
+  time_taken?: number;
+  model_path_used?: string;
+  model_type_used?: "SDXL 1.0" | "SD 1.5" | "Illustrious" | "Pony"; // Use updated literals here
+  loras_applied?: string[];
+  tis_applied?: string[];
+  cached_base_model_used?: boolean;
+  loaded_ti_tokens?: { path: string; token: string }[] | null;
+  // Add other fields your worker might return in the 'result' object
+};
+
+// Define the structure of the full payload received by the webhook
+// This matches RunPod's completed/failed webhook structure, plus the worker's output
+type RunPodWebhookPayload = {
+  id: string; // RunPod Job ID
+  status: string; // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
+  input?: any; // The original input sent to the worker (useful for context)
+  output?: {
+    // The output from your Python handler's return dict
+    status: "COMPLETED" | "FAILED" | "PARTIAL_COMPLETED"; // Internal worker status
+    message?: string;
+    result?: WorkerResult; // The actual data on success
+    lora_errors?: any[];
+    ti_errors?: any[];
+    errors?: any[]; // From downloader worker delete results
+    items_deleted?: number; // From downloader worker deleteAll
+    total_items_attempted?: number; // From downloader worker deleteAll
+    storage_used?: number; // Storage usage reported by downloader
+    workerDetails?: any; // Catch-all for other details
+  };
+  error?: any; // Error details provided by RunPod if the job failed before your handler returned
+  // Add other fields from RunPod's webhook payload if needed (e.g., executionTime)
+};
 
 const webhookRouter = new Hono<ContextForHono>()
   .all("/runpod/downloader", async (c) => {
@@ -204,32 +245,107 @@ const webhookRouter = new Hono<ContextForHono>()
     }
   })
   .post("/runpod/generator", async (c) => {
-    // Keep your generator webhook logic as is
+    const db = c.get("db");
+
     try {
-      const payload = await c.req.json<{
-        id: string;
-        status: string;
-        output?: any;
-        error?: any;
-      }>();
-      const { id: runpodJobId, status: jobStatus, output } = payload;
-      const db = c.get("db");
+      // The payload structure depends on RunPod's webhook design and your worker's output
+      const payload = await c.req.json<RunPodWebhookPayload>();
+      const {
+        id: runpodJobId,
+        status: runpodJobStatus,
+        output,
+        error,
+      } = payload;
 
       console.log(
-        "Received RunPod webhook notification for generator:",
-        payload
+        `Received RunPod webhook for generator job ${runpodJobId}. Status: ${runpodJobStatus}`
       );
+      // console.debug('Webhook payload:', payload); // Log full payload for debugging if needed
 
-      // Handle generator webhook logic here (you might have a different table or update process)
-      console.log("Generator webhook payload:", payload); // Placeholder for generator logic
+      // Find the corresponding job record in your database using the RunPod Job ID
+      const dbJob = await db.query.generatorJobs.findFirst({
+        where: (jobs, { eq }) => eq(jobs.runpodJobId, runpodJobId),
+      });
 
-      // Example: Update a 'generation_jobs' table
-      // await db.update(generationJobs).set({ status: jobStatus, output: JSON.stringify(output) }).where(eq(generationJobs.runpodJobId, runpodJobId));
+      if (!dbJob) {
+        console.warn(
+          `Received webhook for unknown RunPod job ID ${runpodJobId}. Ignoring.`
+        );
+        // Return 200 OK anyway, so RunPod doesn't keep retrying a webhook for a job we don't track
+        return c.text("OK", 200);
+      }
 
+      // Update the database record based on the webhook payload
+      const updateData: Partial<InsertGeneratorJob> = {
+        status: "WEBHOOK_RECEIVED", // Mark that we got the webhook
+      };
+
+      // Determine final status based on worker output or RunPod status
+      const workerInternalStatus = output?.status; // e.g., 'COMPLETED', 'FAILED', 'PARTIAL_COMPLETED' from your Python handler
+      const finalStatus = workerInternalStatus || runpodJobStatus; // Use worker status if available, else RunPod status
+
+      if (finalStatus === "COMPLETED") {
+        updateData.status = "COMPLETED";
+        updateData.resultPayload = output?.result; // Save the actual generation result
+        updateData.errorMessage = null; // Clear any previous error messages
+        updateData.errorDetails = null; // Clear any previous error details
+        console.log(`DB job ${dbJob.id} (RunPod ${runpodJobId}): COMPLETED.`);
+      } else if (finalStatus === "PARTIAL_COMPLETED") {
+        // Handle partial completion - decide how you want to represent this in your DB
+        updateData.status = "COMPLETED"; // Or maybe 'PARTIAL_COMPLETED' if schema supports
+        updateData.resultPayload = output?.result; // Maybe save partial result if any?
+        updateData.errorMessage =
+          output?.message || "Worker reported partial completion.";
+        updateData.errorDetails = output; // Store full output for details
+        console.warn(
+          `DB job ${dbJob.id} (RunPod ${runpodJobId}): PARTIAL_COMPLETED.`
+        );
+      } else if (finalStatus === "FAILED") {
+        // RunPod job failed OR worker handler returned status='FAILED'
+        updateData.status = "FAILED";
+        updateData.errorMessage =
+          output?.message || error?.message || "Worker job failed.";
+        updateData.resultPayload = null; // No successful result
+        updateData.errorDetails = output || error; // Store output or RunPod error details
+        console.error(`DB job ${dbJob.id} (RunPod ${runpodJobId}): FAILED.`);
+      } else {
+        // Handle other potential RunPod statuses like 'CANCELED', 'TIMEOUT', etc.
+        // Or unexpected statuses from the worker output
+        updateData.status = "FAILED"; // Treat anything else as a failure in your system
+        updateData.errorMessage = `Worker job ended with unexpected status: ${finalStatus}`;
+        updateData.resultPayload = null;
+        updateData.errorDetails = output || error || payload; // Store whatever we got
+        console.error(
+          `DB job ${dbJob.id} (RunPod ${runpodJobId}): Unexpected final status '${finalStatus}'.`
+        );
+      }
+
+      try {
+        await db
+          .update(generatorJobs)
+          .set(updateData)
+          .where(eq(generatorJobs.id, dbJob.id));
+        console.log(`DB job record ${dbJob.id} updated from webhook.`);
+      } catch (dbUpdateError: any) {
+        console.error(
+          `Failed to update DB job record ${dbJob.id} from webhook (RunPod ID ${runpodJobId}): ${dbUpdateError.message}`,
+          dbUpdateError
+        );
+        // IMPORTANT: DO NOT return a non-200 status here. RunPod will retry endlessly if your DB is down.
+        // Just log the error and return OK. The job status might be stale in your DB, but at least the webhook processing didn't crash.
+      }
+
+      // Always return 200 OK to the webhook sender if processing was successful
       return c.text("OK", 200);
-    } catch (error) {
-      console.error("Error processing RunPod webhook for generator:", error);
-      return c.text("Error", 500);
+    } catch (error: any) {
+      // This catches errors in processing the *webhook payload* itself (e.g., invalid JSON, unexpected structure)
+      console.error(
+        "Error processing RunPod webhook for generator:",
+        error.message,
+        error
+      );
+      // Return 500 to signal RunPod to retry this webhook delivery
+      return c.text("Error processing webhook", 500);
     }
   });
 

@@ -3,6 +3,7 @@ import { ContextForHono } from "@/types/context";
 import groupRouter from "./v1/groupRouter";
 import modelRouter from "./v1/modelRouter";
 import webhookRouter from "./v1/webhookRouter";
+import generatorRouter from "./v1/generatorRouter";
 
 const v1Router = new Hono<ContextForHono>()
   .get("/hi", (c) => {
@@ -10,6 +11,7 @@ const v1Router = new Hono<ContextForHono>()
   })
   .route("/webhooks", webhookRouter)
   .route("/group", groupRouter)
-  .route("/model", modelRouter);
+  .route("/model", modelRouter)
+  .route("/generator", generatorRouter);
 
 export default v1Router;

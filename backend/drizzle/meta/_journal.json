@@ -71,6 +71,20 @@
       "when": 1745523887824,
       "tag": "0009_wet_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1745604505011,
+      "tag": "0010_cheerful_azazel",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1745606575957,
+      "tag": "0011_brown_gravity",
+      "breakpoints": true
     }
   ]
 }

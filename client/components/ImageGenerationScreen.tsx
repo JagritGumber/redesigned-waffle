@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Dimensions } from 'react-native';
 import { Text, Input, Button, Image, View, ScrollView } from 'tamagui';
-import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Adjust path if needed
-import ModelSelectList from './ModelSelectList'; // Adjust path if needed
-import { ASPECT_RATIOS } from '~/constants/generation'; // Assuming this constant exists
+import { CivitaiModelWithRelations } from '~/backend/schema/models';
+import ModelSelectList from './ModelSelectList';
+import { ASPECT_RATIOS } from '~/constants/generation';
 import useModels from '~/utils/fetchModels';
 
 const ImageGenerationScreen = () => {
@@ -34,7 +34,7 @@ const ImageGenerationScreen = () => {
   const [checkpointColumns, setCheckpointColumns] = useState<number>(4);
   const [loraColumns, setLoraColumns] = useState<number>(4);
   const [otherModelColumns, setOtherModelColumns] = useState<number>(4);
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<string | 'custom'>('1024*1024'); // Default ratio
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<string | 'custom'>('1024*1024');
   const [useCustomRatio, setUseCustomRatio] = useState(false);
 
   useEffect(() => {
@@ -99,9 +99,9 @@ const ImageGenerationScreen = () => {
   const handlePosePress = useCallback((pose: CivitaiModelWithRelations) => {
     setSelectedPose((prevSelectedPose) => {
       if (prevSelectedPose && prevSelectedPose.id === pose.id) {
-        return null; // Deselect if the same pose is pressed again
+        return null;
       } else {
-        return pose; // Select the new pose
+        return pose;
       }
     });
   }, []);
@@ -126,33 +126,45 @@ const ImageGenerationScreen = () => {
     }
     setIsGenerating(true);
     setGeneratedImage(null);
+    const selectedCheckpointObject = checkpoints?.find((cp) => cp.id === selectedCheckpoint.id);
+
+    if (!selectedCheckpointObject) {
+      console.error(`Selected checkpoint with ID ${selectedCheckpoint} not found in source data.`);
+
+      throw new Error(`Base model not found: ${selectedCheckpoint}`);
+    }
+
+    const lorasToApply = selectedLoras
+      .map((loraId) => loras?.find((lora) => lora.id.toString() === loraId.toString()))
+      .filter((lora) => lora !== undefined)
+      .map((lora) => ({
+        local_path: lora.versions?.at(0)?.files.at(0)?.runpodPath,
+        weight: lora.defaultWeight ?? 1.0,
+      }));
+
+    const tisToApply = selectedTextualInversions
+      .map((tiId) => textualInversions?.find((ti) => ti.id.toString() === tiId.toString()))
+      .filter((ti) => ti !== undefined)
+      .map((ti) => ({
+        local_path: ti.versions?.at(0)?.files.at(0)?.runpodPath,
+      }));
+
     const payload = {
-      checkpointName: selectedCheckpoint.name,
-      loraNames: selectedLoras.map(
-        (id) => loras?.find((lora) => lora.id.toString() === id)?.name || ''
-      ),
-      textualInversionNames: selectedTextualInversions.map(
-        (id) => textualInversions?.find((ti) => ti.id.toString() === id)?.name || ''
-      ),
-      hypernetworkNames: selectedHypernetworks.map(
-        (id) => hypernetworks?.find((hn) => hn.id.toString() === id)?.name || ''
-      ),
-      aestheticGradientNames: selectedAestheticGradients.map(
-        (id) => aestheticGradients?.find((ag) => ag.id.toString() === id)?.name || ''
-      ),
-      controlnetNames: selectedControlnets.map(
-        (id) => controlnets?.find((cn) => cn.id.toString() === id)?.name || ''
-      ),
-      poseName: selectedPose?.name || '',
-      prompt,
-      negativePrompt,
-      width: parseInt(width),
-      height: parseInt(height),
-      numImages: 1,
-      seed: seed || Math.floor(Math.random() * 1000000),
+      prompt: prompt,
+      model_conf: {
+        local_path: selectedCheckpointObject.versions?.at(0)?.files.at(0)?.runpodPath,
+        model_type: selectedCheckpointObject.versions?.at(0)?.baseModel,
+      },
+      loras: lorasToApply,
+      textual_inversions: tisToApply,
+      generator_args: {
+        width: parseInt(width, 10),
+        height: parseInt(height, 10),
+        negative_prompt: negativePrompt,
+      },
     };
 
-    fetch('/api/v1/generate-image', {
+    fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/generator/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -201,7 +213,7 @@ const ImageGenerationScreen = () => {
       numImages: parseInt(numImages),
     };
 
-    fetch('/api/v1/generate-image', {
+    fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/generator/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -19,3 +19,5 @@ export {
   type InsertCivitaiModelVersion,
 } from "./models";
 export { storageInfo } from "./storageInfo";
+
+export { generatorJobs, InsertGeneratorJob } from "./generatorJob";
