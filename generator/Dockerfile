@@ -29,6 +29,7 @@ RUN python3.11 ./download_pretrained.py
 RUN rm ./download_pretrained.py
 
 # Add src files (Worker Template)
+ADD generator/test_input.json .
 ADD generator/src .
 
 RUN python3.11 /handler.py
