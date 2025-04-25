@@ -1,34 +1,27 @@
 {
   "input": {
-    "prompt": "A futuristic city at sunset, digital painting, vibrant colors",
+    "prompt": "maid bikini,black bikini, maid headdress, detached collar, thighhighs,frills,ribbon,arm garter,leg garter,wrist cuffs",
     "model_conf": {
-      "local_path": "/runpod-volume/models/my-custom-sdxl-model",
+      "local_path": "/defaults/workspace/models/boleromix_illustrious_/v2.90/boleromixIllustrious_v290.safetensors",
       "model_type": "SDXL",
-      "weight": 1.0 // This field is required by the Pydantic model, even if unused in logic
+      "weight": 1.0
     },
     "loras": [
       {
-        "local_path": "/runpod-volume/loras/some_style_lora_v1.safetensors",
+        "local_path": "/defaults/workspace/loras/_______maid_bikini_XL_ILL_pony_/v1.0_illustrious/maid_bikini_illustrious_V1.0.safetensors",
         "weight": 0.75
       },
       {
-        "local_path": "/runpod-volume/loras/another_lora_character.safetensors",
+        "local_path": "/defaults/workspace/models/________china_maid_XL_pony_ill_SD_/v1.0_SD1.5/china_maid_V1.0.safetensors",
         "weight": 0.9
       }
     ],
-    "textual_inversions": [
-      {
-        "local_path": "/runpod-volume/embeddings/easynegative.pt"
-      },
-      {
-        "local_path": "/runpod-volume/embeddings/my_embedding_style.safetensors"
-      }
-    ],
+    "textual_inversions": [],
     "generator_args": {
       "num_inference_steps": 30,
       "guidance_scale": 7.0,
-      "height": 1024, // Typical for SDXL
-      "width": 1024, // Typical for SDXL
+      "height": 1024,
+      "width": 1024,
       "negative_prompt": "ugly, deformed, low quality, blurry"
     }
   }
