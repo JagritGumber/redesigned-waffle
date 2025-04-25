@@ -168,7 +168,7 @@ def handler(job: t.Dict) -> t.Dict:
                 f"Checking base model presence at {local_model_path} for type {model_type}"
             )
 
-            if os.path.isdir(local_model_path) and os.listdir(local_model_path):
+            if os.path.isfile(local_model_path):
                 log.info(
                     f"Base model directory {local_model_path} found and is not empty. Loading..."
                 )
@@ -225,7 +225,6 @@ def handler(job: t.Dict) -> t.Dict:
                         f"Failed to load base model from {local_model_path} (Type: {model_type}): {load_error}"
                     )
                     return response_data
-
             else:
 
                 log.error(
