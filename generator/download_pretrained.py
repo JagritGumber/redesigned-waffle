@@ -124,7 +124,6 @@ HF_MODEL_REPOS = [
         "ignore_patterns": [
             "*.ckpt",
             "*.safetensors",
-            "model_index.json",
         ],  # Sometimes model_index.json can point to single files, ignore if needed
     },
     {
