@@ -13,6 +13,7 @@ from diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl import
 from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion import (
     StableDiffusionPipeline,
 )
+from diffusers.pipelines.pipeline_utils import DiffusionPipeline
 import torch
 import base64
 import io
@@ -24,9 +25,12 @@ from pydantic import (
     Field,
     field_validator,
 )
-
+from safetensors.torch import load_file
 
 log = RunPodLogger()
+
+BASE_SDXL_PATH = "/defaults/stable-diffusion-xl-base-1.0"
+BASE_SD15_PATH = "/defaults/stable-diffusion-v1-5"
 
 
 class LoRAItem(BaseModel):
@@ -40,8 +44,9 @@ class LoRAItem(BaseModel):
 
         if not v.startswith("/runpod-volume/") and not v.startswith("/defaults/"):
             raise ValueError("Local path must start with /runpod-volume/ or /defaults/")
+
         if not os.path.exists(v):
-            raise FileNotFoundError(f"File not found at path: {v}")
+            raise FileNotFoundError(f"File or directory not found at path: {v}")
         return v
 
 
@@ -55,8 +60,9 @@ class TIItem(BaseModel):
 
         if not v.startswith("/runpod-volume/") and not v.startswith("/defaults/"):
             raise ValueError("Local path must start with /runpod-volume/ or /defaults/")
+
         if not os.path.exists(v):
-            raise FileNotFoundError(f"File not found at path: {v}")
+            raise FileNotFoundError(f"File or directory not found at path: {v}")
         return v
 
 
@@ -74,7 +80,8 @@ class ModelConfig(BaseModel):
             raise ValueError("Local path must start with /runpod-volume/ or /defaults/")
 
         if not os.path.exists(v):
-            raise FileNotFoundError(f"Base model path not found: {v}")
+            raise FileNotFoundError(f"Model path not found: {v}")
+
         return v
 
 
@@ -100,7 +107,7 @@ class GeneratorInputPayload(BaseModel):
 
 
 _cached_pipeline = None
-_cached_model_path = None
+_cached_base_path = None
 _cached_model_type = None
 _cached_model_device = None
 
@@ -111,8 +118,7 @@ def clear_pipeline_addons(pipe):
 
     if hasattr(pipe, "disable_adapters"):
         pipe.disable_adapters()
-
-    log.debug("Disabled adapters.")
+        log.debug("Disabled adapters.")
 
 
 def handler(job: t.Dict) -> t.Dict:
@@ -120,7 +126,7 @@ def handler(job: t.Dict) -> t.Dict:
     Handles the job by loading a base model, LoRAs, and Textual Inversions from /runpod-volume and generating an image.
     Always returns a dictionary with 'status', 'message', and optionally 'result'.
     """
-    global _cached_pipeline, _cached_model_path, _cached_model_type, _cached_model_device
+    global _cached_pipeline, _cached_base_path, _cached_model_type, _cached_model_device
 
     job_id = job.get("id", "N/A")
     log.info(f"Processing job ID: {job_id}")
@@ -130,8 +136,10 @@ def handler(job: t.Dict) -> t.Dict:
         "message": "An unknown error occurred.",
     }
 
-    try:
+    pipe = None
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    try:
         job_input = GeneratorInputPayload(**job.get("input", {}))
         prompt = job_input.prompt
         model_config = job_input.model_conf
@@ -139,109 +147,163 @@ def handler(job: t.Dict) -> t.Dict:
         tis_to_apply = job_input.textual_inversions or []
         generator_args = job_input.generator_args or GeneratorArgs()
 
-        local_model_path = model_config.local_path
+        requested_model_path = model_config.local_path
         model_type = model_config.model_type
-        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        log.info(
-            f"Job requested Base Model: Type={model_type}, Path={local_model_path}"
-        )
+        log.info(f"Job requested Model: Type={model_type}, Path={requested_model_path}")
         log.info(
             f"Job requested {len(loras_to_apply)} LoRAs and {len(tis_to_apply)} Textual Inversions."
         )
 
-        pipe = None
+        if model_type in ["SDXL 1.0", "Illustrious", "Pony"]:
+            required_base_path = BASE_SDXL_PATH
+            pipeline_class = StableDiffusionXLPipeline
+        elif model_type == "SD 1.5":
+            required_base_path = BASE_SD15_PATH
+            pipeline_class = StableDiffusionPipeline
+        else:
+            response_data["message"] = (
+                f"Unsupported base model_type specified: {model_type}"
+            )
+            log.error(response_data["message"])
+            return response_data
 
-        is_cached_hit = False
+        is_base_cached_hit = False
 
         if (
             _cached_pipeline is not None
-            and _cached_model_path == local_model_path
+            and _cached_base_path == required_base_path
             and _cached_model_type == model_type
             and _cached_model_device == device
         ):
-            log.info(f"Using cached base model {model_type} from {local_model_path}")
+            log.info(
+                f"Using cached base pipeline {model_type} from {required_base_path}"
+            )
             pipe = _cached_pipeline
-            is_cached_hit = True
+            is_base_cached_hit = True
         else:
             log.info(
-                f"Checking base model presence at {local_model_path} for type {model_type}"
+                f"Loading base pipeline from {required_base_path} for type {model_type}"
             )
 
-            if os.path.isfile(local_model_path):
-                log.info(
-                    f"Base model directory {local_model_path} found and is not empty. Loading..."
-                )
-                try:
-
-                    if model_type == "SD 1.5":
-                        pipe = StableDiffusionPipeline.from_pretrained(
-                            local_model_path,
-                            torch_dtype=(
-                                torch.float16 if device == "cuda" else torch.float32
-                            ),
-                            local_files_only=True,
-                        )
-                        log.info("Loaded using StableDiffusionPipeline for SD 1.5.")
-
-                    elif model_type in ["SDXL 1.0", "Illustrious", "Pony"]:
-                        pipe = StableDiffusionXLPipeline.from_pretrained(
-                            local_model_path,
-                            torch_dtype=(
-                                torch.float16 if device == "cuda" else torch.float32
-                            ),
-                            variant=("fp16" if device == "cuda" else None),
-                            local_files_only=True,
-                        )
-                        log.info(
-                            f"Loaded using StableDiffusionXLPipeline for {model_type}."
-                        )
-                    else:
-
-                        raise ValueError(
-                            f"Unsupported base model_type specified: {model_type}"
-                        )
-
-                    pipe.to(device)
-
-                    _cached_pipeline = pipe
-                    _cached_model_path = local_model_path
-                    _cached_model_type = model_type
-                    _cached_model_device = device
-                    log.info(
-                        f"Base model type {model_type} loaded successfully from {local_model_path}."
-                    )
-
-                except Exception as load_error:
-                    log.error(
-                        f"Error loading base model from {local_model_path} (Type: {model_type}): {load_error}",
-                    )
-
-                    _cached_pipeline = None
-                    _cached_model_path = None
-                    _cached_model_type = None
-                    _cached_model_device = None
-                    response_data["message"] = (
-                        f"Failed to load base model from {local_model_path} (Type: {model_type}): {load_error}"
-                    )
-                    return response_data
-            else:
-
+            if not os.path.isdir(required_base_path):
                 log.error(
-                    f"Base model path {local_model_path} is not a valid non-empty directory. Model not available for type {model_type}."
+                    f"Required base model directory not found: {required_base_path}"
                 )
                 response_data["message"] = (
-                    f"Base model files not found at {local_model_path} or not in a valid directory structure for type {model_type}. Please ensure they have been downloaded."
+                    f"Base model files for {model_type} not found at {required_base_path}. Please ensure the standard base model is downloaded."
+                )
+                return response_data
+
+            try:
+                log.info(
+                    f"Attempting to load base pipeline from directory: {required_base_path}"
+                )
+                pipe = pipeline_class.from_pretrained(
+                    required_base_path,
+                    torch_dtype=(torch.float16 if device == "cuda" else torch.float32),
+                    local_files_only=True,
+                    variant=(
+                        "fp16" if device == "cuda" and model_type != "SD 1.5" else None
+                    ),
+                )
+                pipe.to(device)
+
+                _cached_pipeline = pipe
+                _cached_base_path = required_base_path
+                _cached_model_type = model_type
+                _cached_model_device = device
+                log.info(
+                    f"Base pipeline type {model_type} loaded successfully from {required_base_path}."
+                )
+
+            except Exception as load_error:
+                log.error(
+                    f"Error loading base pipeline from {required_base_path} (Type: {model_type}): {load_error}",
+                )
+
+                _cached_pipeline = None
+                _cached_base_path = None
+                _cached_model_type = None
+                _cached_model_device = None
+                response_data["message"] = (
+                    f"Failed to load base pipeline from {required_base_path} (Type: {model_type}): {load_error}"
                 )
                 return response_data
 
         if pipe is None:
-
-            log.error("Pipeline object is None after loading logic.")
-            response_data["message"] = "Internal error: Pipeline failed to initialize."
+            log.error("Pipeline object is None after base loading logic.")
+            response_data["message"] = (
+                "Internal error: Base Pipeline failed to initialize."
+            )
             return response_data
 
         clear_pipeline_addons(pipe)
+
+        is_checkpoint_loaded = False
+        checkpoint_path_loaded = None
+
+        if os.path.isfile(requested_model_path):
+            log.info(
+                f"Requested model path {requested_model_path} is a file. Attempting to load as checkpoint weights."
+            )
+            checkpoint_path_loaded = requested_model_path
+            try:
+
+                checkpoint_weights = load_file(requested_model_path)
+
+                log.debug(
+                    "Attempting to load checkpoint state dict into pipeline components..."
+                )
+                try:
+                    pipe.load_state_dict(checkpoint_weights, strict=False)
+                    log.info(
+                        f"Successfully loaded checkpoint weights from {requested_model_path} into the pipeline."
+                    )
+                    is_checkpoint_loaded = True
+                except Exception as full_load_error:
+                    log.error(
+                        f"Failed to load checkpoint state dict into pipeline: {full_load_error}"
+                    )
+
+                    raise ValueError(
+                        f"Could not apply checkpoint weights from {requested_model_path}"
+                    )
+
+            except Exception as checkpoint_load_error:
+                log.error(
+                    f"Error loading or applying checkpoint weights from {requested_model_path}: {checkpoint_load_error}"
+                )
+
+                del pipe
+                pipe = None
+
+                _cached_pipeline = None
+                _cached_base_path = None
+                _cached_model_type = None
+                _cached_model_device = None
+
+                response_data["message"] = (
+                    f"Failed to load or apply custom checkpoint weights from {requested_model_path}: {checkpoint_load_error}"
+                )
+                return response_data
+
+        elif os.path.isdir(requested_model_path):
+
+            if requested_model_path != required_base_path:
+                log.warn(
+                    f"Requested model path {requested_model_path} is a directory but not the standard base path {required_base_path}. Using the standard base pipeline. Checkpoint loading from a file will be skipped."
+                )
+
+        else:
+
+            log.error(
+                f"Requested model path {requested_model_path} is neither a file nor a directory. This should not occur based on validation."
+            )
+            response_data["message"] = (
+                f"Invalid model path specified: {requested_model_path}. Path is not a file or directory."
+            )
+            return response_data
 
         if loras_to_apply:
             log.info(f"Loading and applying {len(loras_to_apply)} LoRAs...")
@@ -255,10 +317,14 @@ def handler(job: t.Dict) -> t.Dict:
                 adapter_names.append(lora_name)
                 adapter_weights.append(lora_item.weight)
                 try:
-
                     log.debug(
                         f"Loading LoRA: {lora_item.local_path} with weight {lora_item.weight}"
                     )
+
+                    if not os.path.isfile(lora_item.local_path):
+                        raise FileNotFoundError(
+                            f"LoRA path is not a file: {lora_item.local_path}"
+                        )
 
                     pipe.load_lora_weights(
                         lora_item.local_path,
@@ -291,7 +357,6 @@ def handler(job: t.Dict) -> t.Dict:
                 log.info(f"Set {len(adapter_names)} LoRA adapters with weights.")
             except Exception as set_adapter_error:
                 log.error(f"Error setting LoRA adapters: {set_adapter_error}")
-
                 clear_pipeline_addons(pipe)
                 response_data["message"] = (
                     f"Failed to set LoRA adapters: {set_adapter_error}"
@@ -305,8 +370,12 @@ def handler(job: t.Dict) -> t.Dict:
 
             for ti_item in tis_to_apply:
                 try:
-
                     log.debug(f"Loading Textual Inversion: {ti_item.local_path}")
+
+                    if not os.path.isfile(ti_item.local_path):
+                        raise FileNotFoundError(
+                            f"TI path is not a file: {ti_item.local_path}"
+                        )
 
                     token = pipe.load_textual_inversion(
                         ti_item.local_path, local_files_only=True
@@ -332,66 +401,80 @@ def handler(job: t.Dict) -> t.Dict:
                     "Failed to load one or more Textual Inversion files."
                 )
                 response_data["ti_errors"] = ti_errors
+
                 return response_data
 
         log.info(
-            f"Starting image generation for prompt: '{prompt[:50]}...' using model at {local_model_path} (Type: {model_type})"
+            f"Starting image generation for prompt: '{prompt[:50]}...' using base model at {required_base_path} and checkpoint {checkpoint_path_loaded if checkpoint_path_loaded else 'None'} (Type: {model_type})"
         )
         time_start = time.time()
 
         gen_args_dict = generator_args.model_dump(exclude_none=True)
-
         gen_args_dict["prompt"] = prompt
-
-        if generator_args.height is not None:
-            gen_args_dict["height"] = generator_args.height
-        if generator_args.width is not None:
-            gen_args_dict["width"] = generator_args.width
-        if generator_args.negative_prompt is not None:
-            gen_args_dict["negative_prompt"] = generator_args.negative_prompt
 
         try:
 
             output = pipe(**gen_args_dict)
+
+            image = None
             if (
+                hasattr(output, "images")
+                and isinstance(output.images, list)
+                and len(output.images) > 0
+            ):
+                image = output.images[0]
+                log.debug("Accessed image from pipeline output .images list.")
+            elif (
                 isinstance(output, tuple)
                 and len(output) > 0
                 and hasattr(output[0], "save")
             ):
                 image = output[0]
                 log.debug("Accessed image from pipeline output tuple.")
-            elif (
-                hasattr(output, "images")
-                and isinstance(output.images, list)
-                and len(output.images) > 0
-                and hasattr(output.images[0], "save")
-            ):
-                image = output.images[0]
-                log.debug("Accessed image from pipeline output .images list.")
+            elif hasattr(output, "save"):
+                image = output
+                log.debug("Accessed image directly from pipeline output object.")
             else:
+                log.error("Pipeline output does not contain a recognized image format.")
 
-                log.error("Pipeline output does not contain an image.")
+                log.error(f"Pipeline output type: {type(output)}")
+                if isinstance(output, (list, tuple)) and len(output) > 0:
+                    log.error(f"First item in output type: {type(output[0])}")
+
                 raise RuntimeError("Pipeline did not return a valid image.")
 
         except Exception as gen_error:
             log.error(f"Error during image generation: {gen_error}")
 
-            if "out of memory" in str(gen_error).lower():
+            if "out of memory" in str(gen_error).lower() or (
+                hasattr(gen_error, "message")
+                and "out of memory" in str(gen_error.message).lower()
+            ):
                 log.warn("Attempting to clear CUDA cache due to potential OOM.")
 
                 del pipe
+                pipe = None
                 _cached_pipeline = None
-                _cached_model_path = None
+                _cached_base_path = None
                 _cached_model_type = None
                 _cached_model_device = None
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
+                log.warn("CUDA cache emptied.")
 
                 response_data["message"] = (
                     f"Error during image generation: {gen_error} (Potential Out of Memory. Model cache cleared.)"
                 )
             else:
                 response_data["message"] = f"Error during image generation: {gen_error}"
+
+            if pipe is not None:
+                try:
+                    clear_pipeline_addons(pipe)
+                except Exception as cleanup_error:
+                    log.error(
+                        f"Error during cleanup after generation error: {cleanup_error}"
+                    )
 
             return response_data
 
@@ -406,11 +489,17 @@ def handler(job: t.Dict) -> t.Dict:
             log.debug("Image successfully processed and base64 encoded.")
         except Exception as img_process_error:
             log.error(f"Error processing generated image: {img_process_error}")
-
             response_data["message"] = (
                 f"Error processing generated image: {img_process_error}"
             )
 
+            if pipe is not None:
+                try:
+                    clear_pipeline_addons(pipe)
+                except Exception as cleanup_error:
+                    log.error(
+                        f"Error during cleanup after image process error: {cleanup_error}"
+                    )
             return response_data
 
         if pipe is not None:
@@ -421,11 +510,12 @@ def handler(job: t.Dict) -> t.Dict:
         response_data["result"] = {
             "image": base64_image,
             "time_taken": time_taken,
-            "model_path_used": local_model_path,
+            "base_model_path_loaded": required_base_path,
+            "checkpoint_path_loaded": checkpoint_path_loaded,
             "model_type_used": model_type,
             "loras_applied": [lora.local_path for lora in loras_to_apply],
             "tis_applied": [ti.local_path for ti in tis_to_apply],
-            "cached_base_model_used": is_cached_hit,
+            "cached_base_model_used": is_base_cached_hit,
             "loaded_ti_tokens": loaded_ti_tokens if tis_to_apply else None,
         }
         log.info(f"Job ID {job_id} completed successfully.")
@@ -444,9 +534,11 @@ def handler(job: t.Dict) -> t.Dict:
                 log.error(
                     f"Error during cleanup after job error: {cleanup_error}",
                 )
+            del pipe
+            pipe = None
 
         _cached_pipeline = None
-        _cached_model_path = None
+        _cached_base_path = None
         _cached_model_type = None
         _cached_model_device = None
 
@@ -458,4 +550,5 @@ def handler(job: t.Dict) -> t.Dict:
 
 
 log.info("Starting generator worker...")
+
 runpod.serverless.start({"handler": handler})

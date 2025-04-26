@@ -10,3 +10,5 @@ diffusers
 transformers
 accelerate
 hf_transfer
+huggingface_hub
+safetensors

@@ -3,9 +3,11 @@ import os
 import time
 import urllib.parse
 import subprocess
+from huggingface_hub import snapshot_download  # ADDED import
+import torch  # ADDED import (needed for dtype info in potential future steps)
+import typing as t  # ADDED import for type hinting
 
-# --- Configuration: Mapping of Download URLs to Target File Paths ---
-# Ensure these paths exactly match what your generator worker expects
+
 DOWNLOAD_MAP = [
     {
         "url": "https://civitai.com/api/download/models/1015638",
@@ -113,12 +115,34 @@ DOWNLOAD_MAP = [
     },
 ]
 
+HF_MODEL_REPOS = [
+    {
+        "repo_id": "stabilityai/stable-diffusion-xl-base-1.0",
+        "local_dir": "/defaults/stable-diffusion-xl-base-1.0",  # Dedicated directory for SDXL base
+        "revision": "main",
+        # Ignore large checkpoint files if they exist alongside diffusers format
+        "ignore_patterns": [
+            "*.ckpt",
+            "*.safetensors",
+            "model_index.json",
+        ],  # Sometimes model_index.json can point to single files, ignore if needed
+    },
+    {
+        "repo_id": "runwayml/stable-diffusion-v1-5",
+        "local_dir": "/defaults/stable-diffusion-v1-5",  # Dedicated directory for SD1.5 base
+        "revision": "main",
+        "ignore_patterns": ["*.ckpt", "*.safetensors"],
+    },
+    # Add other base models if needed for your custom checkpoints
+]
+
 # Optional: Civitai API Token for higher rate limits, passed as an environment variable during build
 CIVITAI_API_TOKEN = "9f61f82876b8b2efbd8764e206ff8f2b"
 
 
 def download_file_direct(download_url: str, save_path: str):
     """Downloads a file directly using wget, bypassing temporary storage."""
+    # Keep your existing wget download function
     start_time = time.time()
     try:
         print(
@@ -130,7 +154,6 @@ def download_file_direct(download_url: str, save_path: str):
         parsed_download_url = urllib.parse.urlparse(download_url)
         query_params = urllib.parse.parse_qs(parsed_download_url.query)
         civitai_token = CIVITAI_API_TOKEN
-        # It's safer to not log the full token value
         print(
             f"Retrieved Civitai Token from environment variable: {civitai_token is not None}"
         )
@@ -140,9 +163,8 @@ def download_file_direct(download_url: str, save_path: str):
         updated_download_url = urllib.parse.urlunparse(
             parsed_download_url._replace(query=updated_query_string)
         )
-        print(
-            f"Constructed download URL (with token query param): {updated_download_url}"
-        )  # Log constructed URL (be cautious if logging sensitive URLs)
+        # Avoid logging the full token in the URL for security
+        print(f"Constructed download URL (with token query param added)")
 
         # Construct the wget command
         wget_command = [
@@ -201,8 +223,83 @@ def download_file_direct(download_url: str, save_path: str):
         }
 
 
+def download_hf_repo(
+    repo_id: str,
+    local_dir: str,
+    revision: str = "main",
+    ignore_patterns: t.Optional[t.List[str]] = None,
+):
+    """Downloads a Hugging Face repo using snapshot_download."""
+    start_time = time.time()
+    try:
+        print(
+            f"Starting Hugging Face repo download for repo_id: {repo_id}, local_dir: {local_dir}"
+        )
+        os.makedirs(local_dir, exist_ok=True)  # Ensure directory exists
+
+        # Check if download has already happened (e.g., check for a known file)
+        # This is a simple check, not guaranteed to be perfect
+        if os.path.exists(os.path.join(local_dir, "model_index.json")):
+            print(
+                f"Model index found in {local_dir}. Assuming repo {repo_id} is already downloaded."
+            )
+            return {
+                "status": "SKIPPED",
+                "message": f"Repo {repo_id} already downloaded to {local_dir}",
+            }
+
+        # Use snapshot_download to get the full repo content
+        # RunPod's base image configures HF_HOME, so cache_dir might not be needed explicitly
+        snapshot_download(
+            repo_id=repo_id,
+            local_dir=local_dir,
+            revision=revision,
+            local_files_only=False,  # Must download from hub
+            ignore_patterns=ignore_patterns,
+            max_workers=8,  # Use multiple workers for faster download
+        )
+
+        print(f"Hugging Face repo download completed successfully to {local_dir}")
+
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"Total Hugging Face repo download time: {duration:.4f} seconds")
+
+        return {
+            "status": "COMPLETED",
+            "message": f"Hugging Face repo download completed to {local_dir}",
+        }
+
+    except Exception as e:
+        print(f"Unexpected error during Hugging Face repo download for {repo_id}: {e}")
+        return {
+            "status": "ERROR",
+            "message": f"Unexpected error during Hugging Face repo download for {repo_id}: {e}",
+        }
+
+
 if __name__ == "__main__":
     print("Starting pre-trained model download script...")
+
+    # Download Hugging Face repos (base models)
+    print("\n--- Downloading Hugging Face Base Repos ---")
+    for repo_config in HF_MODEL_REPOS:
+        result = download_hf_repo(**repo_config)
+        print(result["message"])
+        if result["status"] == "ERROR":
+            # You might want to exit here if base models are essential
+            pass  # Or continue with a warning
+
+    print("\n--- Downloading Custom Files from DOWNLOAD_MAP ---")
     for item in DOWNLOAD_MAP:
-        download_file_direct(item["url"], item["path"])
-    print("Pre-trained model download script finished.")
+        # Added a check for file existence before downloading again
+        if os.path.exists(item["path"]):
+            print(f"File already exists, skipping download: {item['path']}")
+            continue
+        result = download_file_direct(item["url"], item["path"])
+        print(result["message"])
+        if result["status"] == "ERROR":
+            # You might want to exit here or log more severely
+            pass  # Or continue with a warning
+
+    print("\nPre-trained model download script finished.")
