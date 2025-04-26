@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { StyleSheet, TouchableOpacity, GestureResponderEvent } from 'react-native';
 import { CivitaiModelWithRelations } from '~/backend/schema/models';
 import { MoreVertical } from '@tamagui/lucide-icons';
-import { View, Image, Text, Card, Dialog, Input, Button, XStack, useTheme } from 'tamagui';
+import { View, Image, Text, Card, Dialog, Input, Button, XStack, useTheme, YStack } from 'tamagui';
 
-export interface ModelSelectItem extends CivitaiModelWithRelations { }
+export interface ModelSelectItem extends CivitaiModelWithRelations {}
 
 interface ModelSelectItemCardProps {
   model: ModelSelectItem;
@@ -65,11 +65,14 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
     <>
       <TouchableOpacity
         activeOpacity={0.8}
-        style={[styles.cardButton, isSelected && styles.selectedCardButton, isSelected && {
-          borderColor: theme.accent10.get()
-        }]}
-        onPress={() => onPress?.(model)}
-      >
+        style={[
+          styles.cardButton,
+          isSelected && styles.selectedCardButton,
+          isSelected && {
+            borderColor: theme.accent10.get(),
+          },
+        ]}
+        onPress={() => onPress?.(model)}>
         <Card key={model.id} style={styles.card}>
           {model.versions?.[0]?.images?.[0]?.url && (
             <Image
@@ -82,7 +85,7 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
             <Dialog modal>
               <Dialog.Trigger asChild>
                 <Button onPress={handleEditWeight} padding={8}>
-                  <MoreVertical size={20} color={isSelected ? '$accent10' : "$accent0"} />
+                  <MoreVertical size={20} color={isSelected ? '$accent10' : '$accent0'} />
                 </Button>
               </Dialog.Trigger>
               <Dialog.Portal>
@@ -115,17 +118,32 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
               </Dialog.Portal>
             </Dialog>
           </View>
-          <View style={styles.cardTextContainer}>
-            <Text
-              style={[styles.cardTitle, isSelected && styles.selectedCardTitle]}
-              fontSize={14}
-              fontWeight="bold"
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {model.name}
-            </Text>
-          </View>
+          <XStack style={styles.cardTextContainer} jc={'space-between'} ai={'center'}>
+            <YStack width={'calc(100% - 6rem)'}>
+              <Text
+                style={[styles.cardTitle, isSelected && styles.selectedCardTitle]}
+                fontSize={14}
+                fontWeight="bold"
+                numberOfLines={1}
+                textOverflow="ellipsis"
+                ellipsizeMode="tail">
+                {model.name}
+              </Text>
+              <Text style={styles.cardSubtitle} fontSize={10} color="white">
+                Type: {model.type}
+              </Text>
+            </YStack>
+            <YStack
+              right={'$2'}
+              bg={'$background08'}
+              p={'$1'}
+              px={'$2'}
+              br={'$5'}
+              ai={'center'}
+              jc={'center'}>
+              <Text>{model.versions?.[0]?.baseModel}</Text>
+            </YStack>
+          </XStack>
         </Card>
       </TouchableOpacity>
     </>
@@ -144,7 +162,7 @@ const styles = StyleSheet.create({
   selectedCardButton: {
     opacity: 1,
     borderWidth: 2,
-    borderColor: "$accent10",
+    borderColor: '$accent10',
   },
   card: {
     width: '100%',
@@ -166,6 +184,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   cardTitle: {
+    color: 'white',
+  },
+  cardSubtitle: {
     color: 'white',
   },
   selectedCardTitle: {

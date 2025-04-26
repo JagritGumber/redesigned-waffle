@@ -32,7 +32,7 @@ export default function RootLayout() {
 
   return (
     <TamaguiProvider config={config} defaultTheme="dark">
-      <PortalProvider>
+      <PortalProvider shouldAddRootHost>
         <QueryClientProvider client={queryClient}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

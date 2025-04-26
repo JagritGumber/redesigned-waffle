@@ -39,14 +39,15 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
               />
             )}
           <View style={styles.cardTextContainer}>
-            <View width={'calc(100% - 6rem)'}>
+            <View width={'calc(100% - 6rem)'} flexShrink={1}>
               <Text
                 style={styles.cardTitle}
                 fontSize={14}
                 fontWeight="bold"
-                numberOfLines={2}
+                numberOfLines={1}
+                textOverflow="ellipsis"
                 lineBreakMode="middle"
-                ellipsizeMode="tail">
+                ellipsizeMode="clip">
                 {model.name}
               </Text>
               <Text style={styles.cardSubtitle} fontSize={10} color="white">
@@ -100,6 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 8,
+    width: '100%',
   },
   cardTitle: {
     color: 'white',

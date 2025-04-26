@@ -175,69 +175,49 @@ const CivitAIMarketplace = () => {
       </XStack> */}
 
       {/* Use ScrollView for the main content area */}
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }} // Add padding for load more button
-        // You could potentially add onEndReached={loadMore} for infinite scroll
-      >
-        {/* Loading State (Initial Load) */}
-        {isLoading && (
-          <YStack flex={1} jc="center" ai="center" p="$4">
-            <Spinner size="large" color="$blue10" />
-            <Paragraph mt="$2" col="$color11">
-              Loading Models...
-            </Paragraph>
-          </YStack>
-        )}
-
-        {/* Error State */}
-        {isError &&
-          !isLoading && ( // Don't show error during initial load spinner
-            <YStack flex={1} jc="center" ai="center" p="$4">
-              <Paragraph col="$red10">Error loading models:</Paragraph>
-              <Paragraph col="$red10" fow="bold">
-                {(error as Error)?.message || 'Unknown error'}
-              </Paragraph>
-              <Button onPress={() => refetch()} mt="$4">
-                Retry
-              </Button>
-            </YStack>
-          )}
-
-        {/* Success State - No results */}
-        {!isLoading && !isError && allModels.length === 0 && (
-          <YStack flex={1} jc="center" ai="center" p="$4">
-            <Paragraph>No models found matching your criteria.</Paragraph>
-          </YStack>
-        )}
-
-        {/* Success State - Show List */}
-        {!isLoading && !isError && allModels.length > 0 && (
-          <ModelList
-            models={allModels}
-            numColumns={numColumns}
-            isLoadingMore={isFetchingNextPage}
-            isLoadingInitial={isLoading}
-            isError={isError}
-            hasNextPage={hasNextPage}
-            loadMore={loadMore}
-          />
-        )}
-
-        {/* Load More Button / Indicator */}
-        <YStack p="$4" ai="center">
-          {isFetchingNextPage ? (
-            <Spinner />
-          ) : hasNextPage ? (
-            <Button onPress={loadMore} disabled={!hasNextPage || isFetchingNextPage}>
-              Load More
-            </Button>
-          ) : (
-            // Only show "End of results" if we are not loading and have some models already
-            !isLoading &&
-            allModels.length > 0 && <Paragraph theme="accent">End of results</Paragraph>
-          )}
+      {/* Loading State (Initial Load) */}
+      {isLoading && (
+        <YStack flex={1} jc="center" ai="center" p="$4">
+          <Spinner size="large" color="$blue10" />
+          <Paragraph mt="$2" col="$color11">
+            Loading Models...
+          </Paragraph>
         </YStack>
-      </ScrollView>
+      )}
+
+      {/* Error State */}
+      {isError &&
+        !isLoading && ( // Don't show error during initial load spinner
+          <YStack flex={1} jc="center" ai="center" p="$4">
+            <Paragraph col="$red10">Error loading models:</Paragraph>
+            <Paragraph col="$red10" fow="bold">
+              {(error as Error)?.message || 'Unknown error'}
+            </Paragraph>
+            <Button onPress={() => refetch()} mt="$4">
+              Retry
+            </Button>
+          </YStack>
+        )}
+
+      {/* Success State - No results */}
+      {!isLoading && !isError && allModels.length === 0 && (
+        <YStack flex={1} jc="center" ai="center" p="$4">
+          <Paragraph>No models found matching your criteria.</Paragraph>
+        </YStack>
+      )}
+
+      {/* Success State - Show List */}
+      {!isLoading && !isError && allModels.length > 0 && (
+        <ModelList
+          models={allModels}
+          numColumns={numColumns}
+          isLoadingMore={isFetchingNextPage}
+          isLoadingInitial={isLoading}
+          isError={isError}
+          hasNextPage={hasNextPage}
+          loadMore={loadMore}
+        />
+      )}
 
       {/* Filter Modal (Keep your existing modal structure) */}
       <Modal visible={isFilterVisible} onRequestClose={closeFilterModal} animationType="slide">

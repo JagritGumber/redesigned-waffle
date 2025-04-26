@@ -2,7 +2,6 @@ import React from 'react';
 import { Card, Text, View, Image } from 'tamagui';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
-import { useModelStore } from '~/store/useModelStore'; // Adjust path
 import { CivitaiModelWithRelations } from '~/backend/schema/models';
 
 interface DownloadedModelCardProps {
@@ -35,12 +34,13 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
               />
             )}
           <View style={styles.cardTextContainer}>
-            <View>
+            <View width={'calc(100% - 6rem)'} flexShrink={1}>
               <Text
                 style={styles.cardTitle}
                 fontSize={14}
                 fontWeight="bold"
-                numberOfLines={2}
+                numberOfLines={1}
+                textOverflow="ellipsis"
                 ellipsizeMode="tail">
                 {model.name}
               </Text>
@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 8,
   },
   cardTitle: {

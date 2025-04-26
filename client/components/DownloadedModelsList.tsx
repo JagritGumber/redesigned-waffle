@@ -1,21 +1,20 @@
-// src/components/DownloadedModelsList.tsx
 import React from 'react';
-import { Dimensions } from 'react-native';
+import { Platform } from 'react-native';
 import { Text, Spinner, View, YStack } from 'tamagui';
-import ModelCard from './ModelCard';
-import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Adjust path
+
+import { CivitaiModelWithRelations } from '~/backend/schema/models';
 import DownloadedModelCard from './DownloadedModelCard';
 
-const { width: screenWidth } = Dimensions.get('window');
-const cardMarginBase = 16; // Theme spacing
-const cardGapBase = 16;
+import { MasonryFlashList } from '@shopify/flash-list';
+
+const itemGap = 16;
 
 interface DownloadedModelsListProps {
   models: CivitaiModelWithRelations[];
   isLoading: boolean;
   isError: boolean;
-  error?: Error | null; // Optional, but useful to pass for displaying message
-  numColumns?: number; // Optional: Allow the parent to control column count
+  error?: Error | null;
+  numColumns?: number;
 }
 
 const DownloadedModelsList: React.FC<DownloadedModelsListProps> = ({
@@ -23,12 +22,8 @@ const DownloadedModelsList: React.FC<DownloadedModelsListProps> = ({
   isLoading,
   isError,
   error,
-  numColumns = 2, // Default to 2 columns if not specified
+  numColumns = 2,
 }) => {
-  const cardWidth = `calc(${100 / numColumns}% - ${cardGapBase}px)`;
-  const marginRight = cardGapBase;
-  const marginBottom = cardGapBase;
-
   if (isLoading) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
@@ -44,39 +39,73 @@ const DownloadedModelsList: React.FC<DownloadedModelsListProps> = ({
     return (
       <YStack flex={1} justifyContent="center" alignItems="center" padding="$4">
         <Text color="$red10">Error fetching downloaded models:</Text>
-        <Text color="$red10" fontSize="$2">
+        <Text color="$red10" fontSize="$2" textAlign="center">
           {error?.message || 'Unknown error'}
         </Text>
       </YStack>
     );
   }
 
-  if (models.length === 0) {
+  if (models.length === 0 && !isLoading && !isError) {
     return (
       <YStack flex={1} justifyContent="center" alignItems="center">
-        <Text>No models downloaded yet.</Text>
+        <Text color="$gray10">No models downloaded yet.</Text>
       </YStack>
     );
   }
 
-  return (
-    <View
-      flexDirection="row"
-      flexWrap="wrap"
-      justifyContent="flex-start"
-      bg={'$background'}
-      pl={'$4'}>
-      {models.map((model, index) => (
-        <View
-          key={model.id}
-          width={cardWidth}
-          marginBottom={marginBottom}
-          marginRight={(index + 1) % numColumns !== 0 ? marginRight : undefined}>
-          <DownloadedModelCard model={model} />
-        </View>
-      ))}
-    </View>
-  );
+  const renderDownloadedModelItem = ({ item }: { item: CivitaiModelWithRelations }) => {
+    return <DownloadedModelCard model={item} />;
+  };
+
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        flexDirection="row"
+        flexWrap="wrap"
+        justifyContent="flex-start"
+        bg={'$background'}
+        overflowY="scroll"
+        flex={1}
+        m={itemGap / 2}>
+        {models.map((model) => (
+          <View key={model.id} width={`calc(100% / ${numColumns})`} padding={itemGap / 2}>
+            {renderDownloadedModelItem({ item: model })}
+          </View>
+        ))}
+        {/* No footer component needed */}
+      </View>
+    );
+  } else {
+    const nativeItemWrapperPadding = itemGap / 2;
+    const nativeContentPadding = itemGap / 2;
+
+    return (
+      <MasonryFlashList
+        data={models}
+        renderItem={({ item }) => (
+          <View padding={nativeItemWrapperPadding}>{renderDownloadedModelItem({ item })}</View>
+        )}
+        numColumns={numColumns}
+        estimatedItemSize={400}
+        contentContainerStyle={{
+          padding: nativeContentPadding,
+        }}
+        ListEmptyComponent={
+          !isLoading && !isError && models.length === 0 ? (
+            <View flex={1} justifyContent="center" alignItems="center" pt={itemGap}>
+              <Text color="$gray10" textAlign="center">
+                No models found.
+              </Text>{' '}
+              {/* Updated message for downloaded */}
+            </View>
+          ) : null
+        }
+        keyExtractor={(item) => item.id.toString()}
+        style={{ flex: 1 }}
+      />
+    );
+  }
 };
 
 export default DownloadedModelsList;

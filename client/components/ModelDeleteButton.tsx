@@ -97,8 +97,8 @@ function ModelDeleteButton({ model }: ModelDeleteButtonProps) {
 
   // AlertDialog logic remains mostly the same, just ensure the onPress calls handleDelete
   return (
-    <AlertDialog native>
-      <AlertDialogTrigger asChild>
+    <AlertDialog native >
+      <AlertDialogTrigger asChild  >
         <Button
           backgroundColor="$red2"
           hoverStyle={{ backgroundColor: '$red3' }}

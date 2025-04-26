@@ -133,59 +133,47 @@ const DownloadedModels = () => {
         </AlertDialog>
       </XStack>
 
-      {/* Filter Button & Status (alternative placement) */}
-      {/* <XStack px="$4" py="$2" space>
-        <Button onPress={openFilterModal} flex={1}>Filter</Button>
-        {(isLoading || isFetching) && <Spinner size="small" />}
-      </XStack> */}
+      {/* Loading State (Initial Load) */}
+      {isLoading && (
+        <YStack flex={1} jc="center" ai="center" p="$4">
+          <Spinner size="large" color="$blue10" />
+          <Paragraph mt="$2" col="$color11">
+            Loading Models...
+          </Paragraph>
+        </YStack>
+      )}
 
-      {/* Use ScrollView for the main content area */}
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }} // Add padding for load more button
-        // You could potentially add onEndReached={loadMore} for infinite scroll
-      >
-        {/* Loading State (Initial Load) */}
-        {isLoading && (
+      {/* Error State */}
+      {isError &&
+        !isLoading && ( // Don't show error during initial load spinner
           <YStack flex={1} jc="center" ai="center" p="$4">
-            <Spinner size="large" color="$blue10" />
-            <Paragraph mt="$2" col="$color11">
-              Loading Models...
+            <Paragraph col="$red10">Error loading models:</Paragraph>
+            <Paragraph col="$red10" fow="bold">
+              {(error as Error)?.message || 'Unknown error'}
             </Paragraph>
+            <Button onPress={() => refetch()} mt="$4">
+              Retry
+            </Button>
           </YStack>
         )}
 
-        {/* Error State */}
-        {isError &&
-          !isLoading && ( // Don't show error during initial load spinner
-            <YStack flex={1} jc="center" ai="center" p="$4">
-              <Paragraph col="$red10">Error loading models:</Paragraph>
-              <Paragraph col="$red10" fow="bold">
-                {(error as Error)?.message || 'Unknown error'}
-              </Paragraph>
-              <Button onPress={() => refetch()} mt="$4">
-                Retry
-              </Button>
-            </YStack>
-          )}
+      {/* Success State - No results */}
+      {!isLoading && !isError && allModels?.length === 0 && (
+        <YStack flex={1} jc="center" ai="center" p="$4">
+          <Paragraph>No models found matching your criteria.</Paragraph>
+        </YStack>
+      )}
 
-        {/* Success State - No results */}
-        {!isLoading && !isError && allModels?.length === 0 && (
-          <YStack flex={1} jc="center" ai="center" p="$4">
-            <Paragraph>No models found matching your criteria.</Paragraph>
-          </YStack>
-        )}
-
-        {/* Success State - Show List */}
-        {!isLoading && !isError && (allModels?.length ?? 0) > 0 && (
-          <DownloadedModelsList
-            models={allModels ?? []}
-            numColumns={numColumns}
-            isLoading={isLoading}
-            isError={isError}
-            error={error}
-          />
-        )}
-      </ScrollView>
+      {/* Success State - Show List */}
+      {!isLoading && !isError && (allModels?.length ?? 0) > 0 && (
+        <DownloadedModelsList
+          models={allModels ?? []}
+          numColumns={numColumns}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+        />
+      )}
     </YStack>
   );
 };
