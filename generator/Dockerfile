@@ -3,14 +3,8 @@
 # ---------------------------------------------------------------------------- #
 FROM alpine/git:2.43.0 as download
 
-# NOTE: CivitAI usually requires an API token, so you need to add it in the header
-ARG CIVITAI_API_TOKEN
-
-# Set environment variable for the script to read
-ENV CIVITAI_API_TOKEN=${CIVITAI_API_TOKEN}
-#       of the wget command if you're using a model from CivitAI.
 RUN apk add --no-cache wget && \
-    wget -q -O /model.safetensors "https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}"
+    wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=9f61f82876b8b2efbd8764e206ff8f2b
 
 COPY generator/download_pretrained.py .
 

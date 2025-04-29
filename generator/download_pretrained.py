@@ -116,7 +116,7 @@ DOWNLOAD_MAP = [
 ]
 
 # Optional: Civitai API Token for higher rate limits, passed as an environment variable during build
-CIVITAI_API_TOKEN = os.environ.get("CIVITAI_API_TOKEN")
+CIVITAI_API_TOKEN = "9f61f82876b8b2efbd8764e206ff8f2b"
 
 
 def download_file_direct(download_url: str, save_path: str):
