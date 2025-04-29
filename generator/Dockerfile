@@ -12,7 +12,7 @@ ENV CIVITAI_API_TOKEN=${CIVITAI_API_TOKEN}
 RUN apk add --no-cache wget && \
     wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}
 
-COPY download_pretrained.py .
+COPY generator/download_pretrained.py .
 
 # Make the script executable (optional but good practice)
 RUN chmod +x download_pretrained.py
@@ -53,13 +53,13 @@ COPY --from=download /model.safetensors /model.safetensors
 COPY --from=download /defaults/ /defaults/
 
 # install dependencies
-COPY requirements.txt .
+COPY generator/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
-COPY test_input.json .
+COPY genrator/test_input.json .
 
-ADD src .
+ADD genrator/src .
 
 RUN chmod +x /start.sh
-CMD /start.sh
+CMD genrator/start.sh
