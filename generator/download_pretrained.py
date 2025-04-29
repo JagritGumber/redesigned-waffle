@@ -4,13 +4,16 @@ import time
 import urllib.parse
 import subprocess
 import requests
+import json
 
 
 response = requests.get(
     "https://approximate-german-crucial-grab.trycloudflare.com/api/v1/model/default"
 )
 
-DOWNLOAD_MAP = response.json()
+DOWNLOAD_MAP = json.load(response.json())
+
+print(response, response.json())
 
 # Optional: Civitai API Token for higher rate limits, passed as an environment variable during build
 CIVITAI_API_TOKEN = "9f61f82876b8b2efbd8764e206ff8f2b"
