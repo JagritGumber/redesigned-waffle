@@ -11,7 +11,7 @@ response = requests.get(
     "https://approximate-german-crucial-grab.trycloudflare.com/api/v1/model/default"
 )
 
-DOWNLOAD_MAP = json.load(response.json())
+DOWNLOAD_MAP = response.json()
 
 print(response, response.json())
 
