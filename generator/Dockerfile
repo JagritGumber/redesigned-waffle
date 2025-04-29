@@ -57,9 +57,9 @@ COPY generator/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
-COPY genrator/test_input.json .
+COPY generator/test_input.json .
 
-ADD genrator/src .
+ADD generator/src .
 
 RUN chmod +x /start.sh
-CMD genrator/start.sh
+CMD generator/start.sh
