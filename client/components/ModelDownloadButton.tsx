@@ -8,20 +8,28 @@ import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Your bac
 import { useDownloadModel } from '~/hooks/useDownloadModel'; // Import the hook
 
 interface ModelDownloadButtonProps {
-  civitaiModel: CivitaiApiModel | null; // The original Civitai API model data
-  downloadedModel?: CivitaiModelWithRelations | null; // The model data fetched from your backend
+  civitaiModel: CivitaiApiModel | null;
+  downloadedModel?: CivitaiModelWithRelations | null;
+  fileId: number;
+  versionId: number;
+  defaultDownload?: boolean;
 }
 
 const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
   civitaiModel,
   downloadedModel,
+  fileId,
+  versionId,
+  defaultDownload = false,
 }) => {
   // Use the mutation hook
   const { mutate: startDownload, isPending: isInitiatingDownload } = useDownloadModel(); // Use isPending for initiation state
 
   // Find the primary file from the downloaded model data (if it exists)
-  const latestDownloadedVersion = downloadedModel?.versions?.[0];
-  const primaryDownloadedFile = latestDownloadedVersion?.files?.find((file) => file.primary);
+  const latestDownloadedVersion = downloadedModel?.modelVersions.find(
+    (version) => version.id === versionId
+  );
+  const primaryDownloadedFile = latestDownloadedVersion?.files?.find((file) => file.id === fileId);
 
   // Get the status from the downloaded model data
   // Default to 'NONE' if downloadedModel or primary file doesn't exist
@@ -35,11 +43,11 @@ const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
       return;
     }
     // Call the mutation function
-    startDownload(civitaiModel ?? downloadedModel);
+    startDownload({ model: civitaiModel ?? downloadedModel, fileId, versionId, defaultDownload });
   };
 
   // Determine button state and text based on status and loading
-  let buttonText = 'Download';
+  let buttonText = 'Download' + defaultDownload ? 'Default' : 'Normal';
   let buttonIcon = <Download size="$1" />;
   let buttonDisabled = false;
   let buttonTheme: any = 'blue'; // Default theme
@@ -108,7 +116,7 @@ const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
       disabled={buttonDisabled}
       size="$3"
       style={styles.downloadButton} // Apply styles here
-    >
+      variant={defaultDownload ? 'outlined' : undefined}>
       {buttonText}
     </Button>
   );
@@ -116,7 +124,7 @@ const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
 
 const styles = StyleSheet.create({
   downloadButton: {
-    width: '100%',
+    flexGrow: 1,
     marginTop: 10, // Adjust spacing as needed
   },
 });

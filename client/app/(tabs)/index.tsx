@@ -16,7 +16,7 @@ export default function Home() {
 
   return (
     <>
-      <View f={1} bg={"$background"}> {/* Use Tamagui's View and flex prop */}
+      <View f={1} bg={'$background'}>
         <GroupList onGroupUpdated={handleGroupUpdated} />
       </View>
     </>

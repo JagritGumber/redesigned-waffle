@@ -137,7 +137,7 @@ function ModelDeleteButton({ model }: ModelDeleteButtonProps) {
           opacity={1}
           y={0}>
           <YStack gap="$4">
-            <AlertDialogTitle>Delete {model?.name || 'Model'}</AlertDialogTitle>{' '}
+            <AlertDialogTitle>Delete {model?.name || 'Model'}</AlertDialogTitle>
             {/* Use optional chaining */}
             <AlertDialogDescription>
               Are you sure you want to delete this model? This will remove the file from storage and

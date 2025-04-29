@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1743979188519,
-      "tag": "0000_gigantic_silk_fever",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1744405830790,
-      "tag": "0001_fuzzy_carnage",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1744488361878,
-      "tag": "0002_graceful_avengers",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1744492404401,
-      "tag": "0003_groovy_wild_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1744843680752,
-      "tag": "0004_lethal_wiccan",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1745182224452,
-      "tag": "0005_stormy_thanos",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1745405794847,
-      "tag": "0006_wet_earthquake",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1745432697956,
-      "tag": "0007_funny_celestials",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1745437128425,
-      "tag": "0008_needy_thundra",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1745523887824,
-      "tag": "0009_wet_mercury",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1745604505011,
-      "tag": "0010_cheerful_azazel",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1745606575957,
-      "tag": "0011_brown_gravity",
+      "when": 1745957355179,
+      "tag": "0000_natural_doctor_strange",
       "breakpoints": true
     }
   ]

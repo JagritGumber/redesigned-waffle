@@ -1,28 +1,15 @@
 {
   "input": {
-    "prompt": "maid bikini,black bikini, maid headdress, detached collar, thighhighs,frills,ribbon,arm garter,leg garter,wrist cuffs",
-    "model_conf": {
-      "local_path": "/defaults/workspace/models/boleromix_illustrious_/v2.90/boleromixIllustrious_v290.safetensors",
-      "model_type": "SDXL",
-      "weight": 1.0
+    "prompt": "a photo of an astronaut riding a horse on mars",
+    "negative_prompt": "blurry, bad quality",
+    "width": 512,
+    "height": 512,
+    "steps": 20,
+    "cfg_scale": 7.5,
+    "seed": 42,
+    "override_settings": {
+      "sd_model_checkpoint": "/defaults/workspace/models/boleromix_illustrious_/v2.90/boleromixIllustrious_v290.safetensors"
     },
-    "loras": [
-      {
-        "local_path": "/defaults/workspace/loras/_______maid_bikini_XL_ILL_pony_/v1.0_illustrious/maid_bikini_illustrious_V1.0.safetensors",
-        "weight": 0.75
-      },
-      {
-        "local_path": "/defaults/workspace/models/________china_maid_XL_pony_ill_SD_/v1.0_SD1.5/china_maid_V1.0.safetensors",
-        "weight": 0.9
-      }
-    ],
-    "textual_inversions": [],
-    "generator_args": {
-      "num_inference_steps": 30,
-      "guidance_scale": 7.0,
-      "height": 1024,
-      "width": 1024,
-      "negative_prompt": "ugly, deformed, low quality, blurry"
-    }
+    "override_settings_defaults": {}
   }
 }

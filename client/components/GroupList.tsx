@@ -119,11 +119,11 @@ function GroupList({ onGroupUpdated }: GroupListProps) {
                     <TouchableOpacity
                       onPress={() => handleSaveGroup(group.id)}
                       style={styles.iconButton}>
-                      <Feather name="check" size={20} color="$color.primary" />{' '}
+                      <Feather name="check" size={20} color="$color.primary" />
                       {/* Using primary theme color */}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleCancelEdit} style={styles.iconButton}>
-                      <Feather name="x" size={20} color="$color.secondary" />{' '}
+                      <Feather name="x" size={20} color="$color.secondary" />
                       {/* Using secondary theme color */}
                     </TouchableOpacity>
                   </>
@@ -132,13 +132,13 @@ function GroupList({ onGroupUpdated }: GroupListProps) {
                     <TouchableOpacity
                       onPress={() => handleEditGroup(group)}
                       style={styles.iconButton}>
-                      <Feather name="edit" size={20} color="$color.primary" />{' '}
+                      <Feather name="edit" size={20} color="$color.primary" />
                       {/* Using primary theme color */}
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDeleteGroup(group.id)}
                       style={styles.iconButton}>
-                      <Feather name="trash-2" size={20} color="$color.secondary" />{' '}
+                      <Feather name="trash-2" size={20} color="$color.secondary" />
                       {/* Using secondary theme color */}
                     </TouchableOpacity>
                   </>

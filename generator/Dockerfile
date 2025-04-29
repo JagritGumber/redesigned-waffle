@@ -1,37 +1,65 @@
-# Base image -> https://github.com/runpod/containers/blob/main/official-templates/base/Dockerfile
-# DockerHub -> https://hub.docker.com/r/runpod/base/tags
-FROM runpod/base:0.5.1-cpu
+# ---------------------------------------------------------------------------- #
+#                         Stage 1: Download the models                         #
+# ---------------------------------------------------------------------------- #
+FROM alpine/git:2.43.0 as download
 
-# The base image comes with many system dependencies pre-installed to help you get started quickly.
-# Please refer to the base image's Dockerfile for more information before adding additional dependencies.
-# IMPORTANT: The base image overrides the default huggingface cache location.
+# NOTE: CivitAI usually requires an API token, so you need to add it in the header
+ARG CIVITAI_API_TOKEN
+
+# Set environment variable for the script to read
+ENV CIVITAI_API_TOKEN=${CIVITAI_API_TOKEN}
+#       of the wget command if you're using a model from CivitAI.
+RUN apk add --no-cache wget && \
+    wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}
+
+COPY download_pretrained.py .
+
+# Make the script executable (optional but good practice)
+RUN chmod +x download_pretrained.py
+
+# Execute the download script to fetch Civitai models
+# Use python -u to prevent output buffering
+RUN python -u download_pretrained.py
 
 
-# --- Optional: System dependencies ---
-# COPY builder/setup.sh /setup.sh
-# RUN /bin/bash /setup.sh && \
-#     rm /setup.sh
+# ---------------------------------------------------------------------------- #
+#                        Stage 2: Build the final image                        #
+# ---------------------------------------------------------------------------- #
+FROM python:3.10.14-slim as build_final_image
 
+ARG A1111_RELEASE=v1.9.3
 
-# Python dependencies
-COPY generator/builder/requirements.txt /requirements.txt
-RUN python3.11 -m pip install --upgrade pip && \
-    python3.11 -m pip install --upgrade -r /requirements.txt --no-cache-dir && \
-    rm /requirements.txt
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_PREFER_BINARY=1 \
+    ROOT=/stable-diffusion-webui \
+    PYTHONUNBUFFERED=1
 
-# NOTE: The base image comes with multiple Python versions pre-installed.
-#       It is reccommended to specify the version of Python when running your code.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+RUN apt-get update && \
+    apt install -y \
+    fonts-dejavu-core rsync git jq moreutils aria2 wget libgoogle-perftools-dev libtcmalloc-minimal4 procps libgl1 libglib2.0-0 && \
+    apt-get autoremove -y && rm -rf /var/lib/apt/lists/* && apt-get clean -y
 
-COPY generator/download_pretrained.py .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
+    cd stable-diffusion-webui && \
+    git reset --hard ${A1111_RELEASE} && \
+    pip install xformers && \
+    pip install -r requirements_versions.txt && \
+    python -c "from launch import prepare_environment; prepare_environment()" --skip-torch-cuda-test
 
-RUN python3.11 ./download_pretrained.py
-RUN rm ./download_pretrained.py
+COPY --from=download /model.safetensors /model.safetensors
+COPY --from=download /defaults/ /defaults/
 
-# Add src files (Worker Template)
-ADD generator/test_input.json .
-ADD generator/src .
+# install dependencies
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
 
-RUN python3.11 /handler.py
+COPY test_input.json .
 
-CMD python3.11 -u /handler.py
+ADD src .
+
+RUN chmod +x /start.sh
+CMD /start.sh

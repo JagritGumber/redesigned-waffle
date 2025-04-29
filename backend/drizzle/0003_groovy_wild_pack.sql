@@ -1,1 +1,0 @@
-ALTER TABLE `civitaiModel` ADD `defaultWeight` real DEFAULT 0.6;

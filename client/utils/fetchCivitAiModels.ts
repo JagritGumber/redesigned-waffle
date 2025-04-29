@@ -59,14 +59,12 @@ export const buildInitialUrl = (baseParams: FetchModelsParams): string => {
     nsfw: `${baseParams.nsfw ?? true}`,
   });
 
-  // Add dynamic filters/query
   if (baseParams.query) urlParams.set('query', baseParams.query);
   if (baseParams.tag) urlParams.set('tag', baseParams.tag);
   if (baseParams.username) urlParams.set('username', baseParams.username);
   if (baseParams.types && baseParams.types.length > 0)
     urlParams.set('types', baseParams.types.join(','));
   if (baseParams.sort) urlParams.set('sort', baseParams.sort);
-  // Add other params like period if needed
 
   return `${CIVITAI_API_BASE_URL}?${urlParams.toString()}`;
 };

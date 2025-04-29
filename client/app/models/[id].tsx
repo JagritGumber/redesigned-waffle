@@ -1,45 +1,135 @@
 // ./app/model/[id].tsx
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Dimensions, TouchableOpacity, Modal } from 'react-native';
+import { useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import { Dimensions, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Progress, Image, ScrollView, View, Text, useTheme, Button, AlertDialog } from 'tamagui';
-import { Model as CivitaiApiModel, FileVersion, Model } from '~/types/civitai'; // Use alias for Civitai API Model
+import {
+  Progress,
+  Image,
+  View,
+  Text,
+  useTheme,
+  Button,
+  useWindowDimensions,
+  XStack,
+  YStack,
+  styled,
+  Card,
+  Accordion,
+} from 'tamagui';
+import { Model as CivitaiApiModel, FileVersion, ModelVersion } from '~/types/civitai';
 import axios from 'axios';
 import RenderHTML from 'react-native-render-html';
-import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
-import { X } from '@tamagui/lucide-icons';
+import { X, ChevronLeft, ChevronRight } from '@tamagui/lucide-icons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 import ModelDownloadButton from '~/components/ModelDownloadButton';
 import { formatBytes } from '~/utils/formatBytes';
-import { useGetDownloadedModel } from '~/hooks/useGetDownloadedModel'; // Import the custom hook
+import { useGetDownloadedModel } from '~/hooks/useGetDownloadedModel';
 import ModelDeleteButton from '~/components/ModelDeleteButton';
+import { Chip } from '~/components/ui/Chip';
+import { shortenNumber } from '~/utils/shortenNumber';
+import { ScrollView } from 'react-native-gesture-handler';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+// Ensure you have installed this:
+// `npm install react-native-reanimated react-native-reanimated-carousel` or `yarn add react-native-reanimated react-native-reanimated-carousel`
+// Make sure to follow react-native-reanimated installation steps (add plugin to babel.config.js)
+import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
+import Animated, { interpolate } from 'react-native-reanimated';
+
+const { width: screenWidth } = Dimensions.get('screen');
+
+// Although CarouselItem is string, defining it helps clarity
+type CarouselItem = string;
+
+const NavButton = styled(Button, {
+  position: 'absolute',
+  top: '50%',
+  translateY: -20,
+  size: '$2',
+  height: '$2',
+  width: '$2',
+  zIndex: 10,
+  pressStyle: {
+    opacity: 0.7,
+  },
+  backgroundColor: '$backgroundHover',
+  opacity: 0.8,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderRadius: '$12',
+});
 
 const ModelDetailScreen = () => {
-  const { id } = useLocalSearchParams<{ id: string }>(); // Civitai ID as string
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [civitaiModel, setCivitaiModel] = useState<CivitaiApiModel | null>(null); // Data directly from Civitai API
-  const [loadingCivitai, setLoadingCivitai] = useState<boolean>(true); // Loading state for Civitai fetch
-  const [civitaiError, setCivitaiError] = useState<string | null>(null); // Error state for Civitai fetch
+  const [civitaiModel, setCivitaiModel] = useState<CivitaiApiModel | null>(null);
+  const [loadingCivitai, setLoadingCivitai] = useState<boolean>(true);
+  const [civitaiError, setCivitaiError] = useState<string | null>(null);
 
+  // Use ICarouselInstance type for reanimated-carousel ref
   const carouselRef = useRef<ICarouselInstance>(null);
+
+  // currentIndex now tracks the *internal* carousel index
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Add state to track the *original* index for display and modal
+  const [currentOriginalIndex, setCurrentOriginalIndex] = useState(0);
+
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
+  // selectedImage now stores the *original* index for the ImageViewer
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  // isCarouselDragging state is still useful for preventing modal opening during drag
   const [isCarouselDragging, setIsCarouselDragging] = useState<boolean>(false);
+  const [selectedVersion, setSelectedVersion] = useState<ModelVersion | null>(null);
+  // scrollViewRef is fine for the main ScrollView
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const theme = useTheme();
 
-  // Use TanStack Query to fetch the model data from YOUR backend
   const {
-    downloadedModel, // This is the data from YOUR backend DB (CivitaiModelWithRelations)
-    isLoading: isLoadingDownloadedModel, // Loading state from TanStack Query
-    error: downloadedModelError, // Error state from TanStack Query
-    // We don't need manual re-fetch handlers because invalidateQueries handles it
+    downloadedModel,
+    isLoading: isLoadingDownloadedModel,
+    error: downloadedModelError,
   } = useGetDownloadedModel(id);
 
-  // Effect to fetch initial Civitai API data (only once on mount or id change)
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+
+  // --- Responsive Carousel Dimensions Calculation ---
+  // Keep these calculations as they seem intended for responsive layout
+  const breakpoint = 768;
+  const itemsPerView = windowWidth >= breakpoint ? 2 : 1;
+  const itemAspectRatio = 2 / 3; // Width / Height
+
+  const itemInternalPadding = 16;
+
+  // Determine final carousel height (applied to the container View and the Carousel component)
+  const finalCarouselHeight = windowHeight * 0.8;
+
+  // The carousel container takes full window width minus screen padding
+  const carouselContainerWidth =
+    windowWidth > breakpoint ? (finalCarouselHeight / 3) * 4 : windowWidth; // Assuming 8px screen padding on left and right
+
+  // Each item slot width within the container
+  const itemSlotWidth = carouselContainerWidth / itemsPerView;
+
+  // The image itself should render within the padded slot
+  const imageRenderWidth = itemSlotWidth - itemInternalPadding * 2;
+  // The item slot height is the image height plus internal padding top/bottom
+
+  // These are the dimensions passed to the Reanimated Carousel component
+  const carouselPropSliderWidth = carouselContainerWidth; // Corresponds to Reanimated Carousel 'width'
+
+  // inactiveSlideScale and inactiveSlideOpacity are used in animationStyle
+  const inactiveSlideScale = windowWidth >= breakpoint ? 1 : 0.9;
+  const inactiveSlideOpacity = windowWidth >= breakpoint ? 1 : 0.7;
+  // --- End Responsive Carousel Dimensions Calculation ---
+
+  const { width: contentWidthForHtml } = Dimensions.get('window');
+
+  const modelToDisplay = civitaiModel;
+
+  // State to hold the original image data (snap-carousel handles duplication internally)
+  const [originalImages, setOriginalImages] = useState<string[]>([]);
+
+  // Fetch Civitai data
   useEffect(() => {
     if (!id) {
       setLoadingCivitai(false);
@@ -51,11 +141,13 @@ const ModelDetailScreen = () => {
       setLoadingCivitai(true);
       setCivitaiError(null);
       try {
-        // Use the id from route params (which is the Civitai ID)
         const apiUrl = `https://civitai.com/api/v1/models/${id}`;
         const response = await axios.get<CivitaiApiModel>(apiUrl);
-        console.log(response);
         setCivitaiModel(response.data);
+        const [latestVersion] = response.data.modelVersions.sort(
+          (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+        setSelectedVersion(latestVersion);
       } catch (e: any) {
         setCivitaiError(e.message);
         console.error('Error fetching Civitai model details:', e);
@@ -65,7 +157,22 @@ const ModelDetailScreen = () => {
     };
 
     fetchCivitaiDetails();
-  }, [id]); // Depend only on id
+  }, [id]);
+
+  // Update originalImages when selectedVersion changes
+  useEffect(() => {
+    const images = selectedVersion?.images?.map((image) => image.url) ?? [];
+    setOriginalImages(images);
+
+    // Reset index when images or version changes
+    setCurrentIndex(0);
+    setCurrentOriginalIndex(0); // Also reset original index
+
+    // Reanimated Carousel automatically snaps to index 0 on mount/data change usually,
+    // no need for explicit snapToItem timeout like snap-carousel often required.
+    // If initial snap is needed for specific layout, can use carouselRef.current?.scrollTo({ index: 0, animated: false });
+    // But removing this simplifies code and relies on default behavior.
+  }, [selectedVersion]); // Depend only on selectedVersion
 
   const htmlStyles = {
     p: {
@@ -105,6 +212,69 @@ const ModelDetailScreen = () => {
     },
   };
 
+  // Modified handleImagePress: Accepts the *item* (URL)
+  const handleImagePress = useCallback(
+    (imageUrl: string) => {
+      // Only open modal if not currently dragging the carousel and there are images
+      if (!isCarouselDragging && originalImages.length > 0) {
+        // Find the original index of the clicked image URL
+        const originalIndex = originalImages.findIndex((url) => url === imageUrl);
+        if (originalIndex !== -1) {
+          setSelectedImage(originalIndex);
+          setModalVisible(true);
+        } else {
+          console.warn('Clicked image URL not found in originalImages:', imageUrl);
+        }
+      }
+    },
+    [isCarouselDragging, originalImages] // Dependencies: state/props used inside
+  );
+
+  // Update button logic to use carouselRef methods - simplified dependencies
+  const goToPrevious = useCallback(() => {
+    carouselRef.current?.prev(); // Use Reanimated Carousel's prev() method
+  }, []); // No dependency on originalImages needed for prev/next methods
+
+  const goToNext = useCallback(() => {
+    carouselRef.current?.next(); // Use Reanimated Carousel's next() method
+  }, []); // No dependency on originalImages needed for prev/next methods
+
+  // Animation style for inactive items (scale and opacity)
+  const animationStyle = useCallback(
+    (animationValue: any) => {
+      'worklet'; // Required for reanimated worklets
+      const scale = interpolate(
+        animationValue.value,
+        [-1, 0, 1], // Input range: -1 (prev item), 0 (current item), 1 (next item)
+        [inactiveSlideScale, 1, inactiveSlideScale] // Output range: scale for each position
+      );
+      const opacity = interpolate(
+        animationValue.value,
+        [-1, 0, 1],
+        [inactiveSlideOpacity, 1, inactiveSlideOpacity]
+      );
+
+      return {
+        transform: [{ scale }],
+        opacity,
+      };
+    },
+    [inactiveSlideScale, inactiveSlideOpacity] // Dependencies for useCallback
+  );
+
+  // Function to update the index states when Carousel snaps
+  // This index is the internal index provided by reanimated-carousel
+  const onSnapToItem = useCallback(
+    (index: number) => {
+      setCurrentIndex(index);
+      // Map the internal index back to the original index for display and modal
+      // Use modulo operator for looping carousels
+      const originalIndex = originalImages.length > 0 ? index % originalImages.length : 0;
+      setCurrentOriginalIndex(originalIndex);
+    },
+    [originalImages.length] // Dependency on originalImages length for modulo calculation
+  );
+
   // Show loading indicator if either Civitai data or backend data is loading
   if (loadingCivitai || isLoadingDownloadedModel) {
     return (
@@ -126,133 +296,195 @@ const ModelDetailScreen = () => {
     );
   }
 
-  const modelToDisplay = civitaiModel; // Use the full Civitai data for display
-
   if (!modelToDisplay) {
     return <Text>Model data not found.</Text>;
   }
 
-  const { width } = Dimensions.get('window');
+  // Use state variable for rendering
+  const hasImages = originalImages.length > 0;
 
-  const allImages =
-    modelToDisplay.modelVersions?.reduce((acc, version) => {
-      if (version.images) {
-        return acc.concat(version.images.map((img) => img.url));
-      }
-      return acc;
-    }, [] as string[]) || [];
-
-  const handleImagePress = (imageIndex: number) => {
-    if (!isCarouselDragging) {
-      setSelectedImage(imageIndex);
-      setModalVisible(true);
-    }
-  };
-
-  // The delete logic should be handled by the ModelDeleteButton component itself,
-  // using its internal mutation hook. We don't need a handleDelete function here anymore.
-  // const handleDelete = () => { ... };
-
-  const renderItem = ({ item, index }: { item: string; index: number }) => (
-    <TouchableOpacity
-      onPress={() => handleImagePress(index)}
-      style={{ width: screenWidth, justifyContent: 'center', alignItems: 'center' }}>
-      <Image
-        source={{ uri: item }}
-        width={screenWidth * 0.8}
-        height={screenHeight * 0.6}
-        resizeMode={'contain'}
-      />
-    </TouchableOpacity>
-  );
-
-  const goToPrevious = () => {
-    carouselRef.current?.prev();
-  };
-
-  const goToNext = () => {
-    carouselRef.current?.next();
-  };
-
-  // Get the latest model version from Civitai data for display
-  // We need the latest version from the *downloadedModel* to get the file status
-  const latestCivitaiVersion = modelToDisplay.modelVersions?.sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-  )[0];
-
-  // Find the corresponding latest version in the downloadedModel to get file status
-  const latestDownloadedVersion = downloadedModel?.versions?.find(
-    (v) => v.civitaiVersionId === latestCivitaiVersion?.id
-  );
+  // Determine if navigation buttons should be shown
+  // Show buttons if there's more than one original image (looping is possible/meaningful)
+  const showNavButtons = originalImages.length > 1; // Use state variable
 
   return (
-    <ScrollView flex={1} padding={16} bg={'$background'}>
-      <View flexDirection="row" justifyContent="space-between">
-        <View marginBottom={16}>
-          <Text fontSize={24} fontWeight="bold" marginBottom={8}>
+    <ScrollView
+      ref={scrollViewRef} // Assign ref to the main ScrollView
+      scrollEnabled={true}
+      style={{
+        width: '100%', // Use screenWidth for the main scroll view width
+        flex: 1,
+        backgroundColor: theme.background.get(),
+        padding: 8, // Apply padding to the ScrollView itself
+      }}
+      // No simultaneousHandlers needed here usually, as vertical ScrollView and horizontal Carousel coexist
+    >
+      {/* Header, Tags, Versions... */}
+      <XStack w="100%" px={'$2'}>
+        <YStack mb={8} ai={'baseline'} fs={1} flexShrink={1} flex={1}>
+          <Text fos={20} fow="bold" numberOfLines={2}>
             {modelToDisplay.name}
           </Text>
-          <Text fontSize={16} color={theme.color7.get()}>
-            Type: {modelToDisplay.type}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={() => router.back()}>
-          <X />
-        </TouchableOpacity>
-      </View>
+        </YStack>
+        <Button
+          size={'$3'}
+          icon={<X />}
+          onPress={() => router.back()}
+          fs={1}
+          ml={'auto'} // Push to the right
+          mr={'$4'}
+        />
+      </XStack>
+      <XStack mb={'$2'} px={'$2'} flexWrap="wrap" gap={'$1'}>
+        {modelToDisplay.tags.map((tag) => (
+          <Chip key={tag} size={'$1'} bg={'$accentColor'}>
+            <Text fos={'$1'} textTransform="uppercase">
+              {tag}
+            </Text>
+          </Chip>
+        ))}
+      </XStack>
 
-      {allImages.length > 0 && (
+      {/* Versions List - Horizontal Scroll */}
+      {modelToDisplay.modelVersions && modelToDisplay.modelVersions.length > 0 && (
+        <ScrollView
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 8, marginBottom: 16 }} // Add horizontal padding inside
+        >
+          {modelToDisplay.modelVersions.map((version) => (
+            <Button
+              key={version.id}
+              size={'$2'}
+              bg={selectedVersion?.name === version.name ? '$backgroundFocus' : '$backgroundPress'}
+              boc={selectedVersion?.name === version.name ? '$borderColorFocus' : 'transparent'}
+              onPress={() => setSelectedVersion(version)}
+              marginRight={'$2'}>
+              <Text>{version.name}</Text>
+            </Button>
+          ))}
+        </ScrollView>
+      )}
+      {/* END Versions List */}
+
+      {/* Carousel Section */}
+      {hasImages ? (
         <View
-          height={screenHeight * 0.7}
+          // Use calculated container width and height
+          width={carouselPropSliderWidth} // The container view is the slider width
+          height={Math.max(finalCarouselHeight)} // The container view is the final calculated height
           marginBottom={16}
-          alignItems="center"
-          justifyContent="center">
+          alignSelf="center" // Center the carousel container within the screen width
+          position="relative">
+          {/* Reanimated Carousel */}
           <Carousel
             ref={carouselRef}
-            loop={false}
-            width={screenWidth}
-            height={screenHeight * 0.7}
-            data={allImages}
-            renderItem={renderItem}
-            onSnapToItem={(index) => setCurrentIndex(index)}
-            onScrollStart={() => setIsCarouselDragging(true)}
-            onScrollEnd={() => setIsCarouselDragging(false)}
+            width={itemSlotWidth} // Carousel component width
+            height={finalCarouselHeight}
+            onConfigurePanGesture={(panGesture) =>
+              panGesture.activeOffsetY([-999999, 999999]).activeOffsetX([-20, 20])
+            }
+            data={originalImages} // Use the original image data
+            loop={true} // Keep looping enabled
+            snapEnabled={true} // Enable snapping
+            onScrollStart={() => setIsCarouselDragging(true)} // Use BeginDrag for setting true
+            onScrollEnd={() => setIsCarouselDragging(false)} // Reset drag state reliably
+            vertical={false}
+            style={{
+              width: carouselContainerWidth,
+            }}
+            onSnapToItem={onSnapToItem} // This updates currentIndex and currentOriginalIndex
+            renderItem={({ item, index, animationValue }) => (
+              // Wrap the item content in Animated.View to apply animations
+              <Animated.View
+                style={[
+                  {
+                    width: itemSlotWidth, // Item wrapper takes the full slot width
+                    height: finalCarouselHeight, // Apply height to Animated.View wrapper
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    // Add internal padding here to create space *around* the image within the slot
+                    padding: itemInternalPadding, // Apply padding based on calculation
+                  },
+                  animationStyle(animationValue),
+                ]} // Apply the animation style function
+              >
+                <TouchableOpacity
+                  // Pass the item (URL) to handleImagePress
+                  onPress={() => handleImagePress(item)}
+                  // Style for the TouchableOpacity to fill the padded Animated.View
+                  style={{ flex: 1, width: '100%', height: '100%' }}>
+                  <Image
+                    source={{ uri: item }}
+                    style={{
+                      borderRadius: 8,
+                      // Image fills the space available within the padded item wrapper (TouchableOpacity)
+                      flex: 1, // Allow image to take available space after padding
+                      width: '100%', // Make image fill width within padded area
+                      objectPosition: 'center',
+                    }}
+                    // Add accessibility props - Using state variable as per original code
+                    accessibilityLabel={`Model image ${currentOriginalIndex + 1}`}
+                    accessibilityRole="image"
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
           />
-          {/* Image index indicator */}
-          {allImages.length > 1 && (
-            <Text position="absolute" bottom={8} left={screenWidth / 2 - 10}>
-              {currentIndex + 1}/{allImages.length}
-            </Text>
+
+          {/* Navigation Buttons - Show only if there are images > 1 */}
+          {showNavButtons && (
+            <>
+              <NavButton
+                onPress={goToPrevious}
+                left={8}
+                icon={<ChevronLeft size={'$12'} fontWeight={'bold'} color={theme.color.get()} />}
+              />
+              {/* Text indicator for current image */}
+              <View
+                position="absolute"
+                bottom="$2" // Adjust position as needed
+                left="50%"
+                transform="translateX(-50%)" // Center horizontally
+                zIndex={10}
+                backgroundColor="$backgroundHover"
+                borderRadius="$3"
+                paddingHorizontal="$2"
+                paddingVertical="$1">
+                <Text fontSize="$1" color="$color" fontWeight="bold">
+                  {originalImages.length > 0 ? currentOriginalIndex + 1 : 0} /{' '}
+                  {originalImages.length}
+                </Text>
+              </View>
+              <NavButton
+                onPress={goToNext}
+                right={8}
+                icon={<ChevronRight size={'$4'} color={theme.color.get()} />}
+              />
+            </>
           )}
-          {/* Navigation buttons (optional, carousel gestures often suffice) */}
-          {/*
-          <View
-            position="absolute"
-            bottom={16}
-            left={0}
-            right={0}
-            flexDirection="row"
-            justifyContent="space-between"
-            alignItems="center"
-            paddingHorizontal={16}>
-            <TouchableOpacity
-              onPress={goToPrevious}
-              style={{ padding: 10, backgroundColor: theme.background02.get(), borderRadius: 5 }}>
-              <Text>Previous</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={goToNext}
-              style={{ padding: 10, backgroundColor: theme.background02.get(), borderRadius: 5 }}>
-              <Text>Next</Text>
-            </TouchableOpacity>
-          </View>
-          */}
+        </View>
+      ) : (
+        <View
+          // Still use calculated height for consistency in the "no images" placeholder
+          height={finalCarouselHeight}
+          justifyContent="center"
+          alignItems="center"
+          marginBottom={16}>
+          <Text>No images available for this version.</Text>
         </View>
       )}
 
-      <View marginTop={16}>
-        {/* ... Creator, Stats, License, Tags views (these use civitaiModel) ... */}
-
+      {/* Rest of the details */}
+      <View paddingHorizontal={'$2'} marginTop={16}>
+        {/* ... Creator, Stats, License, Tags views ... */}
+        <Accordion overflow="hidden" width="$20" type="multiple"></Accordion>
+        <YStack borderWidth={1} boc={'$borderColor'} br={'$2'}>
+          <Text p={'$2'}>Details</Text>
+          <XStack borderTopWidth={1} boc={'$borderColor'}>
+            <Text p={'$2'}>Type</Text>
+          </XStack>
+        </YStack>
         <View
           marginBottom={16}
           padding={10}
@@ -269,11 +501,12 @@ const ModelDetailScreen = () => {
               height={30}
               borderRadius={15}
               marginRight={8}
+              accessibilityLabel={`${modelToDisplay.creator.username}'s avatar`}
+              accessibilityRole="image"
             />
             <Text fontSize={16}>{modelToDisplay.creator.username}</Text>
           </View>
         </View>
-
         <View
           marginBottom={16}
           padding={10}
@@ -283,16 +516,15 @@ const ModelDetailScreen = () => {
           <Text fontSize={18} fontWeight="bold" marginBottom={8}>
             Stats
           </Text>
-          <Text>Downloads: {modelToDisplay.stats.downloadCount}</Text>
-          <Text>Favorites: {modelToDisplay.stats.favoriteCount}</Text>
-          <Text>Thumbs Up: {modelToDisplay.stats.thumbsUpCount}</Text>
-          <Text>Thumbs Down: {modelToDisplay.stats.thumbsDownCount}</Text>
-          <Text>Comments: {modelToDisplay.stats.commentCount}</Text>
-          <Text>Ratings: {modelToDisplay.stats.ratingCount}</Text>
+          <Text>Downloads: {shortenNumber(modelToDisplay.stats.downloadCount)}</Text>
+          <Text>Favorites: {shortenNumber(modelToDisplay.stats.favoriteCount)}</Text>
+          <Text>Thumbs Up: {shortenNumber(modelToDisplay.stats.thumbsUpCount)}</Text>
+          <Text>Thumbs Down: {shortenNumber(modelToDisplay.stats.thumbsDownCount)}</Text>
+          <Text>Comments: {shortenNumber(modelToDisplay.stats.commentCount)}</Text>
+          <Text>Ratings: {shortenNumber(modelToDisplay.stats.ratingCount)}</Text>
           <Text>Rating: {modelToDisplay.stats.rating?.toFixed(2) ?? 'N/A'}</Text>
           <Text>Tips: {modelToDisplay.stats.tippedAmountCount}</Text>
         </View>
-
         <View
           marginBottom={16}
           padding={10}
@@ -303,13 +535,15 @@ const ModelDetailScreen = () => {
             License & Usage
           </Text>
           <Text>No Credit Required: {modelToDisplay.allowNoCredit ? 'Yes' : 'No'}</Text>
-          <Text>Commercial Use: {modelToDisplay.allowCommercialUse.join(', ') || 'No'}</Text>
+          <Text>
+            Commercial Use:
+            {modelToDisplay.allowCommercialUse?.join(', ') || 'No restrictions listed'}
+          </Text>
           <Text>Allow Derivatives: {modelToDisplay.allowDerivatives ? 'Yes' : 'No'}</Text>
           <Text>
             Different License Allowed: {modelToDisplay.allowDifferentLicense ? 'Yes' : 'No'}
           </Text>
         </View>
-
         <View
           marginBottom={16}
           padding={10}
@@ -319,38 +553,53 @@ const ModelDetailScreen = () => {
           <Text fontSize={18} fontWeight="bold" marginBottom={8}>
             Tags
           </Text>
-          <Text>{modelToDisplay.tags.join(', ') || 'No tags available'}</Text>
+          <Text>{modelToDisplay.tags?.join(', ') || 'No tags available'}</Text>
         </View>
 
-        {latestCivitaiVersion && (
+        {/* Use selectedVersion directly for description, files, etc. */}
+        {selectedVersion && (
           <>
-            <Text fontSize={16} fontWeight="bold" marginBottom={8}>
-              {latestCivitaiVersion.name} (Base: {latestCivitaiVersion.baseModel})
+            <Text fontSize={18} fontWeight="bold" my={16}>
+              Version: {selectedVersion.name}
             </Text>
-            <Text>
-              Published At: {new Date(latestCivitaiVersion.publishedAt).toLocaleDateString()}
-            </Text>
-            <Text>Availability: {latestCivitaiVersion.availability}</Text>
-            <Text>NSFW Level: {latestCivitaiVersion.nsfwLevel}</Text>
-            {latestCivitaiVersion.description && (
-              <RenderHTML
-                contentWidth={width}
-                source={{ html: latestCivitaiVersion.description }}
-                tagsStyles={htmlStyles}
-              />
-            )}
+            <View
+              padding={10}
+              borderColor={theme.borderColor.get()}
+              borderWidth={1}
+              borderRadius={5}
+              marginBottom={16}>
+              <Text fontSize={16} fontWeight="bold" marginBottom={8}>
+                Version Details
+              </Text>
+              <Text>Base Model: {selectedVersion.baseModel}</Text>
+              <Text>
+                Published At: {new Date(selectedVersion.publishedAt).toLocaleDateString()}
+              </Text>
+              <Text>Availability: {selectedVersion.availability}</Text>
+              <Text>NSFW Level: {selectedVersion.nsfwLevel}</Text>
+              {selectedVersion.description && (
+                <>
+                  <Text fontWeight="bold" marginTop={8} marginBottom={4}>
+                    Version Description
+                  </Text>
+                  <RenderHTML
+                    contentWidth={contentWidthForHtml} // Use the dedicated variable
+                    source={{ html: selectedVersion.description }}
+                    tagsStyles={htmlStyles}
+                  />
+                </>
+              )}
+            </View>
 
-            {latestCivitaiVersion.files && latestCivitaiVersion.files.length > 0 && (
+            {selectedVersion.files && selectedVersion.files.length > 0 ? (
               <View marginTop={8}>
                 <Text fontWeight="bold" marginBottom={4}>
-                  Files
+                  Files for this Version
                 </Text>
-                {latestCivitaiVersion.files.map((file: FileVersion) => {
-                  // Find the corresponding file in the downloadedModel data to get its status
-                  const downloadedFile = latestDownloadedVersion?.files?.find(
-                    (f) => f.civitaiFileId === file.id
-                  );
-                  const fileDownloadStatus = downloadedFile?.downloadStatus; // Status from your backend DB
+                {selectedVersion.files.map((file: FileVersion) => {
+                  const downloadedFile = downloadedModel?.modelVersions
+                    ?.find((v) => v.id === selectedVersion.id)
+                    ?.files?.find((f) => f.id === file.id);
 
                   return (
                     <View
@@ -365,14 +614,26 @@ const ModelDetailScreen = () => {
                       <Text>Type: {file.type}</Text>
                       <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
 
-                      {/* Pass the original Civitai model data and the downloaded model data to the button */}
-                      <ModelDownloadButton
-                        civitaiModel={modelToDisplay satisfies Model}
-                        downloadedModel={downloadedModel}
-                      />
+                      {/* Pass the model and relevant version/file info */}
+                      <XStack gap={'$2'}>
+                        <ModelDownloadButton
+                          civitaiModel={modelToDisplay}
+                          downloadedModel={downloadedModel}
+                          fileId={file.id}
+                          versionId={selectedVersion.id}
+                        />
+                        <ModelDownloadButton
+                          civitaiModel={modelToDisplay}
+                          downloadedModel={downloadedModel}
+                          fileId={file.id}
+                          versionId={selectedVersion.id}
+                          defaultDownload
+                        />
+                      </XStack>
 
-                      {/* Only show delete button if the model exists in our DB (downloadedModel is not null) */}
-                      {downloadedModel ? <ModelDeleteButton model={downloadedModel} /> : null}
+                      {/* Pass the model and relevant version/file info */}
+                      {/* Check if the *specific file* is downloaded before showing delete */}
+                      {downloadedFile ? <ModelDeleteButton model={downloadedModel!} /> : null}
 
                       {file.primary && (
                         <Text color="green" fontWeight="bold">
@@ -383,17 +644,18 @@ const ModelDetailScreen = () => {
                   );
                 })}
               </View>
+            ) : (
+              <Text>No files available for this version.</Text>
             )}
           </>
         )}
-
         {modelToDisplay.description && (
           <>
             <Text fontSize={18} fontWeight="bold" my={16}>
-              Description
+              About This Model
             </Text>
             <RenderHTML
-              contentWidth={width}
+              contentWidth={contentWidthForHtml} // Use the dedicated variable
               source={{ html: modelToDisplay.description }}
               tagsStyles={htmlStyles}
             />
@@ -406,30 +668,36 @@ const ModelDetailScreen = () => {
         visible={isModalVisible}
         transparent={true}
         onRequestClose={() => setModalVisible(false)}>
-        {selectedImage !== null && (
-          <ImageViewer
-            imageUrls={allImages.map((url) => ({ url }))}
-            enableSwipeDown={true}
-            onSwipeDown={() => setModalVisible(false)}
-            renderHeader={() => (
-              <Button
-                aspectRatio={1}
-                size={'$3'}
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  padding: 8,
-                  borderRadius: 15,
-                  zIndex: 2,
-                }}
-                icon={<X size={'$3'} />}
-                onPress={() => setModalVisible(false)}></Button>
-            )}
-            index={selectedImage}
-            enableImageZoom={true}
-          />
-        )}
+        {
+          // Use originalImages state for the modal viewer
+          // selectedImage now holds the correct original index
+          selectedImage !== null && originalImages.length > 0 ? (
+            <ImageViewer
+              // Pass only the original images to the viewer
+              imageUrls={originalImages.map((url) => ({ url }))} // Use state
+              enableSwipeDown={true}
+              onSwipeDown={() => setModalVisible(false)}
+              renderHeader={() => (
+                <Button
+                  aspectRatio={1}
+                  size={'$3'}
+                  style={{
+                    position: 'absolute',
+                    top: Platform.OS === 'android' ? 30 : 8,
+                    right: 8,
+                    padding: 8,
+                    borderRadius: 15,
+                    zIndex: 2,
+                  }}
+                  icon={<X size={'$3'} />}
+                  onPress={() => setModalVisible(false)}></Button>
+              )}
+              // Pass the original index directly
+              index={selectedImage} // Use selectedImage directly
+              enableImageZoom={true}
+            />
+          ) : null // Render nothing if modal is not visible, selectedImage is null, or no images
+        }
       </Modal>
     </ScrollView>
   );

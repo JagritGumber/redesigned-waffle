@@ -6,18 +6,41 @@ export { default as authenticators } from "./authenticators";
 export { default as groups } from "./groups";
 export {
   civitaiModels,
-  civitaiFiles,
-  civitaiModelVersions,
-  civitaiImages,
-  civitaiFilesRelations,
-  civitaiImagesRelations,
   civitaiModelsRelations,
-  civitaiModelVersionsRelations,
-  type InsertCivitaiFile,
-  type InsertCivitaiImage,
   type InsertCivitaiModel,
-  type InsertCivitaiModelVersion,
 } from "./models";
+export { civitaiCreator, InsertCivitaiCreator } from "./modelCreator";
+export {
+  CivitaiFile,
+  InsertCivitaiFile,
+  SelectCivitaiFile,
+  civitaiFiles,
+  civitaiFilesRelations,
+} from "./modelFiles";
+export {
+  CivitaiFileMetadata,
+  InsertCivitaiFileMetadata,
+  SelectCivitaiFileMetadata,
+  civitaiFilesMetadata,
+  civitaiFilesMetadataRelations,
+} from "./modelFilesMetadata";
+
+export {
+  CivitaiImage,
+  InsertCivitaiImage,
+  SelectCivitaiImage,
+  civitaiImages,
+  civitaiImagesRelations,
+} from "./modelImages";
+export { civitaiImagesMeta, modelImageMetaRelations } from "./modelImagesMeta";
+export {
+  CivitaiModelVersion,
+  InsertCivitaiModelVersion,
+  SelectCivitaiModelVersion,
+  civitaiModelVersions,
+  civitaiModelVersionsRelations,
+} from "./modelVersions";
+
 export { storageInfo } from "./storageInfo";
 
 export { generatorJobs, InsertGeneratorJob } from "./generatorJob";

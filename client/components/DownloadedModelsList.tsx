@@ -96,7 +96,7 @@ const DownloadedModelsList: React.FC<DownloadedModelsListProps> = ({
             <View flex={1} justifyContent="center" alignItems="center" pt={itemGap}>
               <Text color="$gray10" textAlign="center">
                 No models found.
-              </Text>{' '}
+              </Text>
               {/* Updated message for downloaded */}
             </View>
           ) : null

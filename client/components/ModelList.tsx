@@ -75,7 +75,6 @@ const ModelList: React.FC<ModelListProps> = ({
       // Spinner for loading more
       return (
         <View width="100%" alignItems="center" py={itemGap}>
-          {' '}
           {/* Ensure it spans width */}
           <Spinner size="small" />
         </View>
@@ -85,7 +84,6 @@ const ModelList: React.FC<ModelListProps> = ({
     if (hasNextPage && loadMore) {
       return (
         <View width="100%" alignItems="center" py={itemGap}>
-          {' '}
           {/* Ensure it spans width */}
           <Button onPress={loadMore}>Load More</Button>
         </View>
@@ -95,7 +93,6 @@ const ModelList: React.FC<ModelListProps> = ({
     if (!hasNextPage && models.length > 0) {
       return (
         <View width="100%" alignItems="center" py={itemGap}>
-          {' '}
           {/* Ensure it spans width */}
           <Text color="$gray10" textAlign="center">
             End of results

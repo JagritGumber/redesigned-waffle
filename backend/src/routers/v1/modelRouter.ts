@@ -3,22 +3,28 @@ import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModels, civitaiModelVersions } from "@/schema";
 import { and, asc, desc, eq, not, or, sql } from "drizzle-orm";
-import { civitaiImages } from "@/schema/models";
+import { civitaiImages } from "@/schema";
 import runpodSdk from "runpod-sdk";
 import {
   fetchCivitaiModel,
   registerOrUpdateCivitaiModel,
 } from "@/services/civitaiService";
-
-const REQUIRED_MODEL_IDS = [
-  8762, 22428, 59525, 572670, 383163, 448716, 869634, 448770, 348620, 521384,
-  369943, 626419, 723963, 900346, 903161, 112170, 732013, 113516, 583686,
-  589918, 512070, 579218, 577378, 668558, 482572, 518864,
-];
+import { Model } from "@/client/types/civitai";
+import { ModelTypes } from "@/types/models";
 
 const modelRouter = new Hono<ContextForHono>()
   .post("/", async (c) => {
-    const { model: civitaiModelData } = await c.req.json<{ model: any }>(); // Use 'any' or your Model type
+    const {
+      model: civitaiModelData,
+      versionId,
+      fileId,
+      defaultDownload = false,
+    } = await c.req.json<{
+      model: Model;
+      versionId: number;
+      fileId: number;
+      defaultDownload?: boolean;
+    }>(); // Use 'any' or your Model type
     const db = c.get("db");
 
     // Construct the environment config object required by the service function
@@ -55,7 +61,12 @@ const modelRouter = new Hono<ContextForHono>()
       const result = await registerOrUpdateCivitaiModel(
         db,
         envConfig,
-        civitaiModelData
+        civitaiModelData,
+        {
+          fileId,
+          versionId,
+          triggerDownload: !defaultDownload,
+        }
       );
 
       // Return Hono response based on the result
@@ -67,7 +78,7 @@ const modelRouter = new Hono<ContextForHono>()
             message: result.message,
             status: result.status, // Could be SUCCESS or PARTIAL_SUCCESS
             runpodJobId: result.runpodJobId,
-            civitaiId: result.civitaiId,
+            civitaiId: result.id,
             dbModelId: result.dbModelId,
             errors: result.errors, // Include any non-critical errors
           },
@@ -89,123 +100,18 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/", async (c) => {
     try {
       const db = c.get("db");
-
-      // Construct the environment config object required by the service function
-      const envConfig = {
-        RUNPOD_API_KEY: c.env.RUNPOD_API_KEY,
-        RUNPOD_DOWNLOADER_ID: c.env.RUNPOD_DOWNLOADER_ID,
-        RUNPOD_WEBHOOK_URL: c.env.RUNPOD_WEBHOOK_URL,
-        // Add other necessary env vars here from c.env
-      };
-
-      // Basic check for required env vars before proceeding
-      if (
-        !envConfig.RUNPOD_API_KEY ||
-        !envConfig.RUNPOD_DOWNLOADER_ID ||
-        !envConfig.RUNPOD_WEBHOOK_URL
-      ) {
-        console.error(
-          "Missing required RunPod environment variables for service function."
-        );
-        // Decide if you want to fail the GET request or just log a warning
-        // Let's log a warning and proceed without registration attempts
-      }
-
-      // 1. Get the list of required model IDs that are *already* in the DB
-      const existingModels = await db.query.civitaiModels.findMany({
-        where: (model, { inArray }) =>
-          inArray(model.civitaiId, REQUIRED_MODEL_IDS), // Use civitaiId here
-        columns: {
-          civitaiId: true, // Only fetch the civitaiId column
-        },
-      });
-
-      const existingModelIds = new Set(
-        existingModels.map((model) => model.civitaiId)
-      );
-
-      // 2. Identify the missing required model IDs
-      const missingModelIds = REQUIRED_MODEL_IDS.filter(
-        (id) => !existingModelIds.has(id)
-      );
-
-      console.log(`Required model IDs: ${REQUIRED_MODEL_IDS.join(", ")}`);
-      console.log(
-        `Existing model IDs from required list: ${Array.from(
-          existingModelIds
-        ).join(", ")}`
-      );
-
-      // 3. Fetch and insert missing models using the exported function
-      if (missingModelIds.length > 0) {
-        console.log(
-          `Found ${missingModelIds.length} missing required models. Attempting to register...`
-        );
-        console.log(`Missing IDs: ${missingModelIds.join(", ")}`);
-
-        // Use Promise.all to fetch and register concurrently
-        const registrationPromises = missingModelIds.map(async (modelId) => {
-          try {
-            // First, fetch the model data from Civitai API
-            const civitaiData = await fetchCivitaiModel(
-              modelId,
-              c.env.API_TOKEN
-            );
-
-            if (civitaiData) {
-              // Then, use the reusable function to register the model data
-              // Pass triggerDownload: false because we only want to register metadata here,
-              // not initiate downloads during a GET request. The downloader worker
-              // should pick these up based on their status ('PENDING_REGISTRATION').
-              return await registerOrUpdateCivitaiModel(
-                db,
-                envConfig,
-                civitaiData,
-                { triggerDownload: false }
-              );
-            } else {
-              // fetchCivitaiModel already logged the error
-              return {
-                civitaiId: modelId,
-                status: "FAILED",
-                message: "Failed to fetch data from Civitai API.",
-              };
-            }
-          } catch (error: any) {
-            console.error(
-              `Unhandled error during registration attempt for model ${modelId}:`,
-              error
-            );
-            return {
-              civitaiId: modelId,
-              status: "FAILED",
-              message: `Unhandled registration error: ${error.message}`,
-            };
-          }
-        });
-
-        const registrationResults = await Promise.all(registrationPromises);
-        console.log("Registration attempts completed:", registrationResults);
-
-        // You could inspect registrationResults to see which models failed to register
-        // and potentially include this information in the response or logs.
-      } else {
-        console.log("All required models are already in the database.");
-      }
-
-      // 4. Perform the original query to get all relevant models (including newly added ones)
       const models = await db.query.civitaiModels.findMany({
         where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
-        orderBy: (model, { asc }) => asc(model.createdAt), // Ordering by creation date
+        orderBy: (model, { asc }) => asc(model.createdAt),
         with: {
-          versions: {
-            orderBy: (version, { desc }) => desc(version.publishedAt), // Order versions by published date
+          modelVersions: {
+            orderBy: (version, { desc }) => desc(version.publishedAt),
             with: {
               files: {
-                orderBy: (file, { asc }) => asc(file.createdAt), // Or fileId, or name
+                orderBy: (file, { asc }) => asc(file.createdAt),
               },
               images: {
-                orderBy: (image, { asc }) => asc(image.index), // Assuming 'index' for image order
+                orderBy: (image, { asc }) => asc(image.index),
               },
             },
           },
@@ -214,6 +120,36 @@ const modelRouter = new Hono<ContextForHono>()
 
       console.log(`Returning ${models.length} models from the database.`);
       return c.json({ models }, 200);
+    } catch (error: any) {
+      console.error("Error in GET / route handler:", error);
+      // Catch any errors from initial query or registration process
+      return c.json(
+        { error: "Failed to process models", details: error.message },
+        500
+      );
+    }
+  })
+  .get("/default", async (c) => {
+    try {
+      const db = c.get("db");
+      const versions = await db.query.civitaiModelVersions.findMany({
+        where: (version, { eq }) => eq(version.required, true),
+        with: {
+          files: true,
+        },
+      });
+
+      return c.json(
+        {
+          items: versions.flatMap((version) =>
+            version.files.map((file) => ({
+              url: file.downloadUrl,
+              path: file.runpodPath,
+            }))
+          ),
+        },
+        200
+      );
     } catch (error: any) {
       console.error("Error in GET / route handler:", error);
       // Catch any errors from initial query or registration process
@@ -305,7 +241,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Checkpoint"))
+        .where(eq(civitaiModels.type, ModelTypes.Checkpoint))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -376,7 +312,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "TextualInversion"))
+        .where(eq(civitaiModels.type, ModelTypes.TextualInversion))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -450,7 +386,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Hypernetwork"))
+        .where(eq(civitaiModels.type, ModelTypes.Hypernetwork))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -524,7 +460,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "AestheticGradient"))
+        .where(eq(civitaiModels.type, ModelTypes.AestheticGradient))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -598,7 +534,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "LORA"))
+        .where(eq(civitaiModels.type, ModelTypes.LORA))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -669,7 +605,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Controlnet"))
+        .where(eq(civitaiModels.type, ModelTypes.Controlnet))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -740,7 +676,7 @@ const modelRouter = new Hono<ContextForHono>()
           civitaiImages, // Join with the images table
           eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
         )
-        .where(eq(civitaiModels.type, "Poses"))
+        .where(eq(civitaiModels.type, ModelTypes.Poses))
         .orderBy(
           asc(civitaiModels.createdAt),
           asc(civitaiModelVersions.createdAt),
@@ -797,10 +733,7 @@ const modelRouter = new Hono<ContextForHono>()
         .from(civitaiModels)
         .where(
           and(
-            or(
-              eq(civitaiModels.id, id),
-              eq(civitaiModels.civitaiId, Number(id))
-            ),
+            or(eq(civitaiModels.id, Number(id))),
             not(eq(civitaiModels.status, "DELETED"))
           )
         )
@@ -838,9 +771,7 @@ const modelRouter = new Hono<ContextForHono>()
       const updatedModelResult = await db
         .update(civitaiModels)
         .set({ defaultWeight: newWeight, updatedAt: new Date() })
-        .where(
-          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id)))
-        )
+        .where(eq(civitaiModels.id, Number(id)))
         .returning();
 
       if (updatedModelResult && updatedModelResult.length > 0) {
@@ -886,15 +817,13 @@ const modelRouter = new Hono<ContextForHono>()
     try {
       // 1. Fetch the model, latest version, and primary file to get runpodPath
       const model = await db.query.civitaiModels.findFirst({
-        where: (civitaiModels, { eq, or }) =>
-          or(eq(civitaiModels.id, id), eq(civitaiModels.civitaiId, Number(id))),
+        where: (civitaiModels, { eq, or }) => eq(civitaiModels.id, Number(id)),
         with: {
-          versions: {
-            orderBy: (versions, { desc }) => desc(versions.createdAt),
+          modelVersions: {
+            orderBy: (versions, { desc }) => desc(versions.publishedAt),
             with: {
               files: {
                 orderBy: (files, { desc }) => desc(files.createdAt),
-                where: (files, { eq }) => eq(files.primary, true),
               },
             },
           },
@@ -905,7 +834,7 @@ const modelRouter = new Hono<ContextForHono>()
         return c.json({ message: `Model with ID ${id} not found` }, 404);
       }
 
-      const latestVersion = model.versions[0]; // Latest version is now the first one due to desc order
+      const latestVersion = model.modelVersions[0]; // Latest version is now the first one due to desc order
       if (
         !latestVersion ||
         !latestVersion.files ||
@@ -917,7 +846,7 @@ const modelRouter = new Hono<ContextForHono>()
         );
       }
       const primaryFile = latestVersion.files[0];
-      const runpodPath = primaryFile?.runpodPath;
+      const runpodPath = latestVersion.files.at(0)?.runpodPath ?? null;
 
       if (!runpodPath) {
         return c.json(
@@ -948,7 +877,7 @@ const modelRouter = new Hono<ContextForHono>()
               status: "IN_PROGRESS",
               runpodJobId: runpodJob.id,
               modelId: model.id,
-              civitaiId: model.civitaiId,
+              civitaiId: model.id,
             },
             200
           );

@@ -1,3 +1,5 @@
+import { ModelTypes } from '~/backend/types/models';
+
 export interface Stats {
   downloadCount: number;
   favoriteCount: number;
@@ -86,13 +88,13 @@ export interface Model {
   allowDerivatives: boolean;
   allowDifferentLicense: boolean;
   type:
-    | 'Checkpoint'
-    | 'TextualInversion'
-    | 'Hypernetwork'
-    | 'AestheticGradient'
-    | 'LORA'
-    | 'Controlnet'
-    | 'Poses';
+    | ModelTypes.Checkpoint
+    | ModelTypes.Controlnet
+    | ModelTypes.TextualInversion
+    | ModelTypes.Hypernetwork
+    | ModelTypes.AestheticGradient
+    | ModelTypes.LORA
+    | ModelTypes.Poses;
   minor: boolean;
   poi: boolean;
   nsfw: boolean;
