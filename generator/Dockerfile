@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------- #
 #                         Stage 1: Download the models                         #
 # ---------------------------------------------------------------------------- #
-FROM alpine/git:2.43.0 as download
+FROM python:3.10.14-slim as download
 
 RUN apk add --no-cache wget && \
     wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=9f61f82876b8b2efbd8764e206ff8f2b
