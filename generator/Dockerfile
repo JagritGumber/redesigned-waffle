@@ -10,7 +10,7 @@ ARG CIVITAI_API_TOKEN
 ENV CIVITAI_API_TOKEN=${CIVITAI_API_TOKEN}
 #       of the wget command if you're using a model from CivitAI.
 RUN apk add --no-cache wget && \
-    wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}
+    wget -q -O /model.safetensors "https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}"
 
 COPY generator/download_pretrained.py .
 
