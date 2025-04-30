@@ -260,7 +260,7 @@ const webhookRouter = new Hono<ContextForHono>()
       console.log(
         `Received RunPod webhook for generator job ${runpodJobId}. Status: ${runpodJobStatus}`
       );
-      // console.debug('Webhook payload:', payload); // Log full payload for debugging if needed
+      console.debug("Webhook payload:", JSON.stringify(payload)); // Log full payload for debugging if needed
 
       // Find the corresponding job record in your database using the RunPod Job ID
       const dbJob = await db.query.generatorJobs.findFirst({
@@ -286,16 +286,15 @@ const webhookRouter = new Hono<ContextForHono>()
 
       if (finalStatus === "COMPLETED") {
         updateData.status = "COMPLETED";
-        updateData.resultPayload = output?.result; // Save the actual generation result
+        updateData.resultPayload = output; // Save the actual generation result
         updateData.errorMessage = null; // Clear any previous error messages
         updateData.errorDetails = null; // Clear any previous error details
         console.log(`DB job ${dbJob.id} (RunPod ${runpodJobId}): COMPLETED.`);
       } else if (finalStatus === "PARTIAL_COMPLETED") {
         // Handle partial completion - decide how you want to represent this in your DB
         updateData.status = "COMPLETED"; // Or maybe 'PARTIAL_COMPLETED' if schema supports
-        updateData.resultPayload = output?.result; // Maybe save partial result if any?
-        updateData.errorMessage =
-          output?.message || "Worker reported partial completion.";
+        updateData.resultPayload = output.images[0]; // Maybe save partial result if any?
+        updateData.errorMessage = output;
         updateData.errorDetails = output; // Store full output for details
         console.warn(
           `DB job ${dbJob.id} (RunPod ${runpodJobId}): PARTIAL_COMPLETED.`

@@ -2,12 +2,15 @@ import time
 import runpod
 import requests
 from requests.adapters import HTTPAdapter, Retry
+from runpod import RunPodLogger
+
+logger = RunPodLogger()
 
 LOCAL_URL = "http://127.0.0.1:3000/sdapi/v1"
 
 automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
-automatic_session.mount('http://', HTTPAdapter(max_retries=retries))
+automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
 
 # ---------------------------------------------------------------------------- #
@@ -39,8 +42,12 @@ def run_inference(inference_request):
     """
     Run inference on a request.
     """
-    response = automatic_session.post(url=f'{LOCAL_URL}/txt2img',
-                                      json=inference_request, timeout=600)
+
+    logger.log(inference_request)
+
+    response = automatic_session.post(
+        url=f"{LOCAL_URL}/txt2img", json=inference_request, timeout=600
+    )
     return response.json()
 
 
@@ -59,6 +66,6 @@ def handler(event):
 
 
 if __name__ == "__main__":
-    wait_for_service(url=f'{LOCAL_URL}/sd-models')
+    wait_for_service(url=f"{LOCAL_URL}/sd-models")
     print("WebUI API Service is ready. Starting RunPod Serverless...")
     runpod.serverless.start({"handler": handler})

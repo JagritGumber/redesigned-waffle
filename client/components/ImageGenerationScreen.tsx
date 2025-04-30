@@ -154,13 +154,15 @@ const ImageGenerationScreen = () => {
       negative_prompt: negativePrompt,
       width,
       height,
-      steps: 20,
+      steps: 25,
       cfg_scale: 7.5,
-      seed: Math.random() * 1_000_000_000,
+      seed:
+        Number.isNaN(Number(seed)) || seed.length === 0
+          ? Math.random() * 1_000_000_000
+          : Number(seed),
       override_settings: {
         sd_model_checkpoint: selectedCheckpoint.modelVersions?.at(0)?.files?.at(0)?.runpodPath,
       },
-      override_settings_defaults: {},
     };
 
     fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/generator/generate`, {
