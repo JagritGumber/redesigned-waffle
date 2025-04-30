@@ -8,55 +8,55 @@ import { generatorJobs, InsertGeneratorJob } from "@/schema";
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
 
-const VolumePath = Type.String({
-  pattern: "^/(runpod-volume|defaults)/.*",
-  errorMessage: {
-    pattern: "Path must start with /runpod-volume/ or /defaults/",
-  },
-});
+// const VolumePath = Type.String({
+//   pattern: "^/(runpod-volume|defaults)/.*",
+//   errorMessage: {
+//     pattern: "Path must start with /runpod-volume/ or /defaults/",
+//   },
+// });
 
-const LoRAItemSchema = Type.Object({
-  local_path: VolumePath,
-  weight: Type.Optional(Type.Number({ default: 1.0 })),
-});
+// const LoRAItemSchema = Type.Object({
+//   local_path: VolumePath,
+//   weight: Type.Optional(Type.Number({ default: 1.0 })),
+// });
 
-const TIItemSchema = Type.Object({
-  local_path: VolumePath,
-});
+// const TIItemSchema = Type.Object({
+//   local_path: VolumePath,
+// });
 
-const ModelConfigSchema = Type.Object({
-  local_path: VolumePath,
+// const ModelConfigSchema = Type.Object({
+//   local_path: VolumePath,
 
-  model_type: Type.Union([
-    Type.Literal("SDXL 1.0"),
-    Type.Literal("SD 1.5"),
-    Type.Literal("Illustrious"),
-    Type.Literal("Pony"),
-  ]),
-});
+//   model_type: Type.Union([
+//     Type.Literal("SDXL 1.0"),
+//     Type.Literal("SD 1.5"),
+//     Type.Literal("Illustrious"),
+//     Type.Literal("Pony"),
+//   ]),
+// });
 
-const GeneratorArgsSchema = Type.Optional(
-  Type.Object({
-    num_inference_steps: Type.Optional(Type.Integer({ default: 25 })),
-    guidance_scale: Type.Optional(Type.Number({ default: 7.0 })),
-    height: Type.Optional(Type.Integer()),
-    width: Type.Optional(Type.Integer()),
-    negative_prompt: Type.Optional(Type.String()),
-  })
-);
+// const GeneratorArgsSchema = Type.Optional(
+//   Type.Object({
+//     num_inference_steps: Type.Optional(Type.Integer({ default: 25 })),
+//     guidance_scale: Type.Optional(Type.Number({ default: 7.0 })),
+//     height: Type.Optional(Type.Integer()),
+//     width: Type.Optional(Type.Integer()),
+//     negative_prompt: Type.Optional(Type.String()),
+//   })
+// );
 
-const GeneratorInputPayloadSchema = Type.Object({
-  prompt: Type.String({
-    minLength: 1,
-    errorMessage: { minLength: "Prompt is required." },
-  }),
-  model_conf: ModelConfigSchema,
-  loras: Type.Optional(Type.Array(LoRAItemSchema)),
-  textual_inversions: Type.Optional(Type.Array(TIItemSchema)),
-  generator_args: GeneratorArgsSchema,
-});
+// const GeneratorInputPayloadSchema = Type.Object({
+//   prompt: Type.String({
+//     minLength: 1,
+//     errorMessage: { minLength: "Prompt is required." },
+//   }),
+//   model_conf: ModelConfigSchema,
+//   loras: Type.Optional(Type.Array(LoRAItemSchema)),
+//   textual_inversions: Type.Optional(Type.Array(TIItemSchema)),
+//   generator_args: GeneratorArgsSchema,
+// });
 
-type RunPodWorkerPayload = Static<typeof GeneratorInputPayloadSchema>;
+// type RunPodWorkerPayload = Static<typeof GeneratorInputPayloadSchema>;
 
 const generatorRouter = new Hono<ContextForHono>().post(
   "/generate",
@@ -86,37 +86,37 @@ const generatorRouter = new Hono<ContextForHono>().post(
       return c.json({ status: "error", message: "Invalid JSON body." }, 400);
     }
 
-    const isValid = Value.Check(GeneratorInputPayloadSchema, clientInput);
-    if (!isValid) {
-      const errors = [
-        ...Value.Errors(GeneratorInputPayloadSchema, clientInput),
-      ];
-      console.error("Input validation failed:", errors);
-      const formattedErrors = errors.map((err) => ({
-        path: err.path,
-        message: err.message,
-        value: err.value,
-      }));
-      return c.json(
-        {
-          status: "error",
-          message: "Invalid input payload",
-          errors: formattedErrors,
-        },
-        400
-      );
-    }
+    // const isValid = Value.Check(GeneratorInputPayloadSchema, clientInput);
+    // if (!isValid) {
+    //   const errors = [
+    //     ...Value.Errors(GeneratorInputPayloadSchema, clientInput),
+    //   ];
+    //   console.error("Input validation failed:", errors);
+    //   const formattedErrors = errors.map((err) => ({
+    //     path: err.path,
+    //     message: err.message,
+    //     value: err.value,
+    //   }));
+    //   return c.json(
+    //     {
+    //       status: "error",
+    //       message: "Invalid input payload",
+    //       errors: formattedErrors,
+    //     },
+    //     400
+    //   );
+    // }
 
-    const workerPayload: RunPodWorkerPayload = Value.Default(
-      GeneratorInputPayloadSchema,
-      clientInput
-    ) as RunPodWorkerPayload;
+    // const workerPayload: RunPodWorkerPayload = Value.Default(
+    //   GeneratorInputPayloadSchema,
+    //   clientInput
+    // ) as RunPodWorkerPayload;
 
     const newDbJobId = crypto.randomUUID();
     const initialJobRecord: InsertGeneratorJob = {
       id: newDbJobId,
       status: "PENDING",
-      inputPayload: JSON.stringify(workerPayload),
+      inputPayload: JSON.stringify(clientInput),
     };
 
     try {
@@ -147,8 +147,7 @@ const generatorRouter = new Hono<ContextForHono>().post(
       console.log(`Setting webhook URL for RunPod job: ${webhookUrl}`);
 
       const triggeredJob = await endpoint!.run({
-        input: workerPayload,
-
+        input: clientInput,
         webhook: webhookUrl,
       });
 

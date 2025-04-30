@@ -58,4 +58,4 @@ COPY generator/test_input.json .
 ADD generator/src .
 
 RUN chmod +x /start.sh
-CMD generator/start.sh
+CMD ./start.sh

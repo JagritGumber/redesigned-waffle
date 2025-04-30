@@ -138,7 +138,7 @@ const ImageGenerationScreen = () => {
       .map((loraId) => loras?.find((lora) => lora.id.toString() === loraId.toString()))
       .filter((lora) => lora !== undefined)
       .map((lora) => ({
-        local_path: lora.versions?.at(0)?.files.at(0)?.runpodPath,
+        local_path: lora.modelVersions?.at(0)?.files.at(0)?.runpodPath,
         weight: lora.defaultWeight ?? 1.0,
       }));
 
@@ -146,22 +146,21 @@ const ImageGenerationScreen = () => {
       .map((tiId) => textualInversions?.find((ti) => ti.id.toString() === tiId.toString()))
       .filter((ti) => ti !== undefined)
       .map((ti) => ({
-        local_path: ti.versions?.at(0)?.files.at(0)?.runpodPath,
+        local_path: ti.modelVersions?.at(0)?.files.at(0)?.runpodPath,
       }));
 
     const payload = {
       prompt: prompt,
-      model_conf: {
-        local_path: selectedCheckpointObject.versions?.at(0)?.files.at(0)?.runpodPath,
-        model_type: selectedCheckpointObject.versions?.at(0)?.baseModel,
+      negative_prompt: negativePrompt,
+      width,
+      height,
+      steps: 20,
+      cfg_scale: 7.5,
+      seed: Math.random() * 1_000_000_000,
+      override_settings: {
+        sd_model_checkpoint: selectedCheckpoint.modelVersions?.at(0)?.files?.at(0)?.runpodPath,
       },
-      loras: lorasToApply,
-      textual_inversions: tisToApply,
-      generator_args: {
-        width: parseInt(width, 10),
-        height: parseInt(height, 10),
-        negative_prompt: negativePrompt,
-      },
+      override_settings_defaults: {},
     };
 
     fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/generator/generate`, {
