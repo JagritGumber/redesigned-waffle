@@ -167,11 +167,6 @@ const ModelDetailScreen = () => {
     // Reset index when images or version changes
     setCurrentIndex(0);
     setCurrentOriginalIndex(0); // Also reset original index
-
-    // Reanimated Carousel automatically snaps to index 0 on mount/data change usually,
-    // no need for explicit snapToItem timeout like snap-carousel often required.
-    // If initial snap is needed for specific layout, can use carouselRef.current?.scrollTo({ index: 0, animated: false });
-    // But removing this simplifies code and relies on default behavior.
   }, [selectedVersion]); // Depend only on selectedVersion
 
   const htmlStyles = {
@@ -452,7 +447,7 @@ const ModelDetailScreen = () => {
                 paddingHorizontal="$2"
                 paddingVertical="$1">
                 <Text fontSize="$1" color="$color" fontWeight="bold">
-                  {originalImages.length > 0 ? currentOriginalIndex + 1 : 0} /{' '}
+                  {originalImages.length > 0 ? currentOriginalIndex + 1 : 0} /
                   {originalImages.length}
                 </Text>
               </View>
@@ -496,15 +491,15 @@ const ModelDetailScreen = () => {
           </Text>
           <View flexDirection="row" alignItems="center" marginBottom={8}>
             <Image
-              source={{ uri: modelToDisplay.creator.image }}
+              source={{ uri: modelToDisplay.creator?.image }}
               width={30}
               height={30}
               borderRadius={15}
               marginRight={8}
-              accessibilityLabel={`${modelToDisplay.creator.username}'s avatar`}
+              accessibilityLabel={`${modelToDisplay.creator?.username}'s avatar`}
               accessibilityRole="image"
             />
-            <Text fontSize={16}>{modelToDisplay.creator.username}</Text>
+            <Text fontSize={16}>{modelToDisplay.creator?.username}</Text>
           </View>
         </View>
         <View
@@ -618,13 +613,13 @@ const ModelDetailScreen = () => {
                       <XStack gap={'$2'}>
                         <ModelDownloadButton
                           civitaiModel={modelToDisplay}
-                          downloadedModel={downloadedModel}
+                          downloadedModel={downloadedModel ?? null}
                           fileId={file.id}
                           versionId={selectedVersion.id}
                         />
                         <ModelDownloadButton
                           civitaiModel={modelToDisplay}
-                          downloadedModel={downloadedModel}
+                          downloadedModel={downloadedModel ?? null}
                           fileId={file.id}
                           versionId={selectedVersion.id}
                           defaultDownload

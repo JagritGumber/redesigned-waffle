@@ -8,6 +8,41 @@
       "when": 1745957355179,
       "tag": "0000_natural_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1746259285615,
+      "tag": "0001_daily_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1746264746985,
+      "tag": "0002_safe_maggott",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1746383020472,
+      "tag": "0003_fantastic_blindfold",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1746431098562,
+      "tag": "0004_fresh_hex",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1746462478198,
+      "tag": "0005_melted_thunderball",
+      "breakpoints": true
     }
   ]
 }

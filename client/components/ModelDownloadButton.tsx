@@ -9,7 +9,7 @@ import { useDownloadModel } from '~/hooks/useDownloadModel'; // Import the hook
 
 interface ModelDownloadButtonProps {
   civitaiModel: CivitaiApiModel | null;
-  downloadedModel?: CivitaiModelWithRelations | null;
+  downloadedModel: CivitaiModelWithRelations | null;
   fileId: number;
   versionId: number;
   defaultDownload?: boolean;
@@ -26,7 +26,7 @@ const ModelDownloadButton: React.FC<ModelDownloadButtonProps> = ({
   const { mutate: startDownload, isPending: isInitiatingDownload } = useDownloadModel(); // Use isPending for initiation state
 
   // Find the primary file from the downloaded model data (if it exists)
-  const latestDownloadedVersion = downloadedModel?.modelVersions.find(
+  const latestDownloadedVersion = downloadedModel?.modelVersions?.find(
     (version) => version.id === versionId
   );
   const primaryDownloadedFile = latestDownloadedVersion?.files?.find((file) => file.id === fileId);

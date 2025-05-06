@@ -541,7 +541,7 @@ export async function registerOrUpdateCivitaiModel(
               input: {
                 save_path: fileRecord.runpodPath,
                 download_url: fileToDownload.downloadUrl!,
-                model_id: savedCivitaiModelId!,
+                model_id: String(savedCivitaiModelId ?? ""),
                 civitai_file_id: fileToDownload.id,
                 db_file_id: fileRecord.id,
                 model_type: type,

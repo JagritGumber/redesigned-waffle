@@ -1,8 +1,22 @@
 import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { StyleSheet, TouchableOpacity, GestureResponderEvent, Alert } from 'react-native'; // Import Alert
 import { CivitaiModelWithRelations } from '~/backend/schema/models';
-import { MoreVertical } from '@tamagui/lucide-icons';
-import { View, Image, Text, Card, Dialog, Input, Button, XStack, useTheme, YStack } from 'tamagui';
+import { MoreHorizontal } from '@tamagui/lucide-icons';
+import {
+  View,
+  Image,
+  Text,
+  Card,
+  Dialog,
+  Input,
+  Button,
+  XStack,
+  useTheme,
+  YStack,
+  AlertDialog,
+} from 'tamagui';
+import { Chip } from './ui/Chip';
+import { renderbaseModelChip } from '~/utils/renderBaseModelChip';
 
 export interface ModelSelectItem extends CivitaiModelWithRelations {}
 
@@ -12,28 +26,86 @@ interface ModelSelectItemCardProps {
   onPress?: (model: ModelSelectItem) => void;
 }
 
+// Helper to get the abbreviation for the model type chip
+const getModelTypeAbbreviation = (type: string | undefined) => {
+  if (!type) return '';
+  switch (
+    type?.toLowerCase().split(' ').join('') // Added optional chaining here
+  ) {
+    case 'checkpoint':
+      return 'CK';
+    case 'textualinversion':
+      return 'TI';
+    case 'controlnet':
+      return 'CN';
+    case 'pose':
+      return 'Pose'; // Or 'POS' if preferred
+    case 'hypernetwork':
+      return 'HN';
+    case 'lora':
+      return 'LoRA';
+    case 'aestheticgradient':
+      return 'AG';
+    default:
+      return type; // Fallback to the full type name
+  }
+};
+
 const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
   model,
   isSelected,
   onPress,
+  // onVersionChange, // If you added the prop
 }) => {
-  const [weight, setWeight] = useState<number | string>(model.defaultWeight!); // Default weight
-  const theme = useTheme();
+  // console.log('Rendering Card:', model.id, 'isSelected:', isSelected);
+  const [weight, setWeight] = useState<number | string>(model.defaultWeight ?? '');
+  const [currentVersionIndex, setCurrentVersionIndex] = useState(0);
+  const theme = useTheme(); // useTheme hook is called correctly
+
+  // Determine the currently displayed version
+  const currentVersion = model.modelVersions?.[currentVersionIndex];
+
+  const handlePressCard = () => {
+    console.log('ModelSelectItemCard pressed:', model.id, 'Current isSelected:', isSelected);
+    if (model.modelVersions && model.modelVersions.length > 1) {
+      setCurrentVersionIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % model.modelVersions.length;
+        return nextIndex;
+      });
+    }
+
+    onPress?.(model);
+  };
 
   const handleEditWeight = (event: GestureResponderEvent) => {
-    event.stopPropagation(); // Prevent card selection
+    event.stopPropagation();
   };
 
-  const handleCloseModal = (e: GestureResponderEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleWeightChange = (newWeight: number | string) => {
+  const handleWeightChange = (newWeight: string) => {
     setWeight(newWeight);
   };
 
   const handleSaveWeight = async (e: GestureResponderEvent) => {
-    e.stopPropagation();
+    console.log('Saving weight for:', model.id, 'New weight:', weight);
+    // IMPORTANT: Stop propagation here on the save button to prevent the Dialog.Close
+    // from potentially interfering if it triggers on the same event phase.
+    // However, Tamagui's Dialog.Close usually handles this correctly.
+    // e.stopPropagation(); // Keeping this might be safer if onClose is also triggered
+
+    const weightValue = Number(weight);
+    if (isNaN(weightValue)) {
+      console.error('Invalid weight value:', weight);
+      Alert.alert('Invalid Input', 'Please enter a valid number for weight.');
+      return;
+    }
+
+    // Ensure backend URL is configured
+    if (!process.env.EXPO_PUBLIC_BACKEND_URL) {
+      console.error('Backend URL is not configured.');
+      Alert.alert('Configuration Error', 'Backend URL is not configured.');
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/model/${model.id}`,
@@ -42,24 +114,39 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ defaultWeight: Number(weight) }),
+          body: JSON.stringify({ defaultWeight: weightValue }),
         }
       );
 
       if (response.ok) {
         const data = await response.json();
         console.log('Weight updated successfully:', data);
-        // Optionally, you might want to update the local model data
+        // Alert.alert('Success', 'Weight saved successfully.'); // Avoid Alert immediately before closing dialog
+        // Optional: You might want to refetch the model data or update the store
+        // to reflect the saved weight change globally if needed.
+        // You might want to close the dialog here or let the Dialog.Close handle it
       } else {
         const errorData = await response.json();
-        console.error('Failed to update weight:', errorData);
-        // Optionally, display an error message to the user
+        console.error('Failed to update weight:', response.status, errorData);
+        Alert.alert('Update Failed', errorData.message || 'Could not save weight.');
       }
     } catch (error) {
       console.error('Error updating weight:', error);
-      // Optionally, display an error message to the user
+      Alert.alert('Error', 'An error occurred while saving weight.');
     }
+    // Let the Dialog.Close asChild handle the dialog closing
   };
+
+  // Only render if model and versions exist
+  if (!model || !model.modelVersions || model.modelVersions.length === 0) {
+    // console.warn('Model card not rendering due to missing data:', model?.id);
+    return null;
+  }
+
+  // Potential fix: Change Dialog.Overlay background to a standard Tamagui token
+  // like "$overlayArea", which is typically semi-transparent,
+  // instead of potentially opaque "$shadow6".
+  // Also, removing the stopPropagation from handleEditWeight as it's on the Dialog.Trigger.
 
   return (
     <>
@@ -69,59 +156,96 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
           styles.cardButton,
           isSelected && styles.selectedCardButton,
           isSelected && {
-            borderColor: theme.accent10.get(),
+            borderColor: theme.accent10.get(), // This requires theme.accent10 to exist
           },
         ]}
-        onPress={() => onPress?.(model)}>
+        onPress={handlePressCard}>
         <Card key={model.id} style={styles.card}>
-          {model.versions?.[0]?.images?.[0]?.url && (
+          {/* Display image from the current version */}
+          {currentVersion?.images?.[0]?.url && (
             <Image
-              source={{ uri: model.versions[0].images[0].url }}
+              source={{ uri: currentVersion.images[0].url }}
               style={styles.cardImage}
               objectFit="cover"
             />
           )}
-          <View style={styles.iconContainer}>
-            <Dialog modal>
-              <Dialog.Trigger asChild>
-                <Button onPress={handleEditWeight} padding={8}>
-                  <MoreVertical size={20} color={isSelected ? '$accent10' : '$accent0'} />
-                </Button>
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay
-                  key="overlay"
-                  backgroundColor={theme.shadow6.get()}
-                  enterStyle={{ opacity: 0 }}
-                  exitStyle={{ opacity: 0 }}
-                />
-                <Dialog.Content padding={20}>
-                  <Dialog.Title>Edit Weight</Dialog.Title>
-                  <Dialog.Description>Enter the weight for {model.name}.</Dialog.Description>
-                  <Input
-                    keyboardType="numeric"
-                    value={String(weight)}
-                    onChangeText={handleWeightChange}
-                    placeholder="Enter weight"
-                    mt={10}
-                    mb={15}
+
+          <XStack p={4} pos={'absolute'} top={0} left={0} right={0} gap={2} zIndex={1}>
+            <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'} w={'fit-content'}>
+              <Text color="white">{getModelTypeAbbreviation(model.type)}</Text>
+            </Chip>
+            {currentVersion?.baseModel && (
+              <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'} w={'fit-content'}>
+                <Text color="white">{renderbaseModelChip(currentVersion.baseModel)}</Text>
+              </Chip>
+            )}
+            <View position="absolute" top={0} right={0} p={4} zIndex={2}>
+              <AlertDialog>
+                <AlertDialog.Trigger asChild>
+                  {/* Call handleEditWeight if needed for debugging, but it shouldn't stop propagation here */}
+                  <Button size={'$1'} onPress={handleEditWeight}>
+                    <MoreHorizontal size={20} color={isSelected ? '$accent10' : '$accent0'} />
+                  </Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Overlay
+                    key="overlay"
+                    animation="quick"
+                    opacity={0.5}
+                    enterStyle={{ opacity: 0 }}
+                    exitStyle={{ opacity: 0 }}
                   />
-                  <XStack jc={'flex-end'} gap={'$3'} mt={'$3'}>
-                    <Dialog.Close asChild>
-                      <Button onPress={handleCloseModal}>Cancel</Button>
-                    </Dialog.Close>
-                    <Dialog.Close asChild>
-                      <Button onPress={handleSaveWeight}>Save</Button>
-                    </Dialog.Close>
-                  </XStack>
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog>
-          </View>
-          <XStack style={styles.cardTextContainer} jc={'space-between'} ai={'center'}>
-            <YStack width={'calc(100% - 6rem)'}>
+                  <AlertDialog.Content
+                    bordered
+                    elevate
+                    key="content"
+                    animation={[
+                      'quick',
+                      {
+                        opacity: {
+                          overshootClamping: true,
+                        },
+                      },
+                    ]}
+                    enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
+                    exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
+                    x={0}
+                    scale={1}
+                    opacity={1}
+                    y={0}>
+                    <AlertDialog.Title>Edit Weight</AlertDialog.Title>
+                    <AlertDialog.Description>
+                      Enter the weight for {model.name}.
+                    </AlertDialog.Description>
+                    <Input
+                      keyboardType="numeric"
+                      value={String(weight)}
+                      onChangeText={handleWeightChange}
+                      placeholder="Enter weight"
+                      mt={10}
+                      mb={15}
+                    />
+                    <XStack jc={'flex-end'} gap={'$3'} mt={'$3'}>
+                      <AlertDialog.Cancel asChild>
+                        <Button>Cancel</Button>
+                      </AlertDialog.Cancel>
+                      <AlertDialog.Action asChild>
+                        <Button onPress={handleSaveWeight} theme="accent">
+                          Save
+                        </Button>
+                      </AlertDialog.Action>
+                    </XStack>
+                  </AlertDialog.Content>
+                </AlertDialog.Portal>
+              </AlertDialog>
+            </View>
+          </XStack>
+
+          {/* Text Container */}
+          <View style={styles.cardTextContainer}>
+            <View width={'calc(100% - 6rem)'} flexShrink={1}>
               <Text
-                style={[styles.cardTitle, isSelected && styles.selectedCardTitle]}
+                style={styles.cardTitle}
                 fontSize={14}
                 fontWeight="bold"
                 numberOfLines={1}
@@ -129,21 +253,22 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({
                 ellipsizeMode="tail">
                 {model.name}
               </Text>
-              <Text style={styles.cardSubtitle} fontSize={10} color="white">
-                Type: {model.type}
+            </View>
+            {model.modelVersions && model.modelVersions.length > 1 && (
+              <Text style={styles.cardSubtitle} fontSize={12}>
+                Version {currentVersionIndex + 1}/{model.modelVersions.length}
               </Text>
-            </YStack>
-            <YStack
-              right={'$2'}
-              bg={'$background08'}
-              p={'$1'}
-              px={'$2'}
-              br={'$5'}
-              ai={'center'}
-              jc={'center'}>
-              <Text>{model.versions?.[0]?.baseModel}</Text>
-            </YStack>
-          </XStack>
+            )}
+            {currentVersion?.name && (
+              <Text
+                style={styles.cardSubtitle}
+                fontSize={10}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {currentVersion.name}
+              </Text>
+            )}
+          </View>
         </Card>
       </TouchableOpacity>
     </>
@@ -157,12 +282,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
-    opacity: 0.7,
+    opacity: 0.9, // Slight opacity reduction when not selected
+    borderWidth: 2, // Maintain border width
+    borderColor: 'transparent', // Default transparent border
   },
   selectedCardButton: {
-    opacity: 1,
-    borderWidth: 2,
-    borderColor: '$accent10',
+    opacity: 1, // Full opacity when selected
+    // Border color is handled by the inline style
   },
   card: {
     width: '100%',
@@ -170,6 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '$background', // Add a fallback background
   },
   cardImage: {
     width: '100%',
@@ -181,32 +308,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
+    padding: 4,
   },
   cardTitle: {
     color: 'white',
   },
   cardSubtitle: {
     color: 'white',
-  },
-  selectedCardTitle: {
-    color: '$blue3',
-  },
-  iconContainer: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 2, // Increased zIndex to ensure it's on top
-  },
-  editButton: {
-    padding: 8,
-  },
-  dialogContent: {
-    padding: 20,
-  },
-  weightInput: {
-    marginTop: 10,
-    marginBottom: 15,
   },
 });
 

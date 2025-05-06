@@ -10,7 +10,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
@@ -34,12 +33,14 @@ export default function RootLayout() {
     <TamaguiProvider config={config} defaultTheme="dark">
       <PortalProvider shouldAddRootHost>
         <QueryClientProvider client={queryClient}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             {/* Add this line to hide the header for the model details screen */}
-            <Stack.Screen name="models/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="marketplace" options={{ headerShown: false }} />
+            <Stack.Screen name="models/[id]" />
+            <Stack.Screen name="gallery/[id]" />
+            <Stack.Screen name="post/templates/[id]" />
+            <Stack.Screen name="marketplace" />
           </Stack>
         </QueryClientProvider>
       </PortalProvider>

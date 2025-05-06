@@ -8,59 +8,8 @@ import { generatorJobs, InsertGeneratorJob } from "@/schema";
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
 
-// const VolumePath = Type.String({
-//   pattern: "^/(runpod-volume|defaults)/.*",
-//   errorMessage: {
-//     pattern: "Path must start with /runpod-volume/ or /defaults/",
-//   },
-// });
-
-// const LoRAItemSchema = Type.Object({
-//   local_path: VolumePath,
-//   weight: Type.Optional(Type.Number({ default: 1.0 })),
-// });
-
-// const TIItemSchema = Type.Object({
-//   local_path: VolumePath,
-// });
-
-// const ModelConfigSchema = Type.Object({
-//   local_path: VolumePath,
-
-//   model_type: Type.Union([
-//     Type.Literal("SDXL 1.0"),
-//     Type.Literal("SD 1.5"),
-//     Type.Literal("Illustrious"),
-//     Type.Literal("Pony"),
-//   ]),
-// });
-
-// const GeneratorArgsSchema = Type.Optional(
-//   Type.Object({
-//     num_inference_steps: Type.Optional(Type.Integer({ default: 25 })),
-//     guidance_scale: Type.Optional(Type.Number({ default: 7.0 })),
-//     height: Type.Optional(Type.Integer()),
-//     width: Type.Optional(Type.Integer()),
-//     negative_prompt: Type.Optional(Type.String()),
-//   })
-// );
-
-// const GeneratorInputPayloadSchema = Type.Object({
-//   prompt: Type.String({
-//     minLength: 1,
-//     errorMessage: { minLength: "Prompt is required." },
-//   }),
-//   model_conf: ModelConfigSchema,
-//   loras: Type.Optional(Type.Array(LoRAItemSchema)),
-//   textual_inversions: Type.Optional(Type.Array(TIItemSchema)),
-//   generator_args: GeneratorArgsSchema,
-// });
-
-// type RunPodWorkerPayload = Static<typeof GeneratorInputPayloadSchema>;
-
-const generatorRouter = new Hono<ContextForHono>().post(
-  "/generate",
-  async (c) => {
+const generatorRouter = new Hono<ContextForHono>()
+  .post("/generate", async (c) => {
     const { RUNPOD_API_KEY, RUNPOD_GENERATOR_ID, RUNPOD_WEBHOOK_URL } = c.env;
     const db = c.get("db");
 
@@ -85,32 +34,6 @@ const generatorRouter = new Hono<ContextForHono>().post(
       console.error(`Failed to parse request body as JSON: ${e.message}`);
       return c.json({ status: "error", message: "Invalid JSON body." }, 400);
     }
-
-    // const isValid = Value.Check(GeneratorInputPayloadSchema, clientInput);
-    // if (!isValid) {
-    //   const errors = [
-    //     ...Value.Errors(GeneratorInputPayloadSchema, clientInput),
-    //   ];
-    //   console.error("Input validation failed:", errors);
-    //   const formattedErrors = errors.map((err) => ({
-    //     path: err.path,
-    //     message: err.message,
-    //     value: err.value,
-    //   }));
-    //   return c.json(
-    //     {
-    //       status: "error",
-    //       message: "Invalid input payload",
-    //       errors: formattedErrors,
-    //     },
-    //     400
-    //   );
-    // }
-
-    // const workerPayload: RunPodWorkerPayload = Value.Default(
-    //   GeneratorInputPayloadSchema,
-    //   clientInput
-    // ) as RunPodWorkerPayload;
 
     const newDbJobId = crypto.randomUUID();
     const initialJobRecord: InsertGeneratorJob = {
@@ -145,6 +68,7 @@ const generatorRouter = new Hono<ContextForHono>().post(
 
       const webhookUrl = `${RUNPOD_WEBHOOK_URL}/generator`;
       console.log(`Setting webhook URL for RunPod job: ${webhookUrl}`);
+      console.log(clientInput);
 
       const triggeredJob = await endpoint!.run({
         input: clientInput,
@@ -236,7 +160,104 @@ const generatorRouter = new Hono<ContextForHono>().post(
         500
       );
     }
-  }
-);
+  })
+  .get("/images", async (c) => {
+    const db = c.get("db");
+
+    if (!db) {
+      console.error(
+        "Server configuration error: Database binding not available."
+      );
+      return c.json(
+        {
+          status: "error",
+          message: "Server configuration error: Database not available.",
+        },
+        500
+      );
+    }
+
+    const queryParams = c.req.query();
+    const limit = parseInt(queryParams.limit || "20", 10); // Default limit 20
+    const offset = parseInt(queryParams.offset || "0", 10); // Default offset 0
+    const statusFilter = queryParams.status || "COMPLETED"; // Default to COMPLETED
+
+    // Basic validation
+    if (isNaN(limit) || limit <= 0 || isNaN(offset) || offset < 0) {
+      return c.json(
+        {
+          status: "error",
+          message: "Invalid pagination parameters (limit, offset).",
+        },
+        400
+      );
+    }
+    // Add validation for statusFilter if needed
+
+    try {
+      console.log(
+        `Fetching images: limit=${limit}, offset=${offset}, status=${statusFilter}`
+      );
+
+      const jobs = await db.query.generatorJobs.findMany({
+        limit,
+        offset,
+        where: (jobs, { eq, and, isNotNull }) =>
+          and(eq(jobs.status, statusFilter as any), isNotNull(jobs.status)),
+        orderBy: (jobs, { desc }) => desc(jobs.createdAt),
+      });
+
+      console.log(
+        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`
+      );
+
+      console.log(
+        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`
+      );
+
+      // Determine if there's a next page using the limit/offset pattern
+      const hasMore = jobs.length === limit;
+      let nextPageUrl: string | null = null;
+
+      if (hasMore) {
+        const nextOffset = offset + limit;
+        // Construct the URL for the next page based on the current request URL
+        const currentUrl = new URL(c.req.url);
+        currentUrl.searchParams.set("limit", limit.toString());
+        currentUrl.searchParams.set("offset", nextOffset.toString());
+        if (queryParams.status) {
+          // Preserve status filter if present
+          currentUrl.searchParams.set("status", queryParams.status);
+        }
+        // Add any other query parameters that should persist pagination
+        nextPageUrl = currentUrl.toString();
+        console.log("Calculated next page URL:", nextPageUrl);
+      } else {
+        console.log("No more pages.");
+      }
+
+      // Return the array of jobs for this page and the next page URL
+      return c.json({
+        status: "success",
+        message: "Successfully fetched image generation jobs.",
+        items: jobs, // Returning the job objects (each contains imageUrls array)
+        nextPageUrl: nextPageUrl, // URL for the next page of jobs
+      });
+    } catch (error: any) {
+      console.error(
+        `API Handler unexpected error fetching generator jobs: ${error.message}`,
+        error
+      );
+
+      return c.json(
+        {
+          status: "error",
+          message: "Internal server error while fetching images.",
+          error: error.message,
+        },
+        500
+      );
+    }
+  });
 
 export default generatorRouter;

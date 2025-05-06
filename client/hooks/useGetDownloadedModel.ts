@@ -43,8 +43,8 @@ export const useGetDownloadedModel = (civitaiId: string | number) => {
       if (!model) return false; // No data, no polling
 
       // Check primary file download status
-      const latestVersion = model.versions?.[0]; // Assuming latest is first due to backend sort
-      const primaryFile = latestVersion?.files?.find((file) => file.primary);
+      const latestVersion = model.modelVersions?.[0]; // Assuming latest is first due to backend sort
+      const primaryFile = latestVersion?.files?.find((file) => file);
       const downloadStatus = primaryFile?.downloadStatus;
 
       // Check model deletion status

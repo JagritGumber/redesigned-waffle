@@ -27,14 +27,14 @@ function ModelDeleteButton({ model }: ModelDeleteButtonProps) {
   const { mutateAsync: startDelete, isPending: isInitiatingDelete } = useDeleteModel(); // Use isPending
 
   const handlePress = useCallback(() => {
-    if (model.civitaiId === undefined || model.civitaiId === null) {
+    if (model.id === undefined || model.id === null) {
       console.log(model);
       console.error('Model ID is missing on the downloaded model data to initiate deletion.');
       Alert.alert('Error', 'Model ID missing for deletion.');
       return;
     }
     // Call the mutation function with the internal DB model ID
-    startDelete(model.civitaiId);
+    startDelete(model.id);
   }, [model, startDelete]); // Depend on model.id and the mutation function
 
   // Determine button state and text based on model.status and loading
@@ -97,8 +97,8 @@ function ModelDeleteButton({ model }: ModelDeleteButtonProps) {
 
   // AlertDialog logic remains mostly the same, just ensure the onPress calls handleDelete
   return (
-    <AlertDialog native >
-      <AlertDialogTrigger asChild  >
+    <AlertDialog native>
+      <AlertDialogTrigger asChild>
         <Button
           backgroundColor="$red2"
           hoverStyle={{ backgroundColor: '$red3' }}

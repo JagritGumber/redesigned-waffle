@@ -1,8 +1,10 @@
 import React from 'react';
-import { Card, Text, View, Image } from 'tamagui';
+import { Card, Text, View, Image, YStack, XStack } from 'tamagui';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
 import { CivitaiModelWithRelations } from '~/backend/schema/models';
+import { Chip } from './ui/Chip';
+import { renderbaseModelChip } from '~/utils/renderBaseModelChip';
 
 interface DownloadedModelCardProps {
   model: CivitaiModelWithRelations;
@@ -16,23 +18,31 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
       href={{
         pathname: `/models/[id]`,
         params: {
-          id: model.civitaiId,
+          id: model.id,
         },
       }}
       asChild>
       <TouchableOpacity activeOpacity={0.8} style={styles.modelButton} onPress={handlePress}>
         <Card key={model.id} style={styles.modelCard}>
-          {model.versions &&
-            model.versions.length > 0 &&
-            model.versions[0].images &&
-            model.versions[0].images.length > 0 &&
-            model.versions[0].images[0].url && (
+          {model.modelVersions &&
+            model.modelVersions.length > 0 &&
+            model.modelVersions[0].images &&
+            model.modelVersions[0].images.length > 0 &&
+            model.modelVersions[0].images[0].url && (
               <Image
-                source={{ uri: model.versions[0].images[0].url }}
+                source={{ uri: model.modelVersions[0].images[0].url }}
                 style={styles.modelImage}
                 objectFit="cover"
               />
             )}
+          <XStack p={4} pos={'absolute'} gap={2}>
+            <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'}>
+              <Text>{model.type}</Text>
+            </Chip>
+            <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'}>
+              <Text>{renderbaseModelChip(model.modelVersions?.[0]?.baseModel)}</Text>
+            </Chip>
+          </XStack>
           <View style={styles.cardTextContainer}>
             <View width={'calc(100% - 6rem)'} flexShrink={1}>
               <Text
@@ -44,19 +54,6 @@ const DownloadedModelCard: React.FC<DownloadedModelCardProps> = ({ model }) => {
                 ellipsizeMode="tail">
                 {model.name}
               </Text>
-              <Text style={styles.cardSubtitle} fontSize={10} color="white">
-                Type: {model.type}
-              </Text>
-            </View>
-            <View
-              right={'$2'}
-              bg={'$background08'}
-              p={'$1'}
-              px={'$2'}
-              br={'$5'}
-              ai={'center'}
-              jc={'center'}>
-              <Text>{model.versions?.[0]?.baseModel}</Text>
             </View>
           </View>
         </Card>
@@ -93,7 +90,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+    padding: 4,
   },
   cardTitle: {
     color: 'white',

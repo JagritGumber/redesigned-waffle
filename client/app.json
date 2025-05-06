@@ -1,20 +1,15 @@
 {
   "expo": {
-    "name": "client",
-    "slug": "client",
+    "name": "Auto Disposal",
+    "slug": "auto-disposal",
     "version": "1.0.0",
-    "scheme": "client",
+    "scheme": "auto-disposal",
+    "newArchEnabled": true,
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/favicon.png",
-      "build": {
-        "cors": {
-          "allowedOrigins": [
-            "https://8082-idx-redesigned-wafflegit-1743873303400.cluster-zumahodzirciuujpqvsniawo3o.cloudworkstations.dev"
-          ]
-        }
-      }
+      "build": {}
     },
     "plugins": ["expo-router"],
     "experiments": {
@@ -38,6 +33,15 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4d530fa6-8022-4bd6-9371-0d78e8075879"
+      }
+    },
+    "owner": "jagritgumber"
   }
 }

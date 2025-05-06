@@ -101,7 +101,7 @@ const modelRouter = new Hono<ContextForHono>()
     try {
       const db = c.get("db");
       const models = await db.query.civitaiModels.findMany({
-        where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
+        // where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
         orderBy: (model, { asc }) => asc(model.createdAt),
         with: {
           modelVersions: {
@@ -221,64 +221,23 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/checkpoints", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.Checkpoint))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) =>
+          eq(civitaiModels.type, ModelTypes.Checkpoint),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {
@@ -292,64 +251,23 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/textual-inversions", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.TextualInversion))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) =>
+          eq(civitaiModels.type, ModelTypes.TextualInversion),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {
@@ -366,64 +284,23 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/hypernetworks", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.Hypernetwork))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) =>
+          eq(civitaiModels.type, ModelTypes.Hypernetwork),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {
@@ -440,65 +317,23 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/aesthetic-gradients", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.AestheticGradient))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
-
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) =>
+          eq(civitaiModels.type, ModelTypes.AestheticGradient),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
       return c.json({ models }, 200);
     } catch (error) {
       console.error(
@@ -514,64 +349,22 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/loras", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.LORA))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) => eq(civitaiModels.type, ModelTypes.LORA),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {
@@ -585,64 +378,23 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/controlnets", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.Controlnet))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) =>
+          eq(civitaiModels.type, ModelTypes.Controlnet),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {
@@ -656,64 +408,22 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/poses", async (c) => {
     try {
       const db = c.get("db");
-      const results = await db
-        .select({
-          model: civitaiModels,
-          version: civitaiModelVersions,
-          file: civitaiFiles,
-          image: civitaiImages, // Select the image data
-        })
-        .from(civitaiModels)
-        .innerJoin(
-          civitaiModelVersions,
-          eq(civitaiModels.id, civitaiModelVersions.civitaiModelId)
-        )
-        .innerJoin(
-          civitaiFiles,
-          eq(civitaiModelVersions.id, civitaiFiles.civitaiVersionId)
-        )
-        .innerJoin(
-          civitaiImages, // Join with the images table
-          eq(civitaiModelVersions.id, civitaiImages.civitaiVersionId) // Assuming the join is on civitaiVersionId
-        )
-        .where(eq(civitaiModels.type, ModelTypes.Poses))
-        .orderBy(
-          asc(civitaiModels.createdAt),
-          asc(civitaiModelVersions.createdAt),
-          asc(civitaiImages.index)
-        );
-
-      const modelsMap = new Map();
-
-      for (const row of results) {
-        const model = row.model;
-        const version = row.version;
-        const file = row.file;
-        const image = row.image; // Get the image data
-
-        if (!modelsMap.has(model.id)) {
-          modelsMap.set(model.id, { ...model, versions: new Map() });
-        }
-
-        const modelEntry = modelsMap.get(model.id);
-
-        if (!modelEntry.versions.has(version.id)) {
-          modelEntry.versions.set(version.id, {
-            ...version,
-            files: [],
-            images: [],
-          }); // Initialize images array
-        }
-
-        const versionEntry = modelEntry.versions.get(version.id);
-        versionEntry.files.push(file);
-        versionEntry.images.push(image); // Add the image to the version
-      }
-
-      const models = Array.from(modelsMap.values()).map((modelEntry) => ({
-        ...modelEntry,
-        versions: Array.from(modelEntry.versions.values()),
-      }));
+      const models = await db.query.civitaiModels.findMany({
+        orderBy: (models, { asc }) => asc(models.createdAt),
+        where: (models, { eq }) => eq(civitaiModels.type, ModelTypes.Poses),
+        with: {
+          modelVersions: {
+            with: {
+              files: {
+                orderBy: (files, { asc }) => asc(files.createdAt),
+              },
+              images: {
+                orderBy: (images, { asc }) => asc(images.index),
+              },
+            },
+          },
+        },
+      });
 
       return c.json({ models }, 200);
     } catch (error) {

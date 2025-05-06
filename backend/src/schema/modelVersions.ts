@@ -1,8 +1,8 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { civitaiModels } from "./models";
 import { relations } from "drizzle-orm";
-import { civitaiFiles } from "./modelFiles";
-import { civitaiImages } from "./modelImages";
+import { civitaiFiles, SelectCivitaiFile } from "./modelFiles";
+import { civitaiImages, SelectCivitaiImage } from "./modelImages";
 
 export const civitaiModelVersions = sqliteTable("civitaiModelVersion", {
   id: integer("id").primaryKey(),
@@ -49,3 +49,11 @@ export type SelectCivitaiModelVersion =
 export type InsertCivitaiModelVersion =
   typeof civitaiModelVersions.$inferInsert;
 export type CivitaiModelVersion = typeof civitaiModelVersions;
+
+export type CivitaiModelVersionWithFilesAndImages = Omit<
+  SelectCivitaiModelVersion,
+  "civitaiModelId"
+> & {
+  files: SelectCivitaiFile[];
+  images: SelectCivitaiImage[];
+};

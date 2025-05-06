@@ -102,7 +102,6 @@ const DownloadedModelsList: React.FC<DownloadedModelsListProps> = ({
           ) : null
         }
         keyExtractor={(item) => item.id.toString()}
-        style={{ flex: 1 }}
       />
     );
   }

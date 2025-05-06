@@ -139,7 +139,8 @@ const CivitAIMarketplace = () => {
   };
 
   const goBack = () => {
-    router.replace('/(tabs)/two'); // Fallback
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)'); // Fallback
   };
 
   const loadMore = () => {

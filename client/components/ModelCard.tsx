@@ -1,9 +1,11 @@
 import React from 'react';
-import { Card, Text, View, Image } from 'tamagui';
+import { Card, Text, View, Image, XStack } from 'tamagui';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Model } from '~/types/civitai';
 import { Link } from 'expo-router';
 import { useModelStore } from '~/store/useModelStore'; // Adjust path
+import { Chip } from './ui/Chip';
+import { renderbaseModelChip } from '~/utils/renderBaseModelChip';
 
 interface ModelCardProps {
   model: Model;
@@ -38,6 +40,14 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
                 resizeMode="cover"
               />
             )}
+          <XStack p={4} pos={'absolute'} gap={2}>
+            <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'}>
+              <Text>{model.type}</Text>
+            </Chip>
+            <Chip size={'$2'} bg={'rgba(0, 0, 0, 0.5)'}>
+              <Text>{renderbaseModelChip(model.modelVersions.at(0)?.baseModel ?? null)}</Text>
+            </Chip>
+          </XStack>
           <View style={styles.cardTextContainer}>
             <View width={'calc(100% - 6rem)'} flexShrink={1}>
               <Text
@@ -46,24 +56,9 @@ const ModelCard: React.FC<ModelCardProps> = ({ model }) => {
                 fontWeight="bold"
                 numberOfLines={1}
                 textOverflow="ellipsis"
-                lineBreakMode="middle"
-                ellipsizeMode="clip">
+                ellipsizeMode="tail">
                 {model.name}
               </Text>
-              <Text style={styles.cardSubtitle} fontSize={10} color="white">
-                Type: {model.type}
-              </Text>
-            </View>
-            <View
-              fs={0}
-              right={'$2'}
-              bg={'$background08'}
-              p={'$1'}
-              px={'$2'}
-              br={'$5'}
-              ai={'center'}
-              jc={'center'}>
-              <Text>{model.modelVersions?.[0]?.baseModel}</Text>
             </View>
           </View>
         </Card>
@@ -100,7 +95,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+    padding: 4,
     width: '100%',
   },
   cardTitle: {

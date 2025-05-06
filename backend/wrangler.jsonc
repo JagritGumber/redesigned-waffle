@@ -9,10 +9,10 @@
   "compatibility_date": "2025-04-04",
   "assets": {
     "binding": "ASSETS",
-    "directory": "./public",
+    "directory": "./public"
   },
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   /**
    * Smart Placement
@@ -30,9 +30,15 @@
       "binding": "DB",
       "database_id": "28854b12-a931-400f-90a7-a826f2dd4b9c",
       "database_name": "long-leaf-2cbd-db",
-      "migrations_dir": "./drizzle",
-    },
+      "migrations_dir": "./drizzle"
+    }
   ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "semantic-first-search-bucket"
+    }
+  ]
   /**
    * Environment Variables
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables

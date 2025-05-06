@@ -159,7 +159,6 @@ const ModelList: React.FC<ModelListProps> = ({
         }
         keyExtractor={(item) => item.id.toString()}
         // Ensure FlashList takes up available space and is scrollable
-        style={{ flex: 1 }}
       />
     );
   }

@@ -4,6 +4,7 @@ import { relations } from "drizzle-orm";
 import { ModelState, ModelTypes } from "@/types/models";
 import {
   civitaiModelVersions,
+  CivitaiModelVersionWithFilesAndImages,
   SelectCivitaiModelVersion,
 } from "./modelVersions";
 import { civitaiCreator } from "./modelCreator";
@@ -57,8 +58,5 @@ export type InsertCivitaiModel = typeof civitaiModels.$inferInsert;
 export type CivitaiModel = typeof civitaiModels;
 
 export interface CivitaiModelWithRelations extends SelectCivitaiModel {
-  modelVersions: (Omit<SelectCivitaiModelVersion, "civitaiModelId"> & {
-    files: SelectCivitaiFile[];
-    images: SelectCivitaiImage[];
-  })[];
+  modelVersions: CivitaiModelVersionWithFilesAndImages[];
 }

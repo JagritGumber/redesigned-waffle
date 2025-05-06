@@ -8,39 +8,15 @@ import {
   InsertGeneratorJob,
 } from "@/schema"; // Import civitaiModels
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
-// Make sure you have schema definitions imported
+import { InfoParsedResult } from "@/types/generator";
 
-// Define the structure of the output payload from the Python worker (on success)
-type WorkerResult = {
-  image?: string;
-  time_taken?: number;
-  model_path_used?: string;
-  model_type_used?: "SDXL 1.0" | "SD 1.5" | "Illustrious" | "Pony"; // Use updated literals here
-  loras_applied?: string[];
-  tis_applied?: string[];
-  cached_base_model_used?: boolean;
-  loaded_ti_tokens?: { path: string; token: string }[] | null;
-  // Add other fields your worker might return in the 'result' object
-};
-
-// Define the structure of the full payload received by the webhook
-// This matches RunPod's completed/failed webhook structure, plus the worker's output
 type RunPodWebhookPayload = {
   id: string; // RunPod Job ID
   status: string; // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
-  input?: any; // The original input sent to the worker (useful for context)
   output?: {
     // The output from your Python handler's return dict
-    status: "COMPLETED" | "FAILED" | "PARTIAL_COMPLETED"; // Internal worker status
-    message?: string;
-    result?: WorkerResult; // The actual data on success
-    lora_errors?: any[];
-    ti_errors?: any[];
-    errors?: any[]; // From downloader worker delete results
-    items_deleted?: number; // From downloader worker deleteAll
-    total_items_attempted?: number; // From downloader worker deleteAll
-    storage_used?: number; // Storage usage reported by downloader
-    workerDetails?: any; // Catch-all for other details
+    images: string[]; // Base64 images with no prefix, need to add data:image/png;base64, prefix
+    info: string; // actually a json of @type InfoParsedResult
   };
   error?: any; // Error details provided by RunPod if the job failed before your handler returned
   // Add other fields from RunPod's webhook payload if needed (e.g., executionTime)
@@ -58,7 +34,7 @@ const webhookRouter = new Hono<ContextForHono>()
         input: {
           action: "delete" | "download" | "deleteAll";
           save_path?: string;
-          model_id?: string; // <-- Add model_id for delete action
+          model_id?: number; // <-- Add model_id for delete action
         };
       }>();
       const {
@@ -244,7 +220,7 @@ const webhookRouter = new Hono<ContextForHono>()
       return c.text("Error processing webhook", 500);
     }
   })
-  .post("/runpod/generator", async (c) => {
+  .all("/runpod/generator", async (c) => {
     const db = c.get("db");
 
     try {
@@ -252,15 +228,16 @@ const webhookRouter = new Hono<ContextForHono>()
       const payload = await c.req.json<RunPodWebhookPayload>();
       const {
         id: runpodJobId,
-        status: runpodJobStatus,
+        status: runpodJobStatus, // This is the RunPod job status from the image
         output,
         error,
       } = payload;
 
+      // Log the *actual* RunPod status received
       console.log(
-        `Received RunPod webhook for generator job ${runpodJobId}. Status: ${runpodJobStatus}`
+        `Received RunPod webhook for generator job ${runpodJobId}. RunPod Status: ${runpodJobStatus}`
       );
-      console.debug("Webhook payload:", JSON.stringify(payload)); // Log full payload for debugging if needed
+      // console.debug("Webhook payload:", JSON.stringify(payload)); // Keep for detailed debugging if needed
 
       // Find the corresponding job record in your database using the RunPod Job ID
       const dbJob = await db.query.generatorJobs.findFirst({
@@ -275,75 +252,223 @@ const webhookRouter = new Hono<ContextForHono>()
         return c.text("OK", 200);
       }
 
-      // Update the database record based on the webhook payload
       const updateData: Partial<InsertGeneratorJob> = {
-        status: "WEBHOOK_RECEIVED", // Mark that we got the webhook
+        updatedAt: new Date(), // Always update timestamp on webhook
+        // Initialize result/error fields to null unless populated below
+        generationInfo: null,
+        imageKey: null,
+        errorMessage: null,
+        errorDetails: null,
+        completedAt: null, // Only set for COMPLETED
       };
 
-      // Determine final status based on worker output or RunPod status
-      const workerInternalStatus = output?.status; // e.g., 'COMPLETED', 'FAILED', 'PARTIAL_COMPLETED' from your Python handler
-      const finalStatus = workerInternalStatus || runpodJobStatus; // Use worker status if available, else RunPod status
-
-      if (finalStatus === "COMPLETED") {
+      // Process based on the RunPod job status (from the image)
+      if (runpodJobStatus === "COMPLETED") {
+        // Job successfully completed by RunPod worker
         updateData.status = "COMPLETED";
-        updateData.resultPayload = output; // Save the actual generation result
-        updateData.errorMessage = null; // Clear any previous error messages
-        updateData.errorDetails = null; // Clear any previous error details
-        console.log(`DB job ${dbJob.id} (RunPod ${runpodJobId}): COMPLETED.`);
-      } else if (finalStatus === "PARTIAL_COMPLETED") {
-        // Handle partial completion - decide how you want to represent this in your DB
-        updateData.status = "COMPLETED"; // Or maybe 'PARTIAL_COMPLETED' if schema supports
-        updateData.resultPayload = output.images[0]; // Maybe save partial result if any?
-        updateData.errorMessage = output;
-        updateData.errorDetails = output; // Store full output for details
-        console.warn(
-          `DB job ${dbJob.id} (RunPod ${runpodJobId}): PARTIAL_COMPLETED.`
-        );
-      } else if (finalStatus === "FAILED") {
-        // RunPod job failed OR worker handler returned status='FAILED'
+        updateData.completedAt = new Date(); // Record completion time
+
+        // --- Start processing successful output (parse info and upload images) ---
+        try {
+          // 1. Parse Info (should be stringified JSON in output.info)
+          let parsedInfo: InfoParsedResult | null = null;
+          if (output?.info && typeof output.info === "string") {
+            try {
+              parsedInfo = JSON.parse(output.info);
+              updateData.generationInfo = parsedInfo; // Store parsed info object
+            } catch (parseError) {
+              console.error(
+                `Failed to parse info string for job ${dbJob.id} (RunPod ${runpodJobId}):`,
+                parseError
+              );
+              // Log error, but don't necessarily fail the job unless info is critical
+              // For now, just log and continue without storing info
+            }
+          } else {
+            console.warn(
+              `No parsable info string provided in output for job ${dbJob.id} (RunPod ${runpodJobId}) despite COMPLETED status.`
+            );
+          }
+
+          // 2. Upload Images to R2 (output.images should be an array of base64 strings)
+          const uploadedImageUrls: string[] = [];
+          if (Array.isArray(output?.images) && output.images.length > 0) {
+            const r2 = c.env.R2; // Access R2 binding
+            const publicR2UrlPrefix = c.env.R2_PUBLIC_BUCKET_URL; // Access public URL prefix
+
+            if (!r2 || !publicR2UrlPrefix) {
+              // This is a critical configuration error
+              throw new Error(
+                "R2 binding or PUBLIC_R2_URL is not configured in environment."
+              );
+            }
+
+            for (let i = 0; i < output.images.length; i++) {
+              const base64Data = output.images[i]; // Assumed to be unprefixed base64
+              if (!base64Data || typeof base64Data !== "string") {
+                console.warn(
+                  `Skipping invalid/empty image data for job ${dbJob.id}, index ${i}.`
+                );
+                continue; // Skip invalid entry, try the next
+              }
+
+              try {
+                // Decode base64 (Node.js Buffer or Workers atob) - assuming Cloudflare Workers environment
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let j = 0; j < byteCharacters.length; j++) {
+                  byteNumbers[j] = byteCharacters.charCodeAt(j);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+
+                // Generate a unique key for R2 object
+                const r2Key = `generator-jobs/${runpodJobId}/${i + 1}.png`; // e.g., generator-jobs/some-runpod-id/1.png
+
+                // Upload to R2
+                await r2.put(r2Key, byteArray, {
+                  httpMetadata: { contentType: "image/png" },
+                });
+
+                // Construct public URL
+                const publicUrl = `${r2Key}`;
+                uploadedImageUrls.push(publicUrl);
+                console.log(
+                  `Uploaded image ${i + 1}/${output.images.length} for job ${
+                    dbJob.id
+                  }.`
+                );
+              } catch (uploadError: any) {
+                console.error(
+                  `Failed to upload image ${i + 1} for job ${
+                    dbJob.id
+                  } (RunPod ${runpodJobId}) to R2:`,
+                  uploadError
+                );
+                // If even one image fails to upload *after* RunPod completed,
+                // we should probably mark the job as FAILED in our system
+                updateData.status = "FAILED"; // Overwrite status
+                updateData.completedAt = null; // Not fully completed in our system
+                updateData.errorMessage = `RunPod job completed, but failed to process/upload images to R2 (image ${
+                  i + 1
+                }).`;
+                updateData.errorDetails =
+                  uploadError.message || JSON.stringify(uploadError);
+                updateData.generationInfo = parsedInfo; // Keep info if parsed? Or discard? Discarding is cleaner for FAILED.
+                updateData.generationInfo = null;
+                updateData.imageKey = null; // Don't store partial URLs
+                // Stop processing further images for this job
+                break;
+              }
+            }
+
+            // If we went through the loop and the status is still COMPLETED, all images succeeded (or were skipped if invalid data)
+            if (updateData.status === "COMPLETED") {
+              updateData.imageKey = uploadedImageUrls[0]; // Store the collected URLs
+              console.log(
+                `Finished processing images for DB job ${dbJob.id} (RunPod ${runpodJobId}). Stored ${uploadedImageUrls.length} URLs.`
+              );
+            }
+          } else {
+            // RunPod status is COMPLETED but no images array or an empty array
+            console.warn(
+              `RunPod reported COMPLETED status for job ${dbJob.id} (RunPod ${runpodJobId}) but no images were found in output.`
+            );
+            // Decide how critical this is. If images are the primary output, lack of images on success is a failure in our flow.
+            updateData.status = "FAILED"; // Mark as FAILED in DB
+            updateData.completedAt = null;
+            updateData.errorMessage =
+              "RunPod reported COMPLETED status but no images were found in output.";
+            updateData.errorDetails = output || "No output details";
+            // Keep parsed info if available? Let's discard for FAILED state consistency.
+            updateData.generationInfo = null;
+          }
+        } catch (processingError: any) {
+          // Catch critical errors during the COMPLETED state processing block (e.g., R2 config missing)
+          console.error(
+            `Critical processing error for job ${dbJob.id} (RunPod ${runpodJobId}) during COMPLETED state handling:`,
+            processingError
+          );
+          updateData.status = "FAILED"; // Mark job as FAILED due to internal error
+          updateData.completedAt = null;
+          updateData.errorMessage = `Internal webhook processing error during COMPLETED state: ${processingError.message}`;
+          updateData.errorDetails =
+            processingError.message || JSON.stringify(processingError);
+          updateData.generationInfo = null;
+          updateData.imageKey = null;
+        }
+        // --- End processing successful output ---
+      } else if (runpodJobStatus === "FAILED") {
+        // RunPod job reported FAILED
         updateData.status = "FAILED";
         updateData.errorMessage =
-          output?.message || error?.message || "Worker job failed.";
-        updateData.resultPayload = null; // No successful result
-        updateData.errorDetails = output || error; // Store output or RunPod error details
-        console.error(`DB job ${dbJob.id} (RunPod ${runpodJobId}): FAILED.`);
-      } else {
-        // Handle other potential RunPod statuses like 'CANCELED', 'TIMEOUT', etc.
-        // Or unexpected statuses from the worker output
-        updateData.status = "FAILED"; // Treat anything else as a failure in your system
-        updateData.errorMessage = `Worker job ended with unexpected status: ${finalStatus}`;
-        updateData.resultPayload = null;
-        updateData.errorDetails = output || error || payload; // Store whatever we got
+          output?.message || error?.message || "RunPod job reported FAILED.";
+        // Store full output/error details
+        updateData.errorDetails = output || error || payload;
         console.error(
-          `DB job ${dbJob.id} (RunPod ${runpodJobId}): Unexpected final status '${finalStatus}'.`
+          `DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported FAILED.`
         );
+      } else if (runpodJobStatus === "CANCELLED") {
+        // RunPod job was CANCELLED
+        updateData.status = "CANCELLED"; // Requires schema update to include "CANCELLED"
+        updateData.errorMessage =
+          error?.message ||
+          payload.output?.message ||
+          "RunPod job was CANCELLED.";
+        updateData.errorDetails = error || payload.output || payload; // Store details if any
+        console.warn(
+          `DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported CANCELLED.`
+        );
+      } else if (runpodJobStatus === "TIMED_OUT") {
+        // RunPod job TIMED_OUT
+        // Mapping TIMED_OUT to FAILED in DB is common and simplifies schema if you don't need a distinct status
+        updateData.status = "FAILED"; // Map TIMED_OUT to FAILED
+        updateData.errorMessage =
+          error?.message || payload.output?.message || "RunPod job TIMED_OUT.";
+        updateData.errorDetails = error || payload.output || payload; // Store details if any
+        console.error(
+          `DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported TIMED_OUT.`
+        );
+      } else {
+        // Handle any other unexpected RunPod statuses (IN_QUEUE, IN_PROGRESS shouldn't trigger webhooks)
+        // If we get here, it's an unexpected state for a final webhook. Treat as failure.
+        console.warn(
+          `Received webhook for RunPod job ID ${runpodJobId} with unexpected final status '${runpodJobStatus}'. Treating as FAILED.`
+        );
+        updateData.status = "FAILED";
+        updateData.errorMessage = `RunPod job ended with unexpected status: ${runpodJobStatus}`;
+        updateData.errorDetails = payload.output || error || payload;
       }
 
+      // Update the database record with the determined status and results/errors
       try {
         await db
           .update(generatorJobs)
           .set(updateData)
           .where(eq(generatorJobs.id, dbJob.id));
-        console.log(`DB job record ${dbJob.id} updated from webhook.`);
+        console.log(
+          `DB job record ${dbJob.id} updated from webhook (Final Status: ${updateData.status}).`
+        );
       } catch (dbUpdateError: any) {
         console.error(
-          `Failed to update DB job record ${dbJob.id} from webhook (RunPod ID ${runpodJobId}): ${dbUpdateError.message}`,
+          `Failed to update DB job record ${dbJob.id} from webhook (RunPod ID ${runpodJobId}, Target Status: ${updateData.status}): ${dbUpdateError.message}`,
           dbUpdateError
         );
-        // IMPORTANT: DO NOT return a non-200 status here. RunPod will retry endlessly if your DB is down.
-        // Just log the error and return OK. The job status might be stale in your DB, but at least the webhook processing didn't crash.
+        // Log the DB error but *still return 200* to RunPod.
+        // This prevents RunPod from infinitely retrying if *our database* is having issues.
+        // The job status in our DB might be outdated, but the webhook delivery is acknowledged.
       }
 
-      // Always return 200 OK to the webhook sender if processing was successful
+      // Always return 200 OK to the webhook sender if processing the webhook payload itself was successful
       return c.text("OK", 200);
     } catch (error: any) {
-      // This catches errors in processing the *webhook payload* itself (e.g., invalid JSON, unexpected structure)
+      // This catches errors in processing the *webhook payload* itself (e.g., invalid JSON)
+      // or critical errors like missing R2 config.
       console.error(
         "Error processing RunPod webhook for generator:",
         error.message,
         error
       );
-      // Return 500 to signal RunPod to retry this webhook delivery
+      // Return 500 to signal RunPod to retry this webhook delivery payload.
       return c.text("Error processing webhook", 500);
     }
   });

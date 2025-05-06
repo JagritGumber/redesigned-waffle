@@ -43,4 +43,16 @@ export {
 
 export { storageInfo } from "./storageInfo";
 
-export { generatorJobs, InsertGeneratorJob } from "./generatorJob";
+export {
+  generatorJobs,
+  InsertGeneratorJob,
+  SelectGeneratorJob,
+} from "./generatorJob";
+
+export {
+  postTemplates,
+  InsertPostTemplate,
+  PostType,
+  SelectPostTemplate,
+  postTypeEnum,
+} from "./postTemplate";
