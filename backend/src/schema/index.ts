@@ -7,6 +7,7 @@ export { default as groups } from "./groups";
 export {
   civitaiModels,
   civitaiModelsRelations,
+  CivitaiModelWithRelations,
   type InsertCivitaiModel,
 } from "./models";
 export { civitaiCreator, InsertCivitaiCreator } from "./modelCreator";
@@ -37,6 +38,7 @@ export {
   CivitaiModelVersion,
   InsertCivitaiModelVersion,
   SelectCivitaiModelVersion,
+  CivitaiModelVersionWithFilesAndImages
   civitaiModelVersions,
   civitaiModelVersionsRelations,
 } from "./modelVersions";

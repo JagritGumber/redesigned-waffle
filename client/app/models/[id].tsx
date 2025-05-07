@@ -27,7 +27,7 @@ import { useGetDownloadedModel } from '~/hooks/useGetDownloadedModel';
 import ModelDeleteButton from '~/components/ModelDeleteButton';
 import { Chip } from '~/components/ui/Chip';
 import { shortenNumber } from '~/utils/shortenNumber';
-import { ScrollView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 
 // Ensure you have installed this:
 // `npm install react-native-reanimated react-native-reanimated-carousel` or `yarn add react-native-reanimated react-native-reanimated-carousel`
@@ -303,398 +303,403 @@ const ModelDetailScreen = () => {
   const showNavButtons = originalImages.length > 1; // Use state variable
 
   return (
-    <ScrollView
-      ref={scrollViewRef} // Assign ref to the main ScrollView
-      scrollEnabled={true}
-      style={{
-        width: '100%', // Use screenWidth for the main scroll view width
-        flex: 1,
-        backgroundColor: theme.background.get(),
-        padding: 8, // Apply padding to the ScrollView itself
-      }}
-      // No simultaneousHandlers needed here usually, as vertical ScrollView and horizontal Carousel coexist
-    >
-      {/* Header, Tags, Versions... */}
-      <XStack w="100%" px={'$2'}>
-        <YStack mb={8} ai={'baseline'} fs={1} flexShrink={1} flex={1}>
-          <Text fos={20} fow="bold" numberOfLines={2}>
-            {modelToDisplay.name}
-          </Text>
-        </YStack>
-        <Button
-          size={'$3'}
-          icon={<X />}
-          onPress={() => router.back()}
-          fs={1}
-          ml={'auto'} // Push to the right
-          mr={'$4'}
-        />
-      </XStack>
-      <XStack mb={'$2'} px={'$2'} flexWrap="wrap" gap={'$1'}>
-        {modelToDisplay.tags.map((tag) => (
-          <Chip key={tag} size={'$1'} bg={'$accentColor'}>
-            <Text fos={'$1'} textTransform="uppercase">
-              {tag}
+    <GestureHandlerRootView>
+      <ScrollView
+        ref={scrollViewRef} // Assign ref to the main ScrollView
+        scrollEnabled={true}
+        style={{
+          width: '100%', // Use screenWidth for the main scroll view width
+          flex: 1,
+          backgroundColor: theme.background.get(),
+          padding: 8, // Apply padding to the ScrollView itself
+        }}
+        // No simultaneousHandlers needed here usually, as vertical ScrollView and horizontal Carousel coexist
+      >
+        {/* Header, Tags, Versions... */}
+        <XStack w="100%" px={'$2'}>
+          <YStack mb={8} ai={'baseline'} fs={1} flexShrink={1} flex={1}>
+            <Text fos={20} fow="bold" numberOfLines={2}>
+              {modelToDisplay.name}
             </Text>
-          </Chip>
-        ))}
-      </XStack>
-
-      {/* Versions List - Horizontal Scroll */}
-      {modelToDisplay.modelVersions && modelToDisplay.modelVersions.length > 0 && (
-        <ScrollView
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 8, marginBottom: 16 }} // Add horizontal padding inside
-        >
-          {modelToDisplay.modelVersions.map((version) => (
-            <Button
-              key={version.id}
-              size={'$2'}
-              bg={selectedVersion?.name === version.name ? '$backgroundFocus' : '$backgroundPress'}
-              boc={selectedVersion?.name === version.name ? '$borderColorFocus' : 'transparent'}
-              onPress={() => setSelectedVersion(version)}
-              marginRight={'$2'}>
-              <Text>{version.name}</Text>
-            </Button>
-          ))}
-        </ScrollView>
-      )}
-      {/* END Versions List */}
-
-      {/* Carousel Section */}
-      {hasImages ? (
-        <View
-          // Use calculated container width and height
-          width={carouselPropSliderWidth} // The container view is the slider width
-          height={Math.max(finalCarouselHeight)} // The container view is the final calculated height
-          marginBottom={16}
-          alignSelf="center" // Center the carousel container within the screen width
-          position="relative">
-          {/* Reanimated Carousel */}
-          <Carousel
-            ref={carouselRef}
-            width={itemSlotWidth} // Carousel component width
-            height={finalCarouselHeight}
-            onConfigurePanGesture={(panGesture) =>
-              panGesture.activeOffsetY([-999999, 999999]).activeOffsetX([-20, 20])
-            }
-            data={originalImages} // Use the original image data
-            loop={true} // Keep looping enabled
-            snapEnabled={true} // Enable snapping
-            onScrollStart={() => setIsCarouselDragging(true)} // Use BeginDrag for setting true
-            onScrollEnd={() => setIsCarouselDragging(false)} // Reset drag state reliably
-            vertical={false}
-            style={{
-              width: carouselContainerWidth,
-            }}
-            onSnapToItem={onSnapToItem} // This updates currentIndex and currentOriginalIndex
-            renderItem={({ item, index, animationValue }) => (
-              // Wrap the item content in Animated.View to apply animations
-              <Animated.View
-                style={[
-                  {
-                    width: itemSlotWidth, // Item wrapper takes the full slot width
-                    height: finalCarouselHeight, // Apply height to Animated.View wrapper
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    // Add internal padding here to create space *around* the image within the slot
-                    padding: itemInternalPadding, // Apply padding based on calculation
-                  },
-                  animationStyle(animationValue),
-                ]} // Apply the animation style function
-              >
-                <TouchableOpacity
-                  // Pass the item (URL) to handleImagePress
-                  onPress={() => handleImagePress(item)}
-                  // Style for the TouchableOpacity to fill the padded Animated.View
-                  style={{ flex: 1, width: '100%', height: '100%' }}>
-                  <Image
-                    source={{ uri: item }}
-                    style={{
-                      borderRadius: 8,
-                      // Image fills the space available within the padded item wrapper (TouchableOpacity)
-                      flex: 1, // Allow image to take available space after padding
-                      width: '100%', // Make image fill width within padded area
-                      objectPosition: 'center',
-                    }}
-                    // Add accessibility props - Using state variable as per original code
-                    accessibilityLabel={`Model image ${currentOriginalIndex + 1}`}
-                    accessibilityRole="image"
-                  />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
+          </YStack>
+          <Button
+            size={'$3'}
+            icon={<X />}
+            onPress={() => router.back()}
+            fs={1}
+            ml={'auto'} // Push to the right
+            mr={'$4'}
           />
+        </XStack>
+        <XStack mb={'$2'} px={'$2'} flexWrap="wrap" gap={'$1'}>
+          {modelToDisplay.tags.map((tag) => (
+            <Chip key={tag} size={'$1'} bg={'$accentColor'}>
+              <Text fos={'$1'} textTransform="uppercase">
+                {tag}
+              </Text>
+            </Chip>
+          ))}
+        </XStack>
 
-          {/* Navigation Buttons - Show only if there are images > 1 */}
-          {showNavButtons && (
-            <>
-              <NavButton
-                onPress={goToPrevious}
-                left={8}
-                icon={<ChevronLeft size={'$12'} fontWeight={'bold'} color={theme.color.get()} />}
+        {/* Versions List - Horizontal Scroll */}
+        {modelToDisplay.modelVersions && modelToDisplay.modelVersions.length > 0 && (
+          <ScrollView
+            horizontal={true}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 8, marginBottom: 16 }} // Add horizontal padding inside
+          >
+            {modelToDisplay.modelVersions.map((version) => (
+              <Button
+                key={version.id}
+                size={'$2'}
+                bg={
+                  selectedVersion?.name === version.name ? '$backgroundFocus' : '$backgroundPress'
+                }
+                boc={selectedVersion?.name === version.name ? '$borderColorFocus' : 'transparent'}
+                onPress={() => setSelectedVersion(version)}
+                marginRight={'$2'}>
+                <Text>{version.name}</Text>
+              </Button>
+            ))}
+          </ScrollView>
+        )}
+        {/* END Versions List */}
+
+        {/* Carousel Section */}
+        {hasImages ? (
+          <View
+            // Use calculated container width and height
+            width={carouselPropSliderWidth} // The container view is the slider width
+            height={Math.max(finalCarouselHeight)} // The container view is the final calculated height
+            marginBottom={16}
+            alignSelf="center" // Center the carousel container within the screen width
+            position="relative">
+            {/* Reanimated Carousel */}
+            <Carousel
+              ref={carouselRef}
+              width={itemSlotWidth} // Carousel component width
+              height={finalCarouselHeight}
+              onConfigurePanGesture={(panGesture) =>
+                panGesture.activeOffsetY([-999999, 999999]).activeOffsetX([-20, 20])
+              }
+              data={originalImages} // Use the original image data
+              loop={true} // Keep looping enabled
+              snapEnabled={true} // Enable snapping
+              onScrollStart={() => setIsCarouselDragging(true)} // Use BeginDrag for setting true
+              onScrollEnd={() => setIsCarouselDragging(false)} // Reset drag state reliably
+              vertical={false}
+              style={{
+                width: carouselContainerWidth,
+              }}
+              onSnapToItem={onSnapToItem} // This updates currentIndex and currentOriginalIndex
+              renderItem={({ item, index, animationValue }) => (
+                // Wrap the item content in Animated.View to apply animations
+                <Animated.View
+                  style={[
+                    {
+                      width: itemSlotWidth, // Item wrapper takes the full slot width
+                      height: finalCarouselHeight, // Apply height to Animated.View wrapper
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      // Add internal padding here to create space *around* the image within the slot
+                      padding: itemInternalPadding, // Apply padding based on calculation
+                    },
+                    animationStyle(animationValue),
+                  ]} // Apply the animation style function
+                >
+                  <TouchableOpacity
+                    // Pass the item (URL) to handleImagePress
+                    onPress={() => handleImagePress(item)}
+                    // Style for the TouchableOpacity to fill the padded Animated.View
+                    style={{ flex: 1, width: '100%', height: '100%' }}>
+                    <Image
+                      source={{ uri: item }}
+                      style={{
+                        borderRadius: 8,
+                        // Image fills the space available within the padded item wrapper (TouchableOpacity)
+                        flex: 1, // Allow image to take available space after padding
+                        width: '100%',
+                        objectPosition: 'center',
+                      }}
+                      // Add accessibility props - Using state variable as per original code
+                      accessibilityLabel={`Model image ${currentOriginalIndex + 1}`}
+                      accessibilityRole="image"
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            />
+
+            {/* Navigation Buttons - Show only if there are images > 1 */}
+            {showNavButtons && (
+              <>
+                <NavButton
+                  onPress={goToPrevious}
+                  left={8}
+                  icon={<ChevronLeft size={'$2'} fontWeight={'bold'} color={theme.color.get()} />}
+                />
+                {/* Text indicator for current image */}
+                <View
+                  position="absolute"
+                  bottom="$2" // Adjust position as needed
+                  left="50%"
+                  transform="translateX(-50%)" // Center horizontally
+                  zIndex={10}
+                  backgroundColor="$backgroundHover"
+                  borderRadius="$3"
+                  paddingHorizontal="$2"
+                  paddingVertical="$1">
+                  <Text fontSize="$1" color="$color" fontWeight="bold">
+                    {originalImages.length > 0 ? currentOriginalIndex + 1 : 0} /
+                    {originalImages.length}
+                  </Text>
+                </View>
+                <NavButton
+                  onPress={goToNext}
+                  right={8}
+                  icon={<ChevronRight size={'$2'} color={theme.color.get()} />}
+                />
+              </>
+            )}
+          </View>
+        ) : (
+          <View
+            // Still use calculated height for consistency in the "no images" placeholder
+            height={finalCarouselHeight}
+            justifyContent="center"
+            alignItems="center"
+            marginBottom={16}>
+            <Text>No images available for this version.</Text>
+          </View>
+        )}
+
+        {/* Rest of the details */}
+        <View paddingHorizontal={'$2'} marginTop={16}>
+          {/* ... Creator, Stats, License, Tags views ... */}
+          <Accordion overflow="hidden" width="$20" type="multiple"></Accordion>
+          <YStack borderWidth={1} boc={'$borderColor'} br={'$2'}>
+            <Text p={'$2'}>Details</Text>
+            <XStack borderTopWidth={1} boc={'$borderColor'}>
+              <Text p={'$2'}>Type</Text>
+            </XStack>
+          </YStack>
+          <View
+            marginBottom={16}
+            padding={10}
+            borderColor={theme.borderColor.get()}
+            borderWidth={1}
+            borderRadius={5}>
+            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
+              Creator
+            </Text>
+            <View flexDirection="row" alignItems="center" marginBottom={8}>
+              <Image
+                source={{ uri: modelToDisplay.creator?.image }}
+                width={30}
+                height={30}
+                borderRadius={15}
+                marginRight={8}
+                accessibilityLabel={`${modelToDisplay.creator?.username}'s avatar`}
+                accessibilityRole="image"
               />
-              {/* Text indicator for current image */}
+              <Text fontSize={16}>{modelToDisplay.creator?.username}</Text>
+            </View>
+          </View>
+          <View
+            marginBottom={16}
+            padding={10}
+            borderColor={theme.borderColor.get()}
+            borderWidth={1}
+            borderRadius={5}>
+            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
+              Stats
+            </Text>
+            <Text>Downloads: {shortenNumber(modelToDisplay.stats.downloadCount)}</Text>
+            <Text>Favorites: {shortenNumber(modelToDisplay.stats.favoriteCount)}</Text>
+            <Text>Thumbs Up: {shortenNumber(modelToDisplay.stats.thumbsUpCount)}</Text>
+            <Text>Thumbs Down: {shortenNumber(modelToDisplay.stats.thumbsDownCount)}</Text>
+            <Text>Comments: {shortenNumber(modelToDisplay.stats.commentCount)}</Text>
+            <Text>Ratings: {shortenNumber(modelToDisplay.stats.ratingCount)}</Text>
+            <Text>Rating: {modelToDisplay.stats.rating?.toFixed(2) ?? 'N/A'}</Text>
+            <Text>Tips: {modelToDisplay.stats.tippedAmountCount}</Text>
+          </View>
+          <View
+            marginBottom={16}
+            padding={10}
+            borderColor={theme.borderColor.get()}
+            borderWidth={1}
+            borderRadius={5}>
+            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
+              License & Usage
+            </Text>
+            <Text>No Credit Required: {modelToDisplay.allowNoCredit ? 'Yes' : 'No'}</Text>
+            <Text>
+              Commercial Use:
+              {modelToDisplay.allowCommercialUse?.join(', ') || 'No restrictions listed'}
+            </Text>
+            <Text>Allow Derivatives: {modelToDisplay.allowDerivatives ? 'Yes' : 'No'}</Text>
+            <Text>
+              Different License Allowed: {modelToDisplay.allowDifferentLicense ? 'Yes' : 'No'}
+            </Text>
+          </View>
+          <View
+            marginBottom={16}
+            padding={10}
+            borderColor={theme.borderColor.get()}
+            borderWidth={1}
+            borderRadius={5}>
+            <Text fontSize={18} fontWeight="bold" marginBottom={8}>
+              Tags
+            </Text>
+            <Text>{modelToDisplay.tags?.join(', ') || 'No tags available'}</Text>
+          </View>
+
+          {/* Use selectedVersion directly for description, files, etc. */}
+          {selectedVersion && (
+            <>
+              <Text fontSize={18} fontWeight="bold" my={16}>
+                Version: {selectedVersion.name}
+              </Text>
               <View
-                position="absolute"
-                bottom="$2" // Adjust position as needed
-                left="50%"
-                transform="translateX(-50%)" // Center horizontally
-                zIndex={10}
-                backgroundColor="$backgroundHover"
-                borderRadius="$3"
-                paddingHorizontal="$2"
-                paddingVertical="$1">
-                <Text fontSize="$1" color="$color" fontWeight="bold">
-                  {originalImages.length > 0 ? currentOriginalIndex + 1 : 0} /
-                  {originalImages.length}
+                padding={10}
+                borderColor={theme.borderColor.get()}
+                borderWidth={1}
+                borderRadius={5}
+                marginBottom={16}>
+                <Text fontSize={16} fontWeight="bold" marginBottom={8}>
+                  Version Details
                 </Text>
+                <Text>Base Model: {selectedVersion.baseModel}</Text>
+                <Text>
+                  Published At: {new Date(selectedVersion.publishedAt).toLocaleDateString()}
+                </Text>
+                <Text>Availability: {selectedVersion.availability}</Text>
+                <Text>NSFW Level: {selectedVersion.nsfwLevel}</Text>
+                {selectedVersion.description && (
+                  <>
+                    <Text fontWeight="bold" marginTop={8} marginBottom={4}>
+                      Version Description
+                    </Text>
+                    <RenderHTML
+                      contentWidth={contentWidthForHtml} // Use the dedicated variable
+                      source={{ html: selectedVersion.description }}
+                      tagsStyles={htmlStyles}
+                    />
+                  </>
+                )}
               </View>
-              <NavButton
-                onPress={goToNext}
-                right={8}
-                icon={<ChevronRight size={'$4'} color={theme.color.get()} />}
+
+              {selectedVersion.files && selectedVersion.files.length > 0 ? (
+                <View marginTop={8}>
+                  <Text fontWeight="bold" marginBottom={4}>
+                    Files for this Version
+                  </Text>
+                  {selectedVersion.files.map((file: FileVersion) => {
+                    const downloadedFile = downloadedModel?.modelVersions
+                      ?.find((v) => v.id === selectedVersion.id)
+                      ?.files?.find((f) => f.id === file.id);
+
+                    return (
+                      <View
+                        key={file.id}
+                        marginBottom={8}
+                        padding={8}
+                        borderColor={theme.borderColor.get()}
+                        borderWidth={1}
+                        borderRadius={3}
+                        backgroundColor={theme.background02.get()}>
+                        <Text fontWeight="bold">{file.name}</Text>
+                        <Text>Type: {file.type}</Text>
+                        <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
+
+                        {/* Pass the model and relevant version/file info */}
+                        <XStack gap={'$2'}>
+                          <ModelDownloadButton
+                            civitaiModel={modelToDisplay}
+                            downloadedModel={downloadedModel ?? null}
+                            fileId={file.id}
+                            versionId={selectedVersion.id}
+                            defaultDownload={false}
+                          />
+                          <ModelDownloadButton
+                            civitaiModel={modelToDisplay}
+                            downloadedModel={downloadedModel ?? null}
+                            fileId={file.id}
+                            versionId={selectedVersion.id}
+                            defaultDownload
+                          />
+                        </XStack>
+
+                        {/* Pass the model and relevant version/file info */}
+                        {/* Check if the *specific file* is downloaded before showing delete */}
+                        {downloadedFile ? <ModelDeleteButton model={downloadedModel!} /> : null}
+
+                        {file.primary && (
+                          <Text color="green" fontWeight="bold">
+                            Primary
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <Text>No files available for this version.</Text>
+              )}
+            </>
+          )}
+          {modelToDisplay.description && (
+            <>
+              <Text fontSize={18} fontWeight="bold" my={16}>
+                About This Model
+              </Text>
+              <RenderHTML
+                contentWidth={contentWidthForHtml} // Use the dedicated variable
+                source={{ html: modelToDisplay.description }}
+                tagsStyles={htmlStyles}
               />
             </>
           )}
         </View>
-      ) : (
-        <View
-          // Still use calculated height for consistency in the "no images" placeholder
-          height={finalCarouselHeight}
-          justifyContent="center"
-          alignItems="center"
-          marginBottom={16}>
-          <Text>No images available for this version.</Text>
-        </View>
-      )}
 
-      {/* Rest of the details */}
-      <View paddingHorizontal={'$2'} marginTop={16}>
-        {/* ... Creator, Stats, License, Tags views ... */}
-        <Accordion overflow="hidden" width="$20" type="multiple"></Accordion>
-        <YStack borderWidth={1} boc={'$borderColor'} br={'$2'}>
-          <Text p={'$2'}>Details</Text>
-          <XStack borderTopWidth={1} boc={'$borderColor'}>
-            <Text p={'$2'}>Type</Text>
-          </XStack>
-        </YStack>
-        <View
-          marginBottom={16}
-          padding={10}
-          borderColor={theme.borderColor.get()}
-          borderWidth={1}
-          borderRadius={5}>
-          <Text fontSize={18} fontWeight="bold" marginBottom={8}>
-            Creator
-          </Text>
-          <View flexDirection="row" alignItems="center" marginBottom={8}>
-            <Image
-              source={{ uri: modelToDisplay.creator?.image }}
-              width={30}
-              height={30}
-              borderRadius={15}
-              marginRight={8}
-              accessibilityLabel={`${modelToDisplay.creator?.username}'s avatar`}
-              accessibilityRole="image"
-            />
-            <Text fontSize={16}>{modelToDisplay.creator?.username}</Text>
-          </View>
-        </View>
-        <View
-          marginBottom={16}
-          padding={10}
-          borderColor={theme.borderColor.get()}
-          borderWidth={1}
-          borderRadius={5}>
-          <Text fontSize={18} fontWeight="bold" marginBottom={8}>
-            Stats
-          </Text>
-          <Text>Downloads: {shortenNumber(modelToDisplay.stats.downloadCount)}</Text>
-          <Text>Favorites: {shortenNumber(modelToDisplay.stats.favoriteCount)}</Text>
-          <Text>Thumbs Up: {shortenNumber(modelToDisplay.stats.thumbsUpCount)}</Text>
-          <Text>Thumbs Down: {shortenNumber(modelToDisplay.stats.thumbsDownCount)}</Text>
-          <Text>Comments: {shortenNumber(modelToDisplay.stats.commentCount)}</Text>
-          <Text>Ratings: {shortenNumber(modelToDisplay.stats.ratingCount)}</Text>
-          <Text>Rating: {modelToDisplay.stats.rating?.toFixed(2) ?? 'N/A'}</Text>
-          <Text>Tips: {modelToDisplay.stats.tippedAmountCount}</Text>
-        </View>
-        <View
-          marginBottom={16}
-          padding={10}
-          borderColor={theme.borderColor.get()}
-          borderWidth={1}
-          borderRadius={5}>
-          <Text fontSize={18} fontWeight="bold" marginBottom={8}>
-            License & Usage
-          </Text>
-          <Text>No Credit Required: {modelToDisplay.allowNoCredit ? 'Yes' : 'No'}</Text>
-          <Text>
-            Commercial Use:
-            {modelToDisplay.allowCommercialUse?.join(', ') || 'No restrictions listed'}
-          </Text>
-          <Text>Allow Derivatives: {modelToDisplay.allowDerivatives ? 'Yes' : 'No'}</Text>
-          <Text>
-            Different License Allowed: {modelToDisplay.allowDifferentLicense ? 'Yes' : 'No'}
-          </Text>
-        </View>
-        <View
-          marginBottom={16}
-          padding={10}
-          borderColor={theme.borderColor.get()}
-          borderWidth={1}
-          borderRadius={5}>
-          <Text fontSize={18} fontWeight="bold" marginBottom={8}>
-            Tags
-          </Text>
-          <Text>{modelToDisplay.tags?.join(', ') || 'No tags available'}</Text>
-        </View>
-
-        {/* Use selectedVersion directly for description, files, etc. */}
-        {selectedVersion && (
-          <>
-            <Text fontSize={18} fontWeight="bold" my={16}>
-              Version: {selectedVersion.name}
-            </Text>
-            <View
-              padding={10}
-              borderColor={theme.borderColor.get()}
-              borderWidth={1}
-              borderRadius={5}
-              marginBottom={16}>
-              <Text fontSize={16} fontWeight="bold" marginBottom={8}>
-                Version Details
-              </Text>
-              <Text>Base Model: {selectedVersion.baseModel}</Text>
-              <Text>
-                Published At: {new Date(selectedVersion.publishedAt).toLocaleDateString()}
-              </Text>
-              <Text>Availability: {selectedVersion.availability}</Text>
-              <Text>NSFW Level: {selectedVersion.nsfwLevel}</Text>
-              {selectedVersion.description && (
-                <>
-                  <Text fontWeight="bold" marginTop={8} marginBottom={4}>
-                    Version Description
-                  </Text>
-                  <RenderHTML
-                    contentWidth={contentWidthForHtml} // Use the dedicated variable
-                    source={{ html: selectedVersion.description }}
-                    tagsStyles={htmlStyles}
-                  />
-                </>
-              )}
-            </View>
-
-            {selectedVersion.files && selectedVersion.files.length > 0 ? (
-              <View marginTop={8}>
-                <Text fontWeight="bold" marginBottom={4}>
-                  Files for this Version
-                </Text>
-                {selectedVersion.files.map((file: FileVersion) => {
-                  const downloadedFile = downloadedModel?.modelVersions
-                    ?.find((v) => v.id === selectedVersion.id)
-                    ?.files?.find((f) => f.id === file.id);
-
-                  return (
-                    <View
-                      key={file.id}
-                      marginBottom={8}
-                      padding={8}
-                      borderColor={theme.borderColor.get()}
-                      borderWidth={1}
-                      borderRadius={3}
-                      backgroundColor={theme.background02.get()}>
-                      <Text fontWeight="bold">{file.name}</Text>
-                      <Text>Type: {file.type}</Text>
-                      <Text>Size: {formatBytes(file.sizeKB * 1024)}</Text>
-
-                      {/* Pass the model and relevant version/file info */}
-                      <XStack gap={'$2'}>
-                        <ModelDownloadButton
-                          civitaiModel={modelToDisplay}
-                          downloadedModel={downloadedModel ?? null}
-                          fileId={file.id}
-                          versionId={selectedVersion.id}
-                        />
-                        <ModelDownloadButton
-                          civitaiModel={modelToDisplay}
-                          downloadedModel={downloadedModel ?? null}
-                          fileId={file.id}
-                          versionId={selectedVersion.id}
-                          defaultDownload
-                        />
-                      </XStack>
-
-                      {/* Pass the model and relevant version/file info */}
-                      {/* Check if the *specific file* is downloaded before showing delete */}
-                      {downloadedFile ? <ModelDeleteButton model={downloadedModel!} /> : null}
-
-                      {file.primary && (
-                        <Text color="green" fontWeight="bold">
-                          Primary
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <Text>No files available for this version.</Text>
-            )}
-          </>
-        )}
-        {modelToDisplay.description && (
-          <>
-            <Text fontSize={18} fontWeight="bold" my={16}>
-              About This Model
-            </Text>
-            <RenderHTML
-              contentWidth={contentWidthForHtml} // Use the dedicated variable
-              source={{ html: modelToDisplay.description }}
-              tagsStyles={htmlStyles}
-            />
-          </>
-        )}
-      </View>
-
-      {/* Image Viewer Modal */}
-      <Modal
-        visible={isModalVisible}
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}>
-        {
-          // Use originalImages state for the modal viewer
-          // selectedImage now holds the correct original index
-          selectedImage !== null && originalImages.length > 0 ? (
-            <ImageViewer
-              // Pass only the original images to the viewer
-              imageUrls={originalImages.map((url) => ({ url }))} // Use state
-              enableSwipeDown={true}
-              onSwipeDown={() => setModalVisible(false)}
-              renderHeader={() => (
-                <Button
-                  aspectRatio={1}
-                  size={'$3'}
-                  style={{
-                    position: 'absolute',
-                    top: Platform.OS === 'android' ? 30 : 8,
-                    right: 8,
-                    padding: 8,
-                    borderRadius: 15,
-                    zIndex: 2,
-                  }}
-                  icon={<X size={'$3'} />}
-                  onPress={() => setModalVisible(false)}></Button>
-              )}
-              // Pass the original index directly
-              index={selectedImage} // Use selectedImage directly
-              enableImageZoom={true}
-            />
-          ) : null // Render nothing if modal is not visible, selectedImage is null, or no images
-        }
-      </Modal>
-    </ScrollView>
+        {/* Image Viewer Modal */}
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}>
+          {
+            // Use originalImages state for the modal viewer
+            // selectedImage now holds the correct original index
+            selectedImage !== null && originalImages.length > 0 ? (
+              <ImageViewer
+                // Pass only the original images to the viewer
+                imageUrls={originalImages.map((url) => ({ url }))} // Use state
+                enableSwipeDown={true}
+                onSwipeDown={() => setModalVisible(false)}
+                renderHeader={() => (
+                  <Button
+                    aspectRatio={1}
+                    size={'$3'}
+                    style={{
+                      position: 'absolute',
+                      top: Platform.OS === 'android' ? 30 : 8,
+                      right: 8,
+                      padding: 8,
+                      borderRadius: 15,
+                      zIndex: 2,
+                    }}
+                    icon={<X size={'$3'} />}
+                    onPress={() => setModalVisible(false)}></Button>
+                )}
+                // Pass the original index directly
+                index={selectedImage} // Use selectedImage directly
+                enableImageZoom={true}
+              />
+            ) : null // Render nothing if modal is not visible, selectedImage is null, or no images
+          }
+        </Modal>
+      </ScrollView>
+    </GestureHandlerRootView>
   );
 };
 

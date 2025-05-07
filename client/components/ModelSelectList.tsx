@@ -16,8 +16,6 @@ interface ModelSelectListProps {
   models: ModelSelectItem[];
   // onModelPress is used for single selection (like Checkpoint, Pose)
   // The parent handlers expect the full model object, so pass the object.
-  onModelPress?: (model: ModelSelectItem) => void;
-  isSelected: (modelId: string | number) => boolean;
   numColumns?: number;
   // Add extraData prop for FlashList optimization
   extraData?: any;
@@ -25,39 +23,13 @@ interface ModelSelectListProps {
 
 const ModelSelectList: React.FC<ModelSelectListProps> = ({
   models,
-  onModelPress,
-  isSelected,
   numColumns = 2,
   extraData, // Receive extraData
 }) => {
-  // console.log('ModelSelectList received props:', { modelsCount: models?.length, hasOnPress: !!onModelPress, hasOnSelect: !!onModelSelect, hasIsSelected: !!isSelected }); // Added log
-
-  const handleCardPress = React.useCallback(
-    (model: ModelSelectItem) => {
-      console.log('ModelSelectList handleCardPress called for:', model.id); // Added log
-      // Always pass the full model object to the handler that exists
-      if (onModelPress) {
-        onModelPress(model);
-      } else {
-        console.warn('ModelSelectList: No onModelPress or onModelSelect handler provided.'); // Added warning
-      }
-    },
-    [onModelPress] // Depend on the handler props
-  );
-
-  const renderModelSelectCard = React.useCallback(
-    ({ item }: { item: ModelSelectItem }) => {
-      // console.log('ModelSelectList rendering item:', item.id, 'Checking isSelected:', isSelected(item.id)); // Added log
-      return (
-        <ModelSelectItemCard
-          model={item}
-          isSelected={isSelected(item.id)}
-          onPress={() => handleCardPress(item)}
-        />
-      );
-    },
-    [isSelected, handleCardPress] // Depend on the provided isSelected function and internal handler
-  );
+  const renderModelSelectCard = React.useCallback(({ item }: { item: ModelSelectItem }) => {
+    // console.log('ModelSelectList rendering item:', item.id, 'Checking isSelected:', isSelected(item.id)); // Added log
+    return <ModelSelectItemCard model={item} />;
+  }, []);
 
   // *** NO STYLE CHANGES ARE MADE BELOW THIS LINE AS REQUESTED ***
 

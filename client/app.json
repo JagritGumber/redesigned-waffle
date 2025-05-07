@@ -4,7 +4,7 @@
     "slug": "auto-disposal",
     "version": "1.0.0",
     "scheme": "auto-disposal",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -32,7 +32,9 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.jagritgumber.autodisposal",
+      "buildType": "apk"
     },
     "extra": {
       "router": {
