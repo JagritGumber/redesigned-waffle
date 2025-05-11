@@ -1,0 +1,38 @@
+{
+  "name": "my-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "start": "vite --port 3000",
+    "build": "vite build && tsc",
+    "serve": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@corvu/drawer": "^0.2.4",
+    "@kobalte/core": "^0.13.9",
+    "@tailwindcss/vite": "^4.0.6",
+    "@tanstack/router-plugin": "^1.109.2",
+    "@tanstack/solid-query": "^5.75.7",
+    "@tanstack/solid-router": "^1.110.0",
+    "@tanstack/solid-router-devtools": "^1.109.2",
+    "@unpic/placeholder": "^0.1.2",
+    "@unpic/solid": "^1.0.0",
+    "axios": "^1.9.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "phosphor-solid": "^1.1.5",
+    "solid-js": "^1.9.4",
+    "tailwind-merge": "^3.2.0",
+    "tailwindcss": "3",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.11",
+    "vite-plugin-solid": "^2.11.2"
+  }
+}
