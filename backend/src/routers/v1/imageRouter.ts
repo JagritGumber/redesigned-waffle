@@ -43,15 +43,8 @@ const imageRouter = new Hono<ContextForHono>()
     const jobId = c.req.param("id"); // Get the ID from the URL path
 
     const queryParams = c.req.query();
-    // Default to 10 before and 10 after if not specified
-    const limitBefore = parseInt(queryParams.limitBefore || "10", 10);
-    const limitAfter = parseInt(queryParams.limitAfter || "10", 10);
-    // Assume the same status filter as the main gallery view
     const statusFilter = queryParams.status || "COMPLETED";
 
-    console.log(
-      `Received request for job ID: ${jobId} with neighbors (before: ${limitBefore}, after: ${limitAfter}, status: ${statusFilter})`
-    );
 
     if (!db) {
       console.error(
@@ -70,20 +63,7 @@ const imageRouter = new Hono<ContextForHono>()
       console.error("Missing job ID in request path.");
       return c.json({ status: "error", message: "Job ID is required." }, 400);
     }
-
-    // Basic validation for neighbor limits
-    if (
-      isNaN(limitBefore) ||
-      limitBefore < 0 ||
-      isNaN(limitAfter) ||
-      limitAfter < 0
-    ) {
-      return c.json(
-        { status: "error", message: "Invalid neighbor limits." },
-        400
-      );
-    }
-
+    
     try {
       // 1. Fetch the target job
       const targetJob = await db.query.generatorJobs.findFirst({
@@ -109,7 +89,6 @@ const imageRouter = new Hono<ContextForHono>()
 
       // 2. Fetch jobs *after* the target (which have an *earlier* createdAt in DESC order)
       const jobsAfter = await db.query.generatorJobs.findMany({
-        limit: limitAfter,
         where: (jobs, { and, lt, eq, isNotNull }) =>
           and(
             lt(jobs.createdAt, targetCreatedAt), // Earlier timestamp
@@ -122,7 +101,6 @@ const imageRouter = new Hono<ContextForHono>()
       // 3. Fetch jobs *before* the target (which have a *later* createdAt in DESC order)
       // We need to fetch them in ASC order by createdAt to get the "latest" ones before the target easily
       const jobsBefore = await db.query.generatorJobs.findMany({
-        limit: limitBefore,
         where: (jobs, { and, gt, eq, isNotNull }) =>
           and(
             gt(jobs.createdAt, targetCreatedAt), // Later timestamp

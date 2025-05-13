@@ -5,18 +5,147 @@ import { modelTypeToSlang } from "~/utils/modelTypeToSlang";
 import { modelBaseToSlang } from "~/utils/modelBaseToSlang";
 import { Image } from "@unpic/solid";
 import { blurhashToCssGradientString } from "@unpic/placeholder";
+import { createSignal, Match, Switch, type JSX } from "solid-js";
+import { ModelTypes } from "~/backend/types/models";
+import { generationStore } from "~/store/generation";
+import { useStore } from "@tanstack/solid-store";
+import { Button } from "./ui/button";
+import { CaretDown, CaretUp } from "phosphor-solid";
+import type { DOMElement } from "solid-js/jsx-runtime";
+import { onLongPress } from "solidjs-use";
+import { useNavigate } from "@tanstack/solid-router";
 
 export interface ModelCardProps {
   model: CivitaiModelWithRelations | Model;
+  selectable?: boolean;
 }
 
-export const ModelCard = ({ model }: ModelCardProps) => {
+export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
+  const [target, setTarget] = createSignal<HTMLElement>();
+
   const placeholder = blurhashToCssGradientString(
     model.modelVersions?.[0]?.images?.[0]?.hash
   );
+  const selectedCheckpoint = useStore(
+    generationStore,
+    (state) => state.checkpoint?.id === model.id
+  );
+  const selectedLora = useStore(
+    generationStore,
+    (state) =>
+      state.lora?.find((lora) => lora.model.id === model.id) !== undefined
+  );
+  const selectedTTI = useStore(generationStore, (state) =>
+    state.textualInversions?.find(({ tti }) => tti.id === model.id)
+  );
+  const navigate = useNavigate();
+
+  const isSelected = () => {
+    if (ModelTypes.Checkpoint === model.type) {
+      return selectedCheckpoint();
+    } else if (ModelTypes.LORA === model.type) {
+      return selectedLora();
+    } else if (ModelTypes.TextualInversion === model.type) {
+      return selectedTTI() !== undefined;
+    }
+  };
+
+  const selectableProps = {
+    onClick() {
+      if (ModelTypes.Checkpoint === model.type) {
+        generationStore.setState((store) => ({
+          ...store,
+          checkpoint: model as CivitaiModelWithRelations,
+        }));
+      } else if (ModelTypes.LORA === model.type) {
+        generationStore.setState((state) => {
+          if (state.lora?.find((lora) => lora.model.id === model.id)) {
+            return {
+              ...state,
+              lora: [
+                ...state.lora.filter((lora) => lora.model.id !== model.id),
+              ],
+            };
+          }
+          return {
+            ...state,
+            lora: [
+              ...(state.lora ?? []),
+              { model: model as CivitaiModelWithRelations, weight: 0.6 },
+            ],
+          };
+        });
+      } else if (ModelTypes.TextualInversion === model.type) {
+        generationStore.setState((state) => {
+          return {
+            ...state,
+            textualInversions: [
+              ...(state.textualInversions?.filter(
+                ({ tti }) => tti.id !== model.id
+              ) ?? []),
+            ],
+          };
+        });
+      }
+    },
+  } as JSX.HTMLAttributes<HTMLDivElement>;
+
+  const handleTTIPress = (
+    e: MouseEvent & {
+      currentTarget: HTMLButtonElement;
+      target: DOMElement;
+    },
+    type: "negative" | "positive"
+  ) => {
+    e.stopPropagation();
+    generationStore.setState((state) => {
+      if (state.textualInversions?.find(({ tti }) => tti.id === model.id)) {
+        return {
+          ...state,
+          textualInversions: [
+            ...state.textualInversions.filter(({ tti }) => tti.id !== model.id),
+            { tti: model as CivitaiModelWithRelations, type },
+          ],
+        };
+      }
+      return {
+        ...state,
+        textualInversions: [
+          ...(state.textualInversions ?? []),
+          { tti: model as CivitaiModelWithRelations, type },
+        ],
+      };
+    });
+  };
+
+  onLongPress(target, (e) => {
+    e.preventDefault();
+    navigate({
+      to: "/models/$id",
+      params: {
+        id: model.id.toString(),
+      },
+    });
+  });
 
   return (
-    <div class="w-full aspect-[2/3] border border-border rounded-md bg-card contain-paint">
+    <div
+      ref={setTarget}
+      class="w-full aspect-[2/3] border border-border rounded-md bg-card contain-paint box-border"
+      classList={{
+        "opacity-80": selectable && !isSelected(),
+        "border-accent-foreground border-[3px] opacity-100": isSelected(),
+      }}
+      onClick={() => {
+        navigate({
+          to: "/models/$id",
+          params: {
+            id: model.id.toString(),
+          },
+        });
+      }}
+      {...(selectable ? selectableProps : {})}
+    >
       <Image
         class="w-full h-full object-cover"
         src={model.modelVersions?.[0]?.images?.[0]?.url}
@@ -32,8 +161,29 @@ export const ModelCard = ({ model }: ModelCardProps) => {
           {modelBaseToSlang(model.modelVersions?.[0]?.baseModel ?? "other")}
         </Badge>
       </div>
-      <div class="absolute bottom-1 left-1 flex gap-0.5 flex-col">
-        {/* <img src={model.modelVersions?.at(0)?.}/> */}
+      <div class="absolute bottom-1 left-1 flex gap-0.5 justify-between">
+        <Switch>
+          <Match
+            when={selectable && ModelTypes.TextualInversion === model.type}
+          >
+            <Button
+              class="flex-grow size-6"
+              size={"icon"}
+              onClick={(e) => handleTTIPress(e, "negative")}
+              disabled={selectedTTI()?.type === "negative"}
+            >
+              <CaretDown weight="bold" />
+            </Button>
+            <Button
+              class="flex-grow size-6"
+              size={"icon"}
+              onClick={(e) => handleTTIPress(e, "positive")}
+              disabled={selectedTTI()?.type === "positive"}
+            >
+              <CaretUp weight="bold" />
+            </Button>
+          </Match>
+        </Switch>
       </div>
     </div>
   );

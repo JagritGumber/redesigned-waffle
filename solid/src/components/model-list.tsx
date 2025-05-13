@@ -15,9 +15,15 @@ export interface ModelListProps {
   >;
   size?: "sm" | "md" | "lg";
   class?: string;
+  selectable?: boolean;
 }
 
-export const ModelList = ({ query, size = "md", ...props }: ModelListProps) => {
+export const ModelList = ({
+  query,
+  size = "md",
+  selectable = false,
+  ...props
+}: ModelListProps) => {
   return (
     <Suspense fallback={<Loader />}>
       <Grid
@@ -46,7 +52,7 @@ export const ModelList = ({ query, size = "md", ...props }: ModelListProps) => {
                 ).data?.models
               }
             >
-              {(model) => <ModelCard model={model()} />}
+              {(model) => <ModelCard model={model()} selectable={selectable} />}
             </Index>
           </Match>
           <Match
@@ -60,7 +66,7 @@ export const ModelList = ({ query, size = "md", ...props }: ModelListProps) => {
                 query as ReturnType<typeof useMarketplaceModels>
               )?.data?.pages.flatMap((page) => page.models)}
             >
-              {(model) => <ModelCard model={model()} />}
+              {(model) => <ModelCard model={model()} selectable={selectable} />}
             </Index>
           </Match>
         </Switch>

@@ -16,6 +16,7 @@ import { Route as TabsRouteImport } from './routes/tabs/route'
 import { Route as TabsTwoImport } from './routes/tabs/two'
 import { Route as TabsThreeImport } from './routes/tabs/three'
 import { Route as TabsOneImport } from './routes/tabs/one'
+import { Route as ModelsIdImport } from './routes/models.$id'
 import { Route as GalleryIdImport } from './routes/gallery.$id'
 
 // Create/Update Routes
@@ -50,6 +51,12 @@ const TabsOneRoute = TabsOneImport.update({
   getParentRoute: () => TabsRouteRoute,
 } as any)
 
+const ModelsIdRoute = ModelsIdImport.update({
+  id: '/models/$id',
+  path: '/models/$id',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const GalleryIdRoute = GalleryIdImport.update({
   id: '/gallery/$id',
   path: '/gallery/$id',
@@ -79,6 +86,13 @@ declare module '@tanstack/solid-router' {
       path: '/gallery/$id'
       fullPath: '/gallery/$id'
       preLoaderRoute: typeof GalleryIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/models/$id': {
+      id: '/models/$id'
+      path: '/models/$id'
+      fullPath: '/models/$id'
+      preLoaderRoute: typeof ModelsIdImport
       parentRoute: typeof rootRoute
     }
     '/tabs/one': {
@@ -127,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/models/$id': typeof ModelsIdRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -136,6 +151,7 @@ export interface FileRoutesByTo {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/models/$id': typeof ModelsIdRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -146,6 +162,7 @@ export interface FileRoutesById {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/models/$id': typeof ModelsIdRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -157,6 +174,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/models/$id'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -165,6 +183,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/models/$id'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -173,6 +192,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/models/$id'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -183,12 +203,14 @@ export interface RootRouteChildren {
   TabsRouteRoute: typeof TabsRouteRouteWithChildren
   MarketplaceRoute: typeof MarketplaceRoute
   GalleryIdRoute: typeof GalleryIdRoute
+  ModelsIdRoute: typeof ModelsIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   TabsRouteRoute: TabsRouteRouteWithChildren,
   MarketplaceRoute: MarketplaceRoute,
   GalleryIdRoute: GalleryIdRoute,
+  ModelsIdRoute: ModelsIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -203,7 +225,8 @@ export const routeTree = rootRoute
       "children": [
         "/tabs",
         "/marketplace",
-        "/gallery/$id"
+        "/gallery/$id",
+        "/models/$id"
       ]
     },
     "/tabs": {
@@ -219,6 +242,9 @@ export const routeTree = rootRoute
     },
     "/gallery/$id": {
       "filePath": "gallery.$id.tsx"
+    },
+    "/models/$id": {
+      "filePath": "models.$id.tsx"
     },
     "/tabs/one": {
       "filePath": "tabs/one.tsx",

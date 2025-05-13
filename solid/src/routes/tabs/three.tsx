@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { createEffect, createSignal } from "solid-js";
+import { createEffect } from "solid-js";
 import { ImageList } from "~/components/image-list";
 import useGeneratedJobs from "~/hooks/useGeneratedJobs";
 
@@ -8,12 +8,7 @@ export const Route = createFileRoute("/tabs/three")({
 });
 
 function RouteComponent() {
-  const [appliedFilters, setAppliedFilters] = createSignal({
-    query: "",
-    limit: 50,
-  });
-
-  const imagesQuery = useGeneratedJobs(appliedFilters);
+  const imagesQuery = useGeneratedJobs();
 
   createEffect(() => {
     console.log(imagesQuery.data);
@@ -22,7 +17,7 @@ function RouteComponent() {
   return (
     <>
       <main>
-        <ImageList query={imagesQuery} />
+        <ImageList query={imagesQuery} size="lg" />
       </main>
     </>
   );

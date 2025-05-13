@@ -25,7 +25,7 @@ const fetchR2ImagesPage = async ({
   params,
 }: {
   pageParam?: string | undefined;
-  params: R2ListParams;
+  params?: R2ListParams;
 }): Promise<R2ListPage> => {
   if (!import.meta.env.VITE_BACKEND_URL) {
     console.error("EXPO_PUBLIC_BACKEND_URL is not set.");
@@ -33,7 +33,7 @@ const fetchR2ImagesPage = async ({
   }
 
   let fetchUrl: string;
-  const defaultLimit = params.limit || 50;
+  const defaultLimit = params?.limit || 50;
 
   if (pageParam) {
     fetchUrl = pageParam;
@@ -43,11 +43,11 @@ const fetchR2ImagesPage = async ({
     );
 
     url.searchParams.set("limit", defaultLimit.toString());
-    if (params.query) {
+    if (params?.query) {
       // Add search query parameter if present
       url.searchParams.set("query", params.query);
     }
-    if (params.prefix) {
+    if (params?.prefix) {
       // Add prefix parameter if present
       url.searchParams.set("prefix", params.prefix);
     }
@@ -80,15 +80,15 @@ const fetchR2ImagesPage = async ({
   }
 };
 
-const useGeneratedJobs = (appliedFilters: Accessor<R2ListParams>) => {
-  const queryKey = createMemo(() => ["r2Images", appliedFilters()]);
+const useGeneratedJobs = (appliedFilters?: Accessor<R2ListParams>) => {
+  const queryKey = createMemo(() => ["r2Images", appliedFilters?.()]);
 
   return useInfiniteQuery(() => ({
     queryKey: queryKey(),
     queryFn: ({ pageParam }) =>
       fetchR2ImagesPage({
         pageParam: pageParam,
-        params: appliedFilters(),
+        params: appliedFilters?.(),
       }),
     initialPageParam: `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/images`,
     getNextPageParam: (lastPage) => {

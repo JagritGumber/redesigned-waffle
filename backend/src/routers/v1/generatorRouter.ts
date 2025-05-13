@@ -1,12 +1,46 @@
 import { Hono } from "hono";
 import { Type, Static } from "@sinclair/typebox";
-import { Value } from "@sinclair/typebox/value";
 
 import { eq } from "drizzle-orm";
 import { generatorJobs, InsertGeneratorJob } from "@/schema";
 
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
+import { Value } from "@sinclair/typebox/value";
+
+const GeneratorParamsArray = Type.Array(
+  Type.Object({
+    id: Type.String(),
+    weight: Type.Number({
+      exclusiveMinimum: 0,
+      maximum: 1,
+    }),
+  })
+);
+
+const GenerateRequestPayload = Type.Object({
+  modelId: Type.String(),
+  loras: GeneratorParamsArray,
+  textualInversions: GeneratorParamsArray,
+  prompt: Type.String(),
+  negativePrompt: Type.String(),
+  width: Type.Number({
+    minimum: 2,
+  }),
+  height: Type.Number({
+    minimum: 2,
+  }),
+  steps: Type.Number({
+    minimum: 1,
+  }),
+  batchSize: Type.Number({
+    minimum: 1,
+    maximum: 8,
+  }),
+  seed: Type.Number(),
+});
+
+type GenerateRequestPayloadType = Static<typeof GenerateRequestPayload>;
 
 const generatorRouter = new Hono<ContextForHono>()
   .post("/generate", async (c) => {
@@ -27,13 +61,16 @@ const generatorRouter = new Hono<ContextForHono>()
       );
     }
 
-    let clientInput: any;
+    let clientInput: GenerateRequestPayloadType;
     try {
       clientInput = await c.req.json();
+      Value.Assert(GenerateRequestPayload, clientInput);
     } catch (e: any) {
       console.error(`Failed to parse request body as JSON: ${e.message}`);
       return c.json({ status: "error", message: "Invalid JSON body." }, 400);
     }
+
+    const modifedPayload = {};
 
     const newDbJobId = crypto.randomUUID();
     const initialJobRecord: InsertGeneratorJob = {
@@ -254,6 +291,32 @@ const generatorRouter = new Hono<ContextForHono>()
           status: "error",
           message: "Internal server error while fetching images.",
           error: error.message,
+        },
+        500
+      );
+    }
+  })
+  .delete("/:id", async (c) => {
+    try {
+      const id = c.req.param("id");
+      const db = c.get("db");
+      const deletedCount = await db
+        .delete(generatorJobs)
+        .where(eq(generatorJobs.id, id))
+        .limit(1);
+      return c.json(
+        {
+          status: "success",
+          message: "Deleted successfully",
+        },
+        200
+      );
+    } catch (e) {
+      return c.json(
+        {
+          status: "error",
+          message: "Internal Server Error while deleting this id",
+          error: e instanceof Error ? e?.message : JSON.stringify(e),
         },
         500
       );

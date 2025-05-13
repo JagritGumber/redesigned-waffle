@@ -1,9 +1,8 @@
 import { defineConfig } from "vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import solidPlugin from "vite-plugin-solid";
-import path from "bun:path";
+import path from "path";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     TanStackRouterVite({ target: "solid", autoCodeSplitting: true }),
@@ -11,6 +10,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      "~/backend": path.resolve(__dirname, "../backend/src"),
       "~": path.resolve(__dirname, "./src"),
     },
   },
