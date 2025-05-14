@@ -3,11 +3,11 @@ import axios from "axios";
 import type { CivitaiModelWithRelations } from "~/backend/schema/models";
 
 const getModels = async (
-  type: string
+  type: string,
 ): Promise<{ models: CivitaiModelWithRelations[] }> => {
   try {
     const response = await axios.get<{ models: CivitaiModelWithRelations[] }>(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/model/${type.toLowerCase().replace(/ /g, "-")}`
+      `${import.meta.env.VITE_BACKEND_URL}/api/v1/model/${type.toLowerCase().replace(/ /g, "-")}`,
     );
     if (response.status !== 200) {
       console.error(`Failed to fetch ${type}:`, response.status);

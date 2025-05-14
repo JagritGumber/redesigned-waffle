@@ -2,7 +2,7 @@ import type { SelectGeneratorJob } from "~/backend/schema";
 
 export async function getJobDetailsWithNeighbors(
   id: string,
-  statusFilter = "COMPLETED"
+  statusFilter = "COMPLETED",
 ): Promise<{ items: SelectGeneratorJob[] } | null> {
   if (!import.meta.env.VITE_BACKEND_URL) {
     console.error("VITE_BACKEND_URL is not set");
@@ -10,9 +10,8 @@ export async function getJobDetailsWithNeighbors(
     return { items: [] };
   }
   try {
-
     const url = `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/gallery/${encodeURIComponent(
-      id
+      id,
     )}?status=${statusFilter}`;
     console.log("Fetching:", url); // Log URL for debugging
     const response = await fetch(url);

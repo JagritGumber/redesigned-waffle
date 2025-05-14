@@ -314,12 +314,7 @@ export async function registerOrUpdateCivitaiModel(
               : null,
             virusScanMessage: fileData.virusScanMessage,
             scannedAt: new Date(fileData.scannedAt),
-            metadataFormat: fileData.metadata?.format,
-            metadataSize: fileData.metadata?.size,
-            metadataFp: fileData.metadata?.fp,
-            sha256Hash: fileData.hashes?.SHA256,
             downloadUrl: fileData.downloadUrl,
-            primary: fileData.primary ?? false,
             runpodPath: runpodPath,
           } satisfies InsertCivitaiFile)
           .onConflictDoUpdate({
@@ -334,12 +329,7 @@ export async function registerOrUpdateCivitaiModel(
               virusScanResult: sql`excluded.virusScanResult`,
               virusScanMessage: sql`excluded.virusScanMessage`,
               scannedAt: sql`excluded.scannedAt`,
-              metadataFormat: sql`excluded.metadataFormat`,
-              metadataSize: sql`excluded.metadataSize`,
-              metadataFp: sql`excluded.metadataFp`,
-              sha256Hash: sql`excluded.sha256Hash`,
               downloadUrl: sql`excluded.downloadUrl`,
-              primary: sql`excluded."primary"`,
               runpodPath: sql`excluded.runpodPath`,
 
               downloadStatus: sql<

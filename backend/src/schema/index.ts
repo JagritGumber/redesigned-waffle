@@ -38,7 +38,7 @@ export {
   CivitaiModelVersion,
   InsertCivitaiModelVersion,
   SelectCivitaiModelVersion,
-  CivitaiModelVersionWithFilesAndImages
+  CivitaiModelVersionWithFilesAndImages,
   civitaiModelVersions,
   civitaiModelVersionsRelations,
 } from "./modelVersions";

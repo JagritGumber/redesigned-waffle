@@ -14,7 +14,7 @@ export const Route = createFileRoute("/marketplace")({
 function RouteComponent() {
   const [searchText, setSearchText] = createSignal("");
   const [appliedFilters, setAppliedFilters] = createSignal<FetchModelsParams>(
-    {}
+    {},
   );
 
   const modelsQuery = useMarketplaceModels(appliedFilters);

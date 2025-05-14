@@ -5,7 +5,7 @@ import { isPlatform } from "@capacitor/core"; // Optional: check platform if nee
 
 export async function downloadAndSaveToGallery(
   imageUrl: string,
-  filename: string
+  filename: string,
 ): Promise<void> {
   if (!imageUrl) {
     throw new Error("No image URL provided.");
@@ -18,7 +18,7 @@ export async function downloadAndSaveToGallery(
 
     if (mediaPermissions.photos !== "granted") {
       throw new Error(
-        "Media library permissions are required to save the image."
+        "Media library permissions are required to save the image.",
       );
     }
 
@@ -63,7 +63,7 @@ export async function downloadAndSaveToGallery(
     // and 'file://' or 'ph://' on iOS. Filesystem.getUri provides 'file://'.
 
     console.log(
-      `Attempting to save file from URI ${fileUri} to media library using Media.savePhoto...`
+      `Attempting to save file from URI ${fileUri} to media library using Media.savePhoto...`,
     );
 
     try {
@@ -80,7 +80,7 @@ export async function downloadAndSaveToGallery(
     } catch (saveError) {
       console.warn(
         "Media.savePhoto failed, attempting alternative save method if applicable...",
-        saveError
+        saveError,
       );
       // Handle potential failures with Media.savePhoto, maybe try copying
       // to a known public directory if on Android pre-Android 10,

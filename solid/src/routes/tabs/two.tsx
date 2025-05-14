@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/solid-router";
 import { useStore } from "@tanstack/solid-store";
 import axios from "axios";
-import { createSignal, Show } from "solid-js";
+import { Show } from "solid-js";
 import { ModelList } from "~/components/model-list";
 import { Button } from "~/components/ui/button";
 import {
@@ -16,7 +16,16 @@ import {
 } from "~/components/ui/text-field";
 import { Toggle } from "~/components/ui/toggle";
 import useGenerationModels from "~/hooks/useGenerationModels";
-import { generationStore } from "~/store/generation";
+import {
+  generationStore,
+  setHeight,
+  setNegativePrompt,
+  setNumImages,
+  setPrompt,
+  setRandomSeed,
+  setSeed,
+  setWidth,
+} from "~/store/generation";
 
 export const Route = createFileRoute("/tabs/two")({
   component: RouteComponent,
@@ -60,17 +69,6 @@ function RouteComponent() {
   const cnQuery = useGenerationModels("controlnets");
   const psQuery = useGenerationModels("poses");
 
-  const [prompt, setPrompt] = createSignal("");
-  const [negativePrompt, setNegativePrompt] = createSignal("");
-  const [width, setWidth] = createSignal(1280);
-  const [height, setHeight] = createSignal(768);
-  const [numImages, setNumImages] = createSignal(1);
-  const [seed, setSeed] = createSignal(
-    Number.parseInt((Math.random() * 1_000_000_000).toString())
-  );
-  const [useRandomSeed, setUseRandomSeed] = createSignal(true);
-  const [isGenerating, setIsGenerating] = createSignal(false);
-  const [canGenerate, setCanGenerate] = createSignal(true);
   const selectedCheckpoint = useStore(
     generationStore,
     (state) => state.checkpoint
@@ -80,6 +78,16 @@ function RouteComponent() {
     generationStore,
     (state) => state.textualInversions
   );
+  const prompt = useStore(generationStore, (state) => state.prompt);
+  const negativePrompt = useStore(
+    generationStore,
+    (state) => state.negativePrompt
+  );
+  const width = useStore(generationStore, (state) => state.width);
+  const height = useStore(generationStore, (state) => state.height);
+  const seed = useStore(generationStore, (state) => state.seed);
+  const numImages = useStore(generationStore, (state) => state.numImages);
+  const randomSeed = useStore(generationStore, (state) => state.randomSeed);
 
   const buildPayload = () => {
     const payload = {
@@ -91,7 +99,13 @@ function RouteComponent() {
       textualInversions: selectedTti()?.map(({ tti, type }) => ({
         id: tti.id,
         weight: 0.6,
+        type,
       })),
+      prompt: prompt(),
+      width: width(),
+      height: height(),
+      seed: seed(),
+      numImages: numImages(),
     };
 
     return payload;
@@ -175,25 +189,17 @@ function RouteComponent() {
           <TextFieldLabel>Seed</TextFieldLabel>
           <NumberFieldInput placeholder="-1 for random" value={seed()} />
         </NumberField>
-        <Toggle pressed={useRandomSeed()} onChange={setUseRandomSeed}>
+        <Toggle pressed={randomSeed()} onChange={setRandomSeed}>
           Random Seed
         </Toggle>
       </div>
 
       <div class="flex gap-2 mt-4">
-        <Button
-          onClick={handleTestGenerate}
-          disabled={!canGenerate() || isGenerating()}
-          class="flex-1"
-        >
-          {isGenerating() ? "Generating..." : "Test Generate (1 Image)"}
+        <Button onClick={handleTestGenerate} class="flex-1">
+          {"Test Generate (1 Image)"}
         </Button>
-        <Button
-          onClick={handleBatchGenerate}
-          disabled={!canGenerate() || isGenerating() || numImages() <= 1}
-          class="flex-1"
-        >
-          {isGenerating() ? "Generating Batch..." : "Batch Generate"}
+        <Button onClick={handleBatchGenerate} class="flex-1">
+          {"Batch Generate"}
         </Button>
       </div>
     </main>

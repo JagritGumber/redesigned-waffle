@@ -20,6 +20,9 @@ python /stable-diffusion-webui/webui.py \
   --nowebui \
   --skip-version-check \
   --no-hashing \
+  --ckpt-dir /defaults/workspace/models/ \
+  --lora-dir /defaults/workspace/loras/ \
+  --embeddings-dir /defaults/workspace/embeddings/ \
   --no-download-sd-model &
 
 echo "Starting RunPod Handler"

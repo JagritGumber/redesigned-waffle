@@ -7,7 +7,13 @@ import { Image } from "@unpic/solid";
 import { blurhashToCssGradientString } from "@unpic/placeholder";
 import { createSignal, Match, Switch, type JSX } from "solid-js";
 import { ModelTypes } from "~/backend/types/models";
-import { generationStore } from "~/store/generation";
+import {
+  generationStore,
+  removeTti,
+  setCheckpoint,
+  setLora,
+  setTti,
+} from "~/store/generation";
 import { useStore } from "@tanstack/solid-store";
 import { Button } from "./ui/button";
 import { CaretDown, CaretUp } from "phosphor-solid";
@@ -28,15 +34,15 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   );
   const selectedCheckpoint = useStore(
     generationStore,
-    (state) => state.checkpoint?.id === model.id
+    (state) => state.checkpoint?.modelId === model.id
   );
   const selectedLora = useStore(
     generationStore,
     (state) =>
-      state.lora?.find((lora) => lora.model.id === model.id) !== undefined
+      state.lora?.find((lora) => lora.modelId === model.id) !== undefined
   );
   const selectedTTI = useStore(generationStore, (state) =>
-    state.textualInversions?.find(({ tti }) => tti.id === model.id)
+    state.textualInversions?.find((tti) => tti.modelId === model.id)
   );
   const navigate = useNavigate();
 
@@ -53,39 +59,11 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   const selectableProps = {
     onClick() {
       if (ModelTypes.Checkpoint === model.type) {
-        generationStore.setState((store) => ({
-          ...store,
-          checkpoint: model as CivitaiModelWithRelations,
-        }));
+        setCheckpoint(model.id, model.modelVersions.at(0)!.id);
       } else if (ModelTypes.LORA === model.type) {
-        generationStore.setState((state) => {
-          if (state.lora?.find((lora) => lora.model.id === model.id)) {
-            return {
-              ...state,
-              lora: [
-                ...state.lora.filter((lora) => lora.model.id !== model.id),
-              ],
-            };
-          }
-          return {
-            ...state,
-            lora: [
-              ...(state.lora ?? []),
-              { model: model as CivitaiModelWithRelations, weight: 0.6 },
-            ],
-          };
-        });
+        setLora(model.id, model.modelVersions.at(0)!.id);
       } else if (ModelTypes.TextualInversion === model.type) {
-        generationStore.setState((state) => {
-          return {
-            ...state,
-            textualInversions: [
-              ...(state.textualInversions?.filter(
-                ({ tti }) => tti.id !== model.id
-              ) ?? []),
-            ],
-          };
-        });
+        removeTti(model.id);
       }
     },
   } as JSX.HTMLAttributes<HTMLDivElement>;
@@ -98,24 +76,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
     type: "negative" | "positive"
   ) => {
     e.stopPropagation();
-    generationStore.setState((state) => {
-      if (state.textualInversions?.find(({ tti }) => tti.id === model.id)) {
-        return {
-          ...state,
-          textualInversions: [
-            ...state.textualInversions.filter(({ tti }) => tti.id !== model.id),
-            { tti: model as CivitaiModelWithRelations, type },
-          ],
-        };
-      }
-      return {
-        ...state,
-        textualInversions: [
-          ...(state.textualInversions ?? []),
-          { tti: model as CivitaiModelWithRelations, type },
-        ],
-      };
-    });
+    setTti(model.id, model.modelVersions.at(0)!.id, type);
   };
 
   onLongPress(target, (e) => {

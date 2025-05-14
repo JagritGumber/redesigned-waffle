@@ -39,7 +39,7 @@ const fetchR2ImagesPage = async ({
     fetchUrl = pageParam;
   } else {
     const url = new URL(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/images`
+      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/images`,
     );
 
     url.searchParams.set("limit", defaultLimit.toString());
@@ -61,7 +61,7 @@ const fetchR2ImagesPage = async ({
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(
-        `Failed to fetch images: ${response.status} ${response.statusText} - ${errorBody}`
+        `Failed to fetch images: ${response.status} ${response.statusText} - ${errorBody}`,
       );
     }
 

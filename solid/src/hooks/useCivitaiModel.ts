@@ -9,7 +9,7 @@ const fetchCivitaiDetails = async (id: string) => {
     const response = await axios.get<Model>(apiUrl);
     const [latestVersion] = response.data.modelVersions.sort(
       (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
     );
     return { model: response.data, latestVersion };
   } catch (e: any) {

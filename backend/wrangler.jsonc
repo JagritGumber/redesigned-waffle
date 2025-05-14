@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "server",
+  "name": "redesigned-waffle",
   "main": "src/index.ts",
   "compatibility_date": "2025-04-04",
   "assets": {

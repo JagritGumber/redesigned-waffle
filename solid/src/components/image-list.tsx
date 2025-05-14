@@ -37,7 +37,7 @@ export const ImageList = ({ query, size = "md", ...props }: ImageListProps) => {
         },
         {
           threshold: 0.1,
-        }
+        },
       );
       observer.observe(currentSentinel);
       onCleanup(() => {

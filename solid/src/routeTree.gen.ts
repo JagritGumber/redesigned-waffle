@@ -10,200 +10,200 @@
 
 // Import Routes
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as MarketplaceImport } from './routes/marketplace'
-import { Route as TabsRouteImport } from './routes/tabs/route'
-import { Route as TabsTwoImport } from './routes/tabs/two'
-import { Route as TabsThreeImport } from './routes/tabs/three'
-import { Route as TabsOneImport } from './routes/tabs/one'
-import { Route as ModelsIdImport } from './routes/models.$id'
-import { Route as GalleryIdImport } from './routes/gallery.$id'
+import { Route as rootRoute } from "./routes/__root";
+import { Route as MarketplaceImport } from "./routes/marketplace";
+import { Route as TabsRouteImport } from "./routes/tabs/route";
+import { Route as TabsTwoImport } from "./routes/tabs/two";
+import { Route as TabsThreeImport } from "./routes/tabs/three";
+import { Route as TabsOneImport } from "./routes/tabs/one";
+import { Route as ModelsIdImport } from "./routes/models.$id";
+import { Route as GalleryIdImport } from "./routes/gallery.$id";
 
 // Create/Update Routes
 
 const MarketplaceRoute = MarketplaceImport.update({
-  id: '/marketplace',
-  path: '/marketplace',
+  id: "/marketplace",
+  path: "/marketplace",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const TabsRouteRoute = TabsRouteImport.update({
-  id: '/tabs',
-  path: '/tabs',
+  id: "/tabs",
+  path: "/tabs",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const TabsTwoRoute = TabsTwoImport.update({
-  id: '/two',
-  path: '/two',
+  id: "/two",
+  path: "/two",
   getParentRoute: () => TabsRouteRoute,
-} as any)
+} as any);
 
 const TabsThreeRoute = TabsThreeImport.update({
-  id: '/three',
-  path: '/three',
+  id: "/three",
+  path: "/three",
   getParentRoute: () => TabsRouteRoute,
-} as any)
+} as any);
 
 const TabsOneRoute = TabsOneImport.update({
-  id: '/one',
-  path: '/one',
+  id: "/one",
+  path: "/one",
   getParentRoute: () => TabsRouteRoute,
-} as any)
+} as any);
 
 const ModelsIdRoute = ModelsIdImport.update({
-  id: '/models/$id',
-  path: '/models/$id',
+  id: "/models/$id",
+  path: "/models/$id",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const GalleryIdRoute = GalleryIdImport.update({
-  id: '/gallery/$id',
-  path: '/gallery/$id',
+  id: "/gallery/$id",
+  path: "/gallery/$id",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 // Populate the FileRoutesByPath interface
 
-declare module '@tanstack/solid-router' {
+declare module "@tanstack/solid-router" {
   interface FileRoutesByPath {
-    '/tabs': {
-      id: '/tabs'
-      path: '/tabs'
-      fullPath: '/tabs'
-      preLoaderRoute: typeof TabsRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/marketplace': {
-      id: '/marketplace'
-      path: '/marketplace'
-      fullPath: '/marketplace'
-      preLoaderRoute: typeof MarketplaceImport
-      parentRoute: typeof rootRoute
-    }
-    '/gallery/$id': {
-      id: '/gallery/$id'
-      path: '/gallery/$id'
-      fullPath: '/gallery/$id'
-      preLoaderRoute: typeof GalleryIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/models/$id': {
-      id: '/models/$id'
-      path: '/models/$id'
-      fullPath: '/models/$id'
-      preLoaderRoute: typeof ModelsIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/tabs/one': {
-      id: '/tabs/one'
-      path: '/one'
-      fullPath: '/tabs/one'
-      preLoaderRoute: typeof TabsOneImport
-      parentRoute: typeof TabsRouteImport
-    }
-    '/tabs/three': {
-      id: '/tabs/three'
-      path: '/three'
-      fullPath: '/tabs/three'
-      preLoaderRoute: typeof TabsThreeImport
-      parentRoute: typeof TabsRouteImport
-    }
-    '/tabs/two': {
-      id: '/tabs/two'
-      path: '/two'
-      fullPath: '/tabs/two'
-      preLoaderRoute: typeof TabsTwoImport
-      parentRoute: typeof TabsRouteImport
-    }
+    "/tabs": {
+      id: "/tabs";
+      path: "/tabs";
+      fullPath: "/tabs";
+      preLoaderRoute: typeof TabsRouteImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/marketplace": {
+      id: "/marketplace";
+      path: "/marketplace";
+      fullPath: "/marketplace";
+      preLoaderRoute: typeof MarketplaceImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/gallery/$id": {
+      id: "/gallery/$id";
+      path: "/gallery/$id";
+      fullPath: "/gallery/$id";
+      preLoaderRoute: typeof GalleryIdImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/models/$id": {
+      id: "/models/$id";
+      path: "/models/$id";
+      fullPath: "/models/$id";
+      preLoaderRoute: typeof ModelsIdImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/tabs/one": {
+      id: "/tabs/one";
+      path: "/one";
+      fullPath: "/tabs/one";
+      preLoaderRoute: typeof TabsOneImport;
+      parentRoute: typeof TabsRouteImport;
+    };
+    "/tabs/three": {
+      id: "/tabs/three";
+      path: "/three";
+      fullPath: "/tabs/three";
+      preLoaderRoute: typeof TabsThreeImport;
+      parentRoute: typeof TabsRouteImport;
+    };
+    "/tabs/two": {
+      id: "/tabs/two";
+      path: "/two";
+      fullPath: "/tabs/two";
+      preLoaderRoute: typeof TabsTwoImport;
+      parentRoute: typeof TabsRouteImport;
+    };
   }
 }
 
 // Create and export the route tree
 
 interface TabsRouteRouteChildren {
-  TabsOneRoute: typeof TabsOneRoute
-  TabsThreeRoute: typeof TabsThreeRoute
-  TabsTwoRoute: typeof TabsTwoRoute
+  TabsOneRoute: typeof TabsOneRoute;
+  TabsThreeRoute: typeof TabsThreeRoute;
+  TabsTwoRoute: typeof TabsTwoRoute;
 }
 
 const TabsRouteRouteChildren: TabsRouteRouteChildren = {
   TabsOneRoute: TabsOneRoute,
   TabsThreeRoute: TabsThreeRoute,
   TabsTwoRoute: TabsTwoRoute,
-}
+};
 
 const TabsRouteRouteWithChildren = TabsRouteRoute._addFileChildren(
   TabsRouteRouteChildren,
-)
+);
 
 export interface FileRoutesByFullPath {
-  '/tabs': typeof TabsRouteRouteWithChildren
-  '/marketplace': typeof MarketplaceRoute
-  '/gallery/$id': typeof GalleryIdRoute
-  '/models/$id': typeof ModelsIdRoute
-  '/tabs/one': typeof TabsOneRoute
-  '/tabs/three': typeof TabsThreeRoute
-  '/tabs/two': typeof TabsTwoRoute
+  "/tabs": typeof TabsRouteRouteWithChildren;
+  "/marketplace": typeof MarketplaceRoute;
+  "/gallery/$id": typeof GalleryIdRoute;
+  "/models/$id": typeof ModelsIdRoute;
+  "/tabs/one": typeof TabsOneRoute;
+  "/tabs/three": typeof TabsThreeRoute;
+  "/tabs/two": typeof TabsTwoRoute;
 }
 
 export interface FileRoutesByTo {
-  '/tabs': typeof TabsRouteRouteWithChildren
-  '/marketplace': typeof MarketplaceRoute
-  '/gallery/$id': typeof GalleryIdRoute
-  '/models/$id': typeof ModelsIdRoute
-  '/tabs/one': typeof TabsOneRoute
-  '/tabs/three': typeof TabsThreeRoute
-  '/tabs/two': typeof TabsTwoRoute
+  "/tabs": typeof TabsRouteRouteWithChildren;
+  "/marketplace": typeof MarketplaceRoute;
+  "/gallery/$id": typeof GalleryIdRoute;
+  "/models/$id": typeof ModelsIdRoute;
+  "/tabs/one": typeof TabsOneRoute;
+  "/tabs/three": typeof TabsThreeRoute;
+  "/tabs/two": typeof TabsTwoRoute;
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/tabs': typeof TabsRouteRouteWithChildren
-  '/marketplace': typeof MarketplaceRoute
-  '/gallery/$id': typeof GalleryIdRoute
-  '/models/$id': typeof ModelsIdRoute
-  '/tabs/one': typeof TabsOneRoute
-  '/tabs/three': typeof TabsThreeRoute
-  '/tabs/two': typeof TabsTwoRoute
+  __root__: typeof rootRoute;
+  "/tabs": typeof TabsRouteRouteWithChildren;
+  "/marketplace": typeof MarketplaceRoute;
+  "/gallery/$id": typeof GalleryIdRoute;
+  "/models/$id": typeof ModelsIdRoute;
+  "/tabs/one": typeof TabsOneRoute;
+  "/tabs/three": typeof TabsThreeRoute;
+  "/tabs/two": typeof TabsTwoRoute;
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/tabs'
-    | '/marketplace'
-    | '/gallery/$id'
-    | '/models/$id'
-    | '/tabs/one'
-    | '/tabs/three'
-    | '/tabs/two'
-  fileRoutesByTo: FileRoutesByTo
+    | "/tabs"
+    | "/marketplace"
+    | "/gallery/$id"
+    | "/models/$id"
+    | "/tabs/one"
+    | "/tabs/three"
+    | "/tabs/two";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/tabs'
-    | '/marketplace'
-    | '/gallery/$id'
-    | '/models/$id'
-    | '/tabs/one'
-    | '/tabs/three'
-    | '/tabs/two'
+    | "/tabs"
+    | "/marketplace"
+    | "/gallery/$id"
+    | "/models/$id"
+    | "/tabs/one"
+    | "/tabs/three"
+    | "/tabs/two";
   id:
-    | '__root__'
-    | '/tabs'
-    | '/marketplace'
-    | '/gallery/$id'
-    | '/models/$id'
-    | '/tabs/one'
-    | '/tabs/three'
-    | '/tabs/two'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/tabs"
+    | "/marketplace"
+    | "/gallery/$id"
+    | "/models/$id"
+    | "/tabs/one"
+    | "/tabs/three"
+    | "/tabs/two";
+  fileRoutesById: FileRoutesById;
 }
 
 export interface RootRouteChildren {
-  TabsRouteRoute: typeof TabsRouteRouteWithChildren
-  MarketplaceRoute: typeof MarketplaceRoute
-  GalleryIdRoute: typeof GalleryIdRoute
-  ModelsIdRoute: typeof ModelsIdRoute
+  TabsRouteRoute: typeof TabsRouteRouteWithChildren;
+  MarketplaceRoute: typeof MarketplaceRoute;
+  GalleryIdRoute: typeof GalleryIdRoute;
+  ModelsIdRoute: typeof ModelsIdRoute;
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -211,11 +211,11 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceRoute: MarketplaceRoute,
   GalleryIdRoute: GalleryIdRoute,
   ModelsIdRoute: ModelsIdRoute,
-}
+};
 
 export const routeTree = rootRoute
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
 /* ROUTE_MANIFEST_START
 {
