@@ -105,7 +105,7 @@ def main(data_path: str, vocab_size: int, model_save_path: str):
         # Ensure the directory exists (should be created by prepare_data.py)
         # os.makedirs(model_save_path, exist_ok=True) # Already done by caller
         # Save in the TensorFlow SavedModel format, loadable by tf.keras.models.load_model
-        model.save(model_save_path)
+        model.save(model_save_file)
         print("Python (train_model): Model saved successfully.")
     except Exception as e:
         print(f"Python Error (train_model): Failed to save model to {model_save_path} - {e}", file=sys.stderr)
