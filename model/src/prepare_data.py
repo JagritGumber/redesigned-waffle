@@ -50,7 +50,7 @@ def fetch_data_from_api(api_url: str):
         sys.exit(1) # Fail build
 
 # --- Vocabulary Building Function (Replicates TS logic) ---
-def build_vocabulary_from_posts(posts: list) -> tuple:
+def build_vocabulary_from_posts(posts: list) -> dict:
     log.info("Build (prepare_data): Building vocabulary from frequent tags and creating index mappings...")
 
     # 1. Count tag frequencies from posts
@@ -260,27 +260,33 @@ if __name__ == "__main__":
     vocabulary_artifacts = build_vocabulary_from_posts(all_posts)
 
     # 3. Save Vocabulary artifacts (for handler use)
-    # Contains vocabulary size, tag_text_to_model_index, model_index_to_tag_text
     vocab_artifacts_for_save = {
-        k: v for k, v in vocabulary_artifacts.items()
-        if k in ["vocabulary_size", "tag_text_to_model_index", "model_index_to_tag_text"]
-    }
+           k: v for k, v in vocabulary_artifacts.items()
+           if k in ["vocabulary_size", "tag_text_to_model_index", "model_index_to_tag_text"]
+       }
+    log.info(f"Build (prepare_data): Attempting to save vocabulary artifacts to {vocab_save_path}...") # <-- ADD THIS LOG
     try:
         # Directory is created in Dockerfile
         with open(vocab_save_path, "w") as f:
             json.dump(vocab_artifacts_for_save, f, indent=2)
-        log.info(f"Build (prepare_data): Vocabulary artifacts saved to {vocab_save_path}")
+        log.info(f"Build (prepare_data): Vocabulary artifacts saved successfully.") # <-- ADD THIS LOG
     except Exception as e:
         log.error(f"Build Error (prepare_data): Failed to save vocabulary artifacts: {e}")
-        sys.exit(1) # Fail build
+        sys.exit(1) # Still exit build on this critical failure
 
 
     # 4. Prepare Training Data and Save to Temp File
-    # This uses the vocabulary mappings and the sampling list
-    generate_training_pairs_from_posts(all_posts, vocabulary_artifacts)
+    log.info("Build (prepare_data): Starting generation of training pairs...") # <-- ADD THIS LOG
+    try: # Add a try/except around the pair generation too
+        generate_training_pairs_from_posts(all_posts, vocabulary_artifacts)
+        log.info("Build (prepare_data): Finished generation of training pairs.") # <-- ADD THIS LOG
+    except Exception as e:
+        log.error(f"Build Error (prepare_data): Failed during training pair generation: {e}")
+        sys.exit(1) # Still exit build on this critical failure
+
 
     # 5. Run the Training Script (train_model.py)
-    log.info("Build (prepare_data): Starting model training subprocess...")
+    log.info("Build (prepare_data): Starting model training subprocess...") # Existing log
     # Ensure train_model.py is in the /workspace directory
     train_command = [
         "python3.11", # Use python3.11 as specified by base image
