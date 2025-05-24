@@ -23,7 +23,7 @@ COPY model/src .
 # Define the API URL for data fetching. Use an environment variable.
 # You'll set the actual value in the RunPod template settings.
 # Example default (replace this):
-ENV API_DATA_URL="YOUR_ACTUAL_DATA_API_ENDPOINT_HERE"
+ENV API_DATA_URL="https://iv-frost-vote-grocery.trycloudflare.com/data/"
 
 # Define paths for saving artifacts within the container
 ENV MODEL_SAVE_DIR="/workspace/data/tag_embedding_model"

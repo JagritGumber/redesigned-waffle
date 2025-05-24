@@ -1,5 +1,6 @@
 # prepare_data.py
 # Script to run during RunPod build process (called by Dockerfile)
+# Replicates logic from TS prepareTrainingData.ts
 
 import requests
 import json
@@ -8,137 +9,221 @@ import sys
 import subprocess
 from collections import defaultdict
 import random
+import numpy as np
+import math # For frequency power calculation
 
-# --- Configuration (Keep consistent with training) ---
-MIN_TAG_FREQUENCY = 5 # Minimum frequency for a tag to be included in the vocabulary
-POSITIVE_PAIR_WINDOW_SIZE = 0 # If > 0, only consider tags within this distance in a post. 0 means all pairs in a post.
-NEGATIVE_SAMPLES_PER_POSITIVE = 2 # Number of negative samples generated for each positive pair
+# Import RunPodLogger
+try:
+    from runpod import RunPodLogger
+    log = RunPodLogger()
+except ImportError:
+    class MockLogger:
+        def info(self, message): print(f"INFO: {message}")
+        def error(self, message): print(f"ERROR: {message}", file=sys.stderr)
+        def warn(self, message): print(f"WARN: {message}", file=sys.stderr)
+        def debug(self, message): print(f"DEBUG: {message}")
+    log = MockLogger()
+
+# --- Configuration (Match TS logic) ---
+MIN_TAG_FREQUENCY_FOR_VOCAB = 50
+NEGATIVE_SAMPLING_RATIO = 5
 
 # Note: MODEL_SAVE_DIR and VOCAB_SAVE_PATH are passed as arguments from the Dockerfile ENV vars
 
 # Temporary file for data transfer between prepare_data.py and train_model.py
 DATA_TEMP_PATH = "/workspace/temp_training_data.json" # Temp file inside the container
 
-# --- Data Fetching Function ---
+# --- Data Fetching Function (Adjusted for new API format) ---
 def fetch_data_from_api(api_url: str):
-    print(f"Build (prepare_data): Fetching data from API: {api_url}")
+    log.info(f"Build (prepare_data): Fetching data from API: {api_url}")
     try:
         response = requests.get(api_url)
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-        data = response.json()
-        print(f"Build (prepare_data): Successfully fetched {len(data)} posts.")
+        response.raise_for_status()
+        data = response.json() # Expecting [{ "id": 1, "tagString": "tag_a tag_b" }, ...]
+        log.info(f"Build (prepare_data): Successfully fetched {len(data)} posts.")
         return data
     except requests.exceptions.RequestException as e:
-        print(f"Build Error (prepare_data): Failed to fetch data from API: {e}", file=sys.stderr)
-        sys.exit(1) # Exit the build process if data fetching fails
+        log.error(f"Build Error (prepare_data): Failed to fetch data from API: {e}")
+        sys.exit(1) # Fail build
     except json.JSONDecodeError as e:
-        print(f"Build Error (prepare_data): Failed to parse API response as JSON: {e}", file=sys.stderr)
-        sys.exit(1)
+        log.error(f"Build Error (prepare_data): Failed to parse API response as JSON: {e}")
+        sys.exit(1) # Fail build
 
-# --- Vocabulary Building Function ---
+# --- Vocabulary Building Function (Replicates TS logic) ---
 def build_vocabulary_from_posts(posts: list) -> tuple:
-    print("Build (prepare_data): Building vocabulary...")
-    tag_counts = defaultdict(int)
+    log.info("Build (prepare_data): Building vocabulary from frequent tags and creating index mappings...")
+
+    # 1. Count tag frequencies from posts
+    log.info("Build (prepare_data): Counting tag frequencies...")
+    tag_frequencies = defaultdict(int)
 
     for post in posts:
-        tags = post.get("tags", [])
-        for tag in tags:
-            tag_counts[tag] += 1
+        tag_string = post.get("tagString")
+        if not tag_string:
+            continue
+        tags_in_post = tag_string.split(" ")
+        for tag_text in tags_in_post:
+             if tag_text: # Ensure tag text is not empty after split
+                 tag_frequencies[tag_text] += 1
 
-    # Filter tags by minimum frequency and sort by frequency
-    frequent_tags = sorted(
-        [tag for tag, count in tag_counts.items() if count >= MIN_TAG_FREQUENCY],
-        key=lambda tag: tag_counts[tag],
-        reverse=True, # Most frequent first
-    )
+    log.info(f"Build (prepare_data): Finished counting frequencies. Found {len(tag_frequencies)} unique tags.")
 
-    # Assign integer IDs (0-based)
-    vocabulary = {tag: i for i, tag in enumerate(frequent_tags)}
-    vocabulary_size = len(vocabulary)
+    # 2. Filter tags by frequency
+    frequent_tag_texts = [
+        tag_text for tag_text, count in tag_frequencies.items()
+        if count >= MIN_TAG_FREQUENCY_FOR_VOCAB
+    ]
 
-    # Create reverse mapping (string keys for JSON, convert to int later)
-    id_to_tag = {str(i): tag for tag, i in vocabulary.items()}
+    # Sort frequent tags (alphabetically for consistency, or by frequency if needed)
+    frequent_tag_texts.sort()
 
-    print(f"Build (prepare_data): Vocabulary size: {vocabulary_size}")
-    print(f"Build (prepare_data): Top 10 tags: {frequent_tags[:10]}")
+    num_frequent_tags = len(frequent_tag_texts)
+    if num_frequent_tags == 0:
+        log.error(f"Build Error (prepare_data): No tags meeting frequency threshold ({MIN_TAG_FREQUENCY_FOR_VOCAB}) found to build vocabulary.")
+        sys.exit(1) # Fail build
 
-    # Prepare sampling data (list of tag IDs weighted by frequency) - used for negative sampling
+    log.info(f"Build (prepare_data): Found {num_frequent_tags} tags meeting frequency threshold.")
+
+    # 3. Create Mapping from Tag Text to Model Index (0-indexed, reserving 0 for padding)
+    # Model indices will be 1 to num_frequent_tags
+    tag_text_to_model_index = {}
+    model_index_to_tag_text = {}
+    model_index_counter = 1 # Start assigning indices from 1
+
+    for tag_text in frequent_tag_texts:
+        tag_text_to_model_index[tag_text] = model_index_counter
+        model_index_to_tag_text[str(model_index_counter)] = tag_text # Store as string key for JSON
+        model_index_counter += 1
+
+    final_vocabulary_size = num_frequent_tags + 1 # +1 for padding at index 0
+
+    log.info(f"Build (prepare_data): Vocabulary size (for model): {final_vocabulary_size} ({num_frequent_tags} frequent tags + 1 padding).")
+    log.info(f"Build (prepare_data): Mapping {num_frequent_tags} tag texts to model indices 1 to {num_frequent_tags}.")
+
+    # 4. Create a list of MODEL INDICES repeated by frequency for sampling (Replicates TS logic)
     tag_model_indices_for_sampling = []
-    for tag in frequent_tags:
-        tag_id = vocabulary[tag]
-        count = tag_counts[tag]
-        # Simple frequency weighting
-        tag_model_indices_for_sampling.extend([tag_id] * count)
+    # Iterate through frequent tags to build the sampling list
+    for tag_text in frequent_tag_texts:
+        model_index = tag_text_to_model_index[tag_text]
+        freq = tag_frequencies[tag_text] # Get frequency by text
+        num_samples = max(1, int(math.ceil(math.pow(freq, 0.75)))) # Frequency raised to 0.75 power, ensure at least 1 sample
+        tag_model_indices_for_sampling.extend([model_index] * num_samples)
 
-    print(f"Build (prepare_data): Sampling pool size: {len(tag_model_indices_for_sampling)}")
+    if not tag_model_indices_for_sampling:
+         log.error("Build Error (prepare_data): Vocabulary built, but no model indices available for sampling.")
+         sys.exit(1) # Fail build
 
-    return vocabulary, id_to_tag, tag_model_indices_for_sampling, vocabulary_size
 
-# --- Training Data Generation Function ---
-def prepare_training_data(posts: list, vocabulary: dict, tag_model_indices_for_sampling: list) -> dict | None:
-    print("Build (prepare_data): Preparing training data...")
+    log.info(f"Build (prepare_data): Prepared {len(tag_model_indices_for_sampling)} model indices for sampling.")
+
+    # Return artifacts needed for subsequent steps
+    return {
+        "vocabulary_size": final_vocabulary_size,
+        "tag_text_to_model_index": tag_text_to_model_index,
+        "model_index_to_tag_text": model_index_to_tag_text,
+        "tag_model_indices_for_sampling": tag_model_indices_for_sampling,
+    }
+
+# --- Training Data Generation Function (Replicates TS logic) ---
+def generate_training_pairs_from_posts(posts: list, vocabulary_artifacts: dict) -> dict:
+    log.info("Build (prepare_data): Preparing training data pairs...")
+
+    tag_text_to_model_index = vocabulary_artifacts["tag_text_to_model_index"]
+    tag_model_indices_for_sampling = vocabulary_artifacts["tag_model_indices_for_sampling"]
+    vocabulary_size = vocabulary_artifacts["vocabulary_size"] # Not strictly needed here, but good context
+
     source_model_indices = []
     context_model_indices = []
     labels = []
 
-    all_vocab_ids = list(vocabulary.values()) # List of all valid tag IDs
+    # List of all possible frequent tag model indices (excluding padding 0)
+    all_frequent_model_indices = list(tag_text_to_model_index.values())
+    # Using the weighted sampling list is more direct for negative sampling as per TS
+
+    if not tag_model_indices_for_sampling:
+         log.warn("Build (prepare_data): Sampling list is empty. Cannot generate pairs.")
+         return { "sourceModelIndices": [], "contextModelIndices": [], "labels": [] }
+
 
     for post in posts:
-        post_tags_names = post.get("tags", [])
-        # Filter to only include tags present in our vocabulary and map to IDs
-        post_tags_ids = [vocabulary[tag] for tag in post_tags_names if tag in vocabulary]
-
-        if len(post_tags_ids) < 2:
-            continue # Need at least 2 frequent tags for pairs
-
-        # Generate Positive Pairs
-        for i in range(len(post_tags_ids)):
-            for j in range(len(post_tags_ids)):
-                if i != j: # Avoid pairing a tag with itself
-                    if POSITIVE_PAIR_WINDOW_SIZE == 0 or abs(i - j) <= POSITIVE_PAIR_WINDOW_SIZE:
-                        source_model_indices.append(post_tags_ids[i])
-                        context_model_indices.append(post_tags_ids[j])
-                        labels.append(1.0) # Positive label
-
-        # Generate Negative Pairs
-        # For each tag in the post (source), sample negative context tags that are NOT in the post
-        post_tags_set = set(post_tags_ids)
-        possible_negative_targets = [tag_id for tag_id in all_vocab_ids if tag_id not in post_tags_set]
-
-        if not possible_negative_targets:
-            # Cannot generate negative samples if all vocab tags are in this post
+        tag_string = post.get("tagString")
+        if not tag_string:
             continue
 
-        num_positive_in_post = len(post_tags_ids) * (len(post_tags_ids) - 1) # Number of positive pairs from this post (before windowing)
-        num_negative_to_generate_per_post = int(num_positive_in_post * NEGATIVE_SAMPLES_PER_POSITIVE)
+        normalized_tags_in_post = tag_string.split(" ")
+        # Convert tag text to MODEL INDICES, filtering out tags not in vocabulary
+        tag_model_indices_in_post = [
+            tag_text_to_model_index[tag_text] for tag_text in normalized_tags_in_post
+            if tag_text in tag_text_to_model_index # Only include tags in our vocabulary
+        ]
 
-        if num_negative_to_generate_per_post == 0 and len(post_tags_ids) > 0:
-             # Ensure at least some negative samples if post has tags
-             num_negative_to_generate_per_post = NEGATIVE_SAMPLES_PER_POSITIVE * len(post_tags_ids)
+        if len(tag_model_indices_in_post) < 2:
+            continue # Need at least two frequent tags for a pair
+
+        # Use a Set for faster lookup of model indices in the current post
+        tag_model_indices_in_post_set = set(tag_model_indices_in_post)
+
+        # Generate Positive Pairs: Every tag with every other tag in the post
+        for i in range(len(tag_model_indices_in_post)):
+            source_index = tag_model_indices_in_post[i]
+
+            for j in range(len(tag_model_indices_in_post)):
+                if i == j: continue # Don't pair a tag with itself
+                context_index = tag_model_indices_in_post[j]
+
+                # Optional: Implement windowing here if POSITIVE_PAIR_WINDOW_SIZE > 0
+                # This requires tracking original index or position in the tagString if order matters
+                # Assuming order doesn't strictly matter based on simple TS example logic without windowing check here
+                # If windowing IS required, the API might need to provide tags in order, or parse tagString with awareness of order
+
+                source_model_indices.append(source_index)
+                context_model_indices.append(context_index)
+                labels.append(1.0) # Positive label
+
+            # Generate Negative Pairs: For each source index, sample negative MODEL INDICES
+            # Number of negative samples per source tag * number of tags in post
+            num_negatives_for_this_source = NEGATIVE_SAMPLING_RATIO # * len(tag_model_indices_in_post) # TS multiplies by len(post_tags_ids) here
+
+            # Sample negative context tags from the weighted list
+            # Ensure the sampled tag is NOT in the current post
+            # Replicate TS logic: For EACH source tag, sample NEGATIVE_SAMPLING_RATIO * num_tags_in_post negative contexts
+            # And sample until the negative is NOT in the current post
+            # This is inefficient if post has many tags. A simpler approach is to sample N unique negatives per post from outside the post tags.
+            # Let's try to replicate the TS logic as described: For EACH source, generate N negatives * num_tags_in_post
+            # This seems overly complex based on the TS code snippet. Let's re-read the TS code...
+            # TS code: `for (let k = 0; k < NEGATIVE_SAMPLING_RATIO * tagModelIndicesInPost.length; k++) { ... sample negativeIndex ... sourceModelIndices.push(sourceIndex); contextModelIndices.push(negativeIndex); labels.push(0);}`
+            # This means for EACH source tag (outer loop `i`), it tries to generate NEGATIVE_SAMPLING_RATIO * num_tags_in_post negative *pairs*. This seems wrong.
+            # Let's assume the intent is to generate NEGATIVE_SAMPLING_RATIO negative contexts FOR EACH source tag.
+            # Simplified interpretation: for each source tag in post, generate NEGATIVE_SAMPLING_RATIO negative pairs.
+
+            for _ in range(NEGATIVE_SAMPLING_RATIO): # Generate N negative pairs for *this* source tag
+                 negative_index = None
+                 attempts = 0
+                 max_attempts = len(tag_model_indices_for_sampling) * 2 # Prevent infinite loop on small vocabs
+
+                 while attempts < max_attempts:
+                      # Sample a negative index from the weighted pool
+                      sampled_neg_index = random.choice(tag_model_indices_for_sampling)
+
+                      # Check if it's NOT in the current post
+                      if sampled_neg_index not in tag_model_indices_in_post_set:
+                           negative_index = sampled_neg_index
+                           break # Found a valid negative sample
+                      attempts += 1
+
+                 if negative_index is not None:
+                      source_model_indices.append(source_index)
+                      context_model_indices.append(negative_index)
+                      labels.append(0.0) # Negative label
+                 else:
+                      log.warn(f"Build (prepare_data): Could not find a negative sample not in post after {max_attempts} attempts. Skipping some negative pairs for post ID {post.get('id', 'N/A')}")
 
 
-        if num_negative_to_generate_per_post > 0:
-             # Sample negative contexts from the list of tags NOT in the post
-             sampled_neg_contexts = random.choices(
-                  possible_negative_targets,
-                  k=num_negative_to_generate_per_post
-             )
+    log.info(f"Build (prepare_data): Generated {len(labels)} training samples ({labels.count(1.0)} positive, {labels.count(0.0)} negative).")
 
-             # Pair each sampled negative context with a random source tag from the post
-             # This is a simplified approach. More complex methods exist.
-             for neg_context_id in sampled_neg_contexts:
-                 random_source_id = random.choice(post_tags_ids) # Associate negative with a random source from post
-                 source_model_indices.append(random_source_id)
-                 context_model_indices.append(neg_context_id)
-                 labels.append(0.0) # Negative label
-
-
-    print(f"Build (prepare_data): Generated {len(labels)} training samples ({labels.count(1.0)} positive, {labels.count(0.0)} negative).")
-
-    # Check if we have training data
     if not source_model_indices:
-        print("Build Error (prepare_data): No training data generated. Check data source, tag frequency, and post structure.", file=sys.stderr)
-        sys.exit(1) # Fail the build if no data
+        log.error("Build Error (prepare_data): No training data generated after processing all posts.")
+        sys.exit(1) # Fail build
 
     # Save training data to temporary file
     training_data = {
@@ -150,17 +235,17 @@ def prepare_training_data(posts: list, vocabulary: dict, tag_model_indices_for_s
         os.makedirs(os.path.dirname(DATA_TEMP_PATH), exist_ok=True)
         with open(DATA_TEMP_PATH, "w") as f:
             json.dump(training_data, f)
-        print(f"Build (prepare_data): Training data saved to temporary file: {DATA_TEMP_PATH}")
+        log.info(f"Build (prepare_data): Training data saved to temporary file: {DATA_TEMP_PATH}")
     except Exception as e:
-        print(f"Build Error (prepare_data): Failed to save temporary data file: {e}", file=sys.stderr)
-        sys.exit(1) # Fail the build if saving temp data fails
+        log.error(f"Build Error (prepare_data): Failed to save temporary data file: {e}")
+        sys.exit(1) # Fail build
 
 
 # --- Main Execution for Build ---
 if __name__ == "__main__":
     # Expecting API_DATA_URL, MODEL_SAVE_DIR, VOCAB_SAVE_PATH as arguments
     if len(sys.argv) != 4:
-        print("Usage: python prepare_data.py <api_data_url> <model_save_dir> <vocab_save_path>", file=sys.stderr)
+        log.error("Usage: python prepare_data.py <api_data_url> <model_save_dir> <vocab_save_path>")
         sys.exit(1)
 
     api_data_url = sys.argv[1]
@@ -171,71 +256,67 @@ if __name__ == "__main__":
     all_posts = fetch_data_from_api(api_data_url)
 
     # 2. Build Vocabulary and get sampling data
-    vocabulary, id_to_tag, tag_model_indices_for_sampling, vocabulary_size = build_vocabulary_from_posts(all_posts)
+    # This returns vocabulary mappings (text <-> index) and the sampling list (indices)
+    vocabulary_artifacts = build_vocabulary_from_posts(all_posts)
 
-    # 3. Save Vocabulary and sampling data (for handler use)
-    vocab_artifacts = {
-        "vocabulary": vocabulary,
-        "id_to_tag": id_to_tag,
-        "vocabulary_size": vocabulary_size,
-        # tag_model_indices_for_sampling is only needed during data prep, not for inference vocab
+    # 3. Save Vocabulary artifacts (for handler use)
+    # Contains vocabulary size, tag_text_to_model_index, model_index_to_tag_text
+    vocab_artifacts_for_save = {
+        k: v for k, v in vocabulary_artifacts.items()
+        if k in ["vocabulary_size", "tag_text_to_model_index", "model_index_to_tag_text"]
     }
     try:
         # Directory is created in Dockerfile
         with open(vocab_save_path, "w") as f:
-            json.dump(vocab_artifacts, f, indent=2)
-        print(f"Build (prepare_data): Vocabulary artifacts saved to {vocab_save_path}")
+            json.dump(vocab_artifacts_for_save, f, indent=2)
+        log.info(f"Build (prepare_data): Vocabulary artifacts saved to {vocab_save_path}")
     except Exception as e:
-        print(f"Build Error (prepare_data): Failed to save vocabulary artifacts: {e}", file=sys.stderr)
-        sys.exit(1) # Fail the build if saving vocab fails
+        log.error(f"Build Error (prepare_data): Failed to save vocabulary artifacts: {e}")
+        sys.exit(1) # Fail build
 
 
     # 4. Prepare Training Data and Save to Temp File
-    prepare_training_data(all_posts, vocabulary, tag_model_indices_for_sampling)
+    # This uses the vocabulary mappings and the sampling list
+    generate_training_pairs_from_posts(all_posts, vocabulary_artifacts)
 
     # 5. Run the Training Script (train_model.py)
-    print("Build (prepare_data): Starting model training subprocess...")
+    log.info("Build (prepare_data): Starting model training subprocess...")
     # Ensure train_model.py is in the /workspace directory
     train_command = [
         "python3.11", # Use python3.11 as specified by base image
         "/workspace/train_model.py", # Path to the script inside container
-        DATA_TEMP_PATH,
-        str(vocabulary_size),
-        model_save_dir,
+        DATA_TEMP_PATH, # Temporary data file
+        str(vocabulary_artifacts["vocabulary_size"]), # Pass vocabulary size
+        model_save_dir, # Directory to save the model
     ]
-    print(f"Build (prepare_data): Executing: {' '.join(train_command)}")
+    log.info(f"Build (prepare_data): Executing: {' '.join(train_command)}")
     try:
         # Use subprocess.run to wait for completion and capture output
-        # check=True raises CalledProcessError on non-zero exit
-        # text=True decodes stdout/stderr
         result = subprocess.run(train_command, capture_output=True, text=True, check=True)
-        print("Build (prepare_data): train_model.py STDOUT:\n", result.stdout)
-        # Print stderr only if there was output, as it might be empty on success
+        log.info("Build (prepare_data): train_model.py STDOUT:\n" + result.stdout)
         if result.stderr:
-            print("Build (prepare_data): train_model.py STDERR:\n", result.stderr)
-        print("Build (prepare_data): Model training subprocess finished successfully.")
+            log.warn("Build (prepare_data): train_model.py STDERR:\n" + result.stderr)
+        log.info("Build (prepare_data): Model training subprocess finished successfully.")
     except FileNotFoundError:
-        print(f"Build Error (prepare_data): Python executable or {train_command[1]} not found.", file=sys.stderr)
-        print("Build Error (prepare_data): Ensure python3.11 is in PATH and train_model.py is at /workspace/train_model.py", file=sys.stderr)
+        log.error(f"Build Error (prepare_data): Python executable or {train_command[1]} not found.")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        print(f"Build Error (prepare_data): Model training subprocess failed with exit code {e.returncode}", file=sys.stderr)
-        print("Build (prepare_data): train_model.py STDOUT:\n", e.stdout, file=sys.stderr)
-        print("Build (prepare_data): train_model.py STDERR:\n", e.stderr, file=sys.stderr)
-        sys.exit(1) # Exit the build process on training failure
+        log.error(f"Build Error (prepare_data): Model training subprocess failed with exit code {e.returncode}")
+        log.error("Build (prepare_data): train_model.py STDOUT:\n" + e.stdout)
+        log.error("Build (prepare_data): train_model.py STDERR:\n" + e.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Build Error (prepare_data): An unexpected error occurred during training subprocess: {e}", file=sys.stderr)
+        log.error(f"Build Error (prepare_data): An unexpected error occurred during training subprocess: {e}")
         sys.exit(1)
 
 
     # 6. Clean up temporary data file
-    print(f"Build (prepare_data): Cleaning up temporary data file: {DATA_TEMP_PATH}")
+    log.info(f"Build (prepare_data): Cleaning up temporary data file: {DATA_TEMP_PATH}")
     try:
         os.remove(DATA_TEMP_PATH)
-        print("Build (prepare_data): Temporary data file removed.")
+        log.info("Build (prepare_data): Temporary data file removed.")
     except OSError as e:
-        print(f"Build Warning (prepare_data): Could not remove temporary data file {DATA_TEMP_PATH}: {e}", file=sys.stderr)
-        # Warn but don't fail the build
+        log.warn(f"Build Warning (prepare_data): Could not remove temporary data file {DATA_TEMP_PATH}: {e}")
 
-    print("Build (prepare_data): Data preparation and training complete.")
-    sys.exit(0) # Indicate successful build step
+    log.info("Build (prepare_data): Data preparation and training complete.")
+    # sys.exit(0) # Success is implicit if no exceptions or sys.exit(1) calls happen
