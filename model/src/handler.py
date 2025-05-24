@@ -14,14 +14,14 @@ log = runpod.RunPodLogger()
 # Paths inside the container (must match Dockerfile and prepare_data.py)
 MODEL_SAVE_DIR = os.environ.get("MODEL_SAVE_DIR", "/workspace/data/tag_embedding_model")
 VOCAB_SAVE_PATH = os.environ.get("VOCAB_SAVE_PATH", "/workspace/data/tag_embedding_vocab.json")
+MODEL_SAVE_FILE = os.path.join(MODEL_SAVE_DIR, 'model.keras') # Add the file name
 
 # Global variables to hold the loaded model and vocabulary artifacts
 loaded_model = None
-# Updated vocabulary structure:
-tag_text_to_model_index = None # tag_name -> model_index (int)
-model_index_to_tag_text = None # model_index (int) -> tag_name
-embedding_matrix = None # The full embedding matrix (numpy array)
-vocabulary_size = 0 # Total size including padding (usually max model_index + 1)
+tag_text_to_model_index = None
+model_index_to_tag_text = None
+embedding_matrix = None
+vocabulary_size = 0
 embedding_dim = 0
 
 def _load_artifacts():
@@ -40,29 +40,28 @@ def _load_artifacts():
 
     log.info("Handler: Loading model and vocabulary...")
     try:
-        # Load the Keras model saved in SavedModel format
-        loaded_model = tf.keras.models.load_model(MODEL_SAVE_DIR, compile=False)
-        log.info(f"Handler: Model loaded successfully from {MODEL_SAVE_DIR}")
+        # Load the Keras model from the .keras file
+        log.info(f"Handler: Attempting to load model from {MODEL_SAVE_FILE}")
+        loaded_model = tf.keras.models.load_model(MODEL_SAVE_FILE, compile=False)
+        log.info(f"Handler: Model loaded successfully from {MODEL_SAVE_FILE}")
 
         # Access the embedding layer
         try:
             embedding_layer = loaded_model.get_layer('embedding')
-            # Get the weights (the embedding matrix)
             embedding_matrix = embedding_layer.get_weights()[0]
             embedding_dim = embedding_matrix.shape[1]
             log.info(f"Handler: Embedding matrix loaded (shape: {embedding_matrix.shape})")
         except ValueError as e:
              log.error(f"Handler Error: Could not find embedding layer by name 'embedding' or get its weights: {e}")
-             # Set globals to None to indicate failure
              loaded_model, tag_text_to_model_index, model_index_to_tag_text, embedding_matrix = None, None, None, None
              return # Loading failed
 
         # Load vocabulary
+        log.info(f"Handler: Attempting to load vocabulary from {VOCAB_SAVE_PATH}")
         with open(VOCAB_SAVE_PATH, "r") as f:
             vocab_data = json.load(f)
             vocabulary_size = vocab_data["vocabulary_size"]
             tag_text_to_model_index = vocab_data["tag_text_to_model_index"]
-            # Convert keys to integers for model_index_to_tag_text
             model_index_to_tag_text = {int(k): v for k, v in vocab_data["model_index_to_tag_text"].items()}
 
         log.info(f"Handler: Vocabulary loaded from {VOCAB_SAVE_PATH} (size: {vocabulary_size})")
@@ -70,15 +69,8 @@ def _load_artifacts():
         # Basic checks
         if vocabulary_size != embedding_matrix.shape[0]:
              log.error(f"Handler Error: Vocabulary size ({vocabulary_size}) does not match embedding matrix size ({embedding_matrix.shape[0]})!")
-             # Note: Embedding matrix size should be `num_frequent_tags + 1` if index 0 is padding.
-             # The model input_dim should match vocabulary_size.
-             # If model input_dim is num_frequent_tags+1, matrix shape is (num_frequent_tags+1, embedding_dim)
-             # Check if the loaded matrix shape is consistent with the expected vocabulary size.
-             if embedding_matrix.shape[0] != vocabulary_size:
-                log.error(f"Handler Error: Embedding matrix size ({embedding_matrix.shape[0]}) does not match expected vocabulary size ({vocabulary_size}).")
-                loaded_model, tag_text_to_model_index, model_index_to_tag_text, embedding_matrix = None, None, None, None
-                return # Loading failed
-
+             loaded_model, tag_text_to_model_index, model_index_to_tag_text, embedding_matrix = None, None, None, None
+             return # Loading failed
 
         if embedding_dim != loaded_model.get_layer('embedding').output_dim:
              log.error(f"Handler Error: Embedding dimension mismatch!")
@@ -95,6 +87,7 @@ def _load_artifacts():
         log.error(f"Handler Error: Failed to load artifacts: {e}")
         loaded_model, tag_text_to_model_index, model_index_to_tag_text, embedding_matrix = None, None, None, None
         return # Loading failed
+
 
 def get_tag_model_index(tag_name: str) -> int | None:
     """Looks up the model index for a tag name."""
@@ -196,9 +189,6 @@ def handler(job):
 
 
     # Calculate dot products
-    # embedding_matrix is shape (vocab_size, embedding_dim)
-    # average_embedding is shape (embedding_dim,)
-    # np.dot(average_embedding, embedding_matrix.T) gives shape (vocab_size,)
     dot_products = np.dot(average_embedding, embedding_matrix.T)
 
     # Calculate cosine similarities
@@ -206,12 +196,15 @@ def handler(job):
 
 
     # Get tag model indices and their similarity scores
-    # We iterate through all possible model indices (1 to num_frequent_tags)
-    # Index 0 is padding and should be ignored
     tag_scores = []
     # vocabulary_size is num_frequent_tags + 1
+    # Iterate through all possible model indices (1 to vocabulary_size - 1)
     for model_index in range(1, vocabulary_size): # Start from 1 to skip padding index 0
-         tag_scores.append((model_index, similarities[model_index]))
+         # Ensure model_index is within bounds of similarities array
+         if model_index < len(similarities):
+              tag_scores.append((model_index, similarities[model_index]))
+         else:
+              log.warn(f"Handler Warning: Model index {model_index} out of bounds for similarity scores array (size {len(similarities)}).")
 
 
     # Sort tags by similarity score in descending order
@@ -250,17 +243,11 @@ _load_artifacts()
 if embedding_matrix is not None:
     try:
         log.info("Handler: Pre-calculating embedding norms on startup.")
-        # Norms needed for all embeddings including padding if index 0 is used/loaded
-        # However, padding index 0 should ideally have a zero vector or not be used in similarity
-        # If model index 0 is truly padding and its embedding is all zeros, its norm is 0.
-        # We should probably calculate norms for all indices loaded, but filter out 0 when computing similarity.
-        # The current similarity calculation loop already excludes index 0 from the `tag_scores` list.
-        # Calculating norm for index 0 is harmless but adds a tiny bit of compute.
         _load_artifacts.embedding_norms = np.linalg.norm(embedding_matrix, axis=1)
         log.info("Handler: Norms calculated on startup.")
     except Exception as e:
         log.error(f"Handler Error: Failed to pre-calculate embedding norms on startup: {e}")
-        _load_artifacts.embedding_norms = None # Indicate failure
+        _load_artifacts.embedding_norms = None
 
 
 # Start the RunPod serverless worker
