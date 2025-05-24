@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `relationshipWeights_sourceTagId_targetTagId_unique` ON `relationshipWeights` (`sourceTagId`,`targetTagId`);

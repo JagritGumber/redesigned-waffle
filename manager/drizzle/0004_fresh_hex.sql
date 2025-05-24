@@ -1,0 +1,1 @@
+ALTER TABLE `postTemplates` ADD `image_key` text;

@@ -14,7 +14,6 @@ type RunPodWebhookPayload = {
   id: string; // RunPod Job ID
   status: string; // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
   output?: {
-    // The output from your Python handler's return dict
     images: string[]; // Base64 images with no prefix, need to add data:image/png;base64, prefix
     info: string; // actually a json of @type InfoParsedResult
   };

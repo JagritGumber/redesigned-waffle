@@ -26,6 +26,7 @@ import {
   setSeed,
   setWidth,
 } from "~/store/generation";
+import { type GenerateRequestPayloadType } from "~/backend/validators/generation";
 
 export const Route = createFileRoute("/tabs/two")({
   component: RouteComponent,
@@ -91,22 +92,17 @@ function RouteComponent() {
 
   const buildPayload = () => {
     const payload = {
-      modelId: selectedCheckpoint()?.id,
-      loras: selectedLoras()?.map((lora) => ({
-        id: lora.model.id,
-        weight: lora.weight,
-      })),
-      textualInversions: selectedTti()?.map(({ tti, type }) => ({
-        id: tti.id,
-        weight: 0.6,
-        type,
-      })),
+      checkpoint: { ...selectedCheckpoint()!, weight: 0.6 },
+      loras: selectedLoras() ?? [],
+      textualInversions: selectedTti() ?? [],
       prompt: prompt(),
       width: width(),
       height: height(),
       seed: seed(),
       numImages: numImages(),
-    };
+      negativePrompt: negativePrompt(),
+      steps: 25,
+    } satisfies GenerateRequestPayloadType;
 
     return payload;
   };

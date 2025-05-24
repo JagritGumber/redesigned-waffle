@@ -1,0 +1,1 @@
+ALTER TABLE `civitaiFile` ADD `primary` integer DEFAULT false;

@@ -82,9 +82,10 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   onLongPress(target, (e) => {
     e.preventDefault();
     navigate({
-      to: "/models/$id",
+      to: "/models/$id/$vId",
       params: {
         id: model.id.toString(),
+        vId: (model.modelVersions?.at(0)?.id ?? 0).toString(),
       },
     });
   });
@@ -99,9 +100,10 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
       }}
       onClick={() => {
         navigate({
-          to: "/models/$id",
+          to: "/models/$id/$vId",
           params: {
             id: model.id.toString(),
+            vId: (model.modelVersions?.at(0)?.id ?? 0).toString(),
           },
         });
       }}

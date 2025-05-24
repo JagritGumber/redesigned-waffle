@@ -23,7 +23,7 @@ export interface GenerationStore {
       | CivitaiModelWithRelations["modelVersions"]["0"]["id"]
       | Model["modelVersions"]["0"]["id"];
     weight: number;
-    type?: "negative" | "positive";
+    type: "negative" | "positive";
   }>;
   prompt: string;
   width: number;

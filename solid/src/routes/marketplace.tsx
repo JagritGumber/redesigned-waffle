@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/solid-router";
+import { useStore } from "@tanstack/solid-store";
 import { CaretLeft, Funnel } from "phosphor-solid";
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import { ModelList } from "~/components/model-list";
 import { Button } from "~/components/ui/button";
 import { TextField, TextFieldInput } from "~/components/ui/text-field";
 import useMarketplaceModels from "~/hooks/useMarketplaceModels";
+import { marketplaceStore, setSearchText } from "~/store/marketplace";
 import type { FetchModelsParams } from "~/utils/fetchCivitaiModels";
 
 export const Route = createFileRoute("/marketplace")({
@@ -12,11 +14,13 @@ export const Route = createFileRoute("/marketplace")({
 });
 
 function RouteComponent() {
-  const [searchText, setSearchText] = createSignal("");
+  const search = Route.useSearch();
+  console.log(search());
   const [appliedFilters, setAppliedFilters] = createSignal<FetchModelsParams>(
-    {},
+    {}
   );
-
+  const storeState = useStore(marketplaceStore, (state) => state);
+  const searchText = useStore(marketplaceStore, (state) => state.query);
   const modelsQuery = useMarketplaceModels(appliedFilters);
 
   return (
@@ -32,10 +36,7 @@ function RouteComponent() {
             class="contents"
             onSubmit={(e) => {
               e.preventDefault();
-              setAppliedFilters((prev) => ({
-                ...prev,
-                query: searchText(),
-              }));
+              setAppliedFilters(storeState());
             }}
           >
             <TextField class="flex-grow">

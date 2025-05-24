@@ -230,7 +230,7 @@ export async function registerOrUpdateCivitaiModel(
       .insert(civitaiModelVersions)
       .values({
         civitaiModelId: savedCivitaiModelId!,
-        id,
+        id: civitaiVersionId,
         index,
         name: versionName,
         baseModel,
@@ -288,14 +288,14 @@ export async function registerOrUpdateCivitaiModel(
       versionName?.replace(/[^a-zA-Z0-9._-]/g, "_") ||
       `version_${civitaiVersionId}`;
 
-    const versionBasePath = `${targetVolumeBase}/workspace/${modelTypeDir}/${sanitizedModelName}/${sanitizedVersionName}`;
+    const versionBasePath = `${targetVolumeBase}/workspace/${modelTypeDir}/${sanitizedModelName}:${sanitizedVersionName}`;
 
     const filesToUpsert = files
       ?.map((fileData: FileVersion) => {
         const sanitizedFileName =
           fileData.name?.replace(/[^a-zA-Z0-9._-]/g, "_") ||
           `file_${fileData.id}`;
-        const runpodPath = `${versionBasePath}/${sanitizedFileName}`;
+        const runpodPath = `${versionBasePath}:${sanitizedFileName}`;
 
         return db
           .insert(civitaiFiles)

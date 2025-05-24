@@ -1,0 +1,1 @@
+ALTER TABLE `generator_jobs` RENAME COLUMN "image_urls" TO "image_key";

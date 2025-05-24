@@ -68,6 +68,7 @@ export interface ModelVersion {
   baseModel: string;
   baseModelType: string;
   publishedAt: string;
+  updatedAt: string;
   availability: string;
   nsfwLevel: number;
   description: string | null;

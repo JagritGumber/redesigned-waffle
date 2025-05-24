@@ -25,7 +25,9 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"],
-      "~/backend/*": ["../backend/src/*"]
+      "~/backend/*": ["../backend/src/*"],
+      "~/backend/schema/*": ["../manager/src/schema/*"],
+      "~/backend/schema": ["../manager/src/schema/index.ts"]
     }
   }
 }

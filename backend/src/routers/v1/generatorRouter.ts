@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { Type, Static } from "@sinclair/typebox";
 
 import { eq } from "drizzle-orm";
 import { generatorJobs, InsertGeneratorJob } from "@/schema";
@@ -7,45 +6,10 @@ import { generatorJobs, InsertGeneratorJob } from "@/schema";
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
 import { Value } from "@sinclair/typebox/value";
-
-const GeneratorParams = Type.Object({
-  id: Type.String(),
-  weight: Type.Number({
-    exclusiveMinimum: 0,
-    maximum: 1,
-  }),
-});
-
-const GenerateRequestPayload = Type.Object({
-  modelId: Type.String(),
-  loras: Type.Array(GeneratorParams),
-  textualInversions: Type.Array(
-    Type.Union([
-      GeneratorParams,
-      Type.Object({
-        type: Type.Union([Type.Literal("negative"), Type.Literal("positive")]),
-      }),
-    ]),
-  ),
-  prompt: Type.String(),
-  negativePrompt: Type.String(),
-  width: Type.Number({
-    minimum: 2,
-  }),
-  height: Type.Number({
-    minimum: 2,
-  }),
-  steps: Type.Number({
-    minimum: 1,
-  }),
-  batchSize: Type.Number({
-    minimum: 1,
-    maximum: 8,
-  }),
-  seed: Type.Number(),
-});
-
-type GenerateRequestPayloadType = Static<typeof GenerateRequestPayload>;
+import {
+  GenerateRequestPayload,
+  GenerateRequestPayloadType,
+} from "@/validators/generation";
 
 const generatorRouter = new Hono<ContextForHono>()
   .post("/generate", async (c) => {
@@ -54,7 +18,7 @@ const generatorRouter = new Hono<ContextForHono>()
 
     if (!RUNPOD_API_KEY || !RUNPOD_GENERATOR_ID || !RUNPOD_WEBHOOK_URL || !db) {
       console.error(
-        "Server configuration error: Missing required environment variables or database binding.",
+        "Server configuration error: Missing required environment variables or database binding."
       );
       return c.json(
         {
@@ -62,7 +26,7 @@ const generatorRouter = new Hono<ContextForHono>()
           message:
             "Server configuration error: Required resources not available.",
         },
-        500,
+        500
       );
     }
 
@@ -72,16 +36,157 @@ const generatorRouter = new Hono<ContextForHono>()
       Value.Assert(GenerateRequestPayload, clientInput);
     } catch (e: any) {
       console.error(`Failed to parse request body as JSON: ${e.message}`);
-      return c.json({ status: "error", message: "Invalid JSON body." }, 400);
+      return c.json(
+        {
+          status: "error",
+          message: "Invalid JSON body.",
+          e: JSON.stringify(e),
+        },
+        400
+      );
     }
 
-    const modifedPayload = {};
+    const {
+      prompt,
+      numImages,
+      checkpoint,
+      height,
+      loras,
+      negativePrompt,
+      seed,
+      steps,
+      textualInversions,
+      width,
+    } = clientInput;
+
+    const checkpointPromise = db.query.civitaiModels.findFirst({
+      where: (model, { eq }) => eq(model.id, checkpoint.modelId),
+      with: {
+        modelVersions: {
+          where: (version, { eq }) => eq(version.id, checkpoint.modelVersionId),
+          with: {
+            files: true,
+          },
+        },
+      },
+    });
+
+    const loraPromises = loras.map((lora) =>
+      db.query.civitaiModels.findFirst({
+        where: (model, { eq }) => eq(model.id, lora.modelId),
+        with: {
+          modelVersions: {
+            where: (version, { eq }) => eq(version.id, lora.modelVersionId),
+            with: {
+              files: true,
+            },
+          },
+        },
+      })
+    );
+
+    const ttiPromises = textualInversions.map((tti) =>
+      db.query.civitaiModels.findFirst({
+        where: (model, { eq }) => eq(model.id, tti.modelId),
+        with: {
+          modelVersions: {
+            where: (version, { eq }) => eq(version.id, tti.modelVersionId),
+            with: {
+              files: true,
+            },
+          },
+        },
+      })
+    );
+
+    const [checkpointModel, loraModels, ttiModels] = await Promise.all([
+      checkpointPromise,
+      Promise.all(loraPromises),
+      Promise.all(ttiPromises),
+    ]);
+
+    const promptTokenArray = prompt
+      .split(",")
+      .filter(
+        (item) => item.trim().length !== 0 && item.trim() !== "undefined"
+      );
+
+    const negativePromptTokenArray = negativePrompt
+      .split(",")
+      .filter(
+        (item) => item.trim().length !== 0 && item.trim() !== "undefined"
+      );
+
+    const loraTokenArray = loraModels.map(
+      (lora, index) =>
+        `<lora:${lora!
+          .modelVersions!.at(0)!
+          .files!.at(0)!
+          .runpodPath!.split("/")
+          .at(-1)
+          ?.split(".")
+          .at(0)}:${loras[index].weight}>`
+    );
+
+    const positiveTtiTokenArray = ttiModels
+      .filter((_tti, index) => textualInversions[index].type === "positive")
+      .map(
+        (tti, index) =>
+          `${tti!
+            .modelVersions!.at(0)!
+            .files!.at(0)!
+            .runpodPath!.split("/")
+            .at(-1)
+            ?.split(".")
+            .at(0)}`
+      );
+
+    const negativeTtiTokenArray = ttiModels
+      .filter((_tti, index) => textualInversions[index].type === "positive")
+      .map(
+        (tti, index) =>
+          `${tti!
+            .modelVersions!.at(0)!
+            .files!.at(0)!
+            .runpodPath!.split("/")
+            .at(-1)
+            ?.split(".")
+            .at(0)}`
+      );
+
+    const fullPrompt = [
+      ...promptTokenArray,
+      ...loraTokenArray,
+      ...positiveTtiTokenArray,
+    ].join(", ");
+
+    const fullNegativePrompt = [
+      ...negativePromptTokenArray,
+      ...negativeTtiTokenArray,
+    ].join(", ");
+
+    const modifiedPayload = {
+      prompt: fullPrompt,
+      negative_prompt: fullNegativePrompt,
+      width,
+      height,
+      steps,
+      cfg_scale: 7.5,
+      seed,
+      override_settings: {
+        sd_model_checkpoint: checkpointModel?.modelVersions
+          ?.at(0)
+          ?.files.at(0)
+          ?.runpodPath.split("/")
+          .at(-1),
+      },
+    };
 
     const newDbJobId = crypto.randomUUID();
     const initialJobRecord: InsertGeneratorJob = {
       id: newDbJobId,
       status: "PENDING",
-      inputPayload: JSON.stringify(clientInput),
+      inputPayload: clientInput satisfies GenerateRequestPayloadType,
     };
 
     try {
@@ -90,11 +195,11 @@ const generatorRouter = new Hono<ContextForHono>()
     } catch (dbInsertError: any) {
       console.error(
         `Failed to insert initial DB job record ${newDbJobId}: ${dbInsertError.message}`,
-        dbInsertError,
+        dbInsertError
       );
       return c.json(
         { status: "error", message: "Internal error recording job request." },
-        500,
+        500
       );
     }
 
@@ -102,7 +207,7 @@ const generatorRouter = new Hono<ContextForHono>()
 
     try {
       console.log(
-        `Triggering RunPod generator worker ${RUNPOD_GENERATOR_ID} for DB job ${newDbJobId}...`,
+        `Triggering RunPod generator worker ${RUNPOD_GENERATOR_ID} for DB job ${newDbJobId}...`
       );
 
       const runpod = runpodSdk(RUNPOD_API_KEY);
@@ -113,14 +218,14 @@ const generatorRouter = new Hono<ContextForHono>()
       console.log(clientInput);
 
       const triggeredJob = await endpoint!.run({
-        input: clientInput,
+        input: modifiedPayload,
         webhook: webhookUrl,
       });
 
       if (triggeredJob?.id) {
         runpodJobId = triggeredJob.id;
         console.log(
-          `RunPod job triggered successfully. RunPod Job ID: ${runpodJobId} for DB job ${newDbJobId}`,
+          `RunPod job triggered successfully. RunPod Job ID: ${runpodJobId} for DB job ${newDbJobId}`
         );
 
         const updateData: Partial<InsertGeneratorJob> = {
@@ -132,7 +237,7 @@ const generatorRouter = new Hono<ContextForHono>()
           .set(updateData)
           .where(eq(generatorJobs.id, newDbJobId));
         console.log(
-          `DB job record ${newDbJobId} updated with RunPod ID ${runpodJobId} and status RUNNING.`,
+          `DB job record ${newDbJobId} updated with RunPod ID ${runpodJobId} and status RUNNING.`
         );
 
         return c.json(
@@ -142,7 +247,7 @@ const generatorRouter = new Hono<ContextForHono>()
             db_job_id: newDbJobId,
             runpod_job_id: runpodJobId,
           },
-          202,
+          202
         );
       } else {
         const msg = `RunPod endpoint.run did not return a job ID for DB job ${newDbJobId}.`;
@@ -161,13 +266,13 @@ const generatorRouter = new Hono<ContextForHono>()
 
         return c.json(
           { status: "error", message: "Failed to trigger RunPod job." },
-          500,
+          500
         );
       }
     } catch (error: any) {
       console.error(
         `API Handler unexpected error during RunPod job triggering for DB job ${newDbJobId}: ${error.message}`,
-        error,
+        error
       );
 
       const updateData: Partial<InsertGeneratorJob> = {
@@ -185,12 +290,12 @@ const generatorRouter = new Hono<ContextForHono>()
           .set(updateData)
           .where(eq(generatorJobs.id, newDbJobId));
         console.log(
-          `DB job record ${newDbJobId} updated to FAILED after API handler error during triggering.`,
+          `DB job record ${newDbJobId} updated to FAILED after API handler error during triggering.`
         );
       } catch (dbUpdateError: any) {
         console.error(
           `Failed to update DB job record ${newDbJobId} to FAILED after handler error: ${dbUpdateError.message}`,
-          dbUpdateError,
+          dbUpdateError
         );
       }
 
@@ -199,7 +304,7 @@ const generatorRouter = new Hono<ContextForHono>()
           status: "error",
           message: "Internal server error while initiating job.",
         },
-        500,
+        500
       );
     }
   })
@@ -208,14 +313,14 @@ const generatorRouter = new Hono<ContextForHono>()
 
     if (!db) {
       console.error(
-        "Server configuration error: Database binding not available.",
+        "Server configuration error: Database binding not available."
       );
       return c.json(
         {
           status: "error",
           message: "Server configuration error: Database not available.",
         },
-        500,
+        500
       );
     }
 
@@ -231,14 +336,14 @@ const generatorRouter = new Hono<ContextForHono>()
           status: "error",
           message: "Invalid pagination parameters (limit, offset).",
         },
-        400,
+        400
       );
     }
     // Add validation for statusFilter if needed
 
     try {
       console.log(
-        `Fetching images: limit=${limit}, offset=${offset}, status=${statusFilter}`,
+        `Fetching images: limit=${limit}, offset=${offset}, status=${statusFilter}`
       );
 
       const jobs = await db.query.generatorJobs.findMany({
@@ -250,11 +355,11 @@ const generatorRouter = new Hono<ContextForHono>()
       });
 
       console.log(
-        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`,
+        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`
       );
 
       console.log(
-        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`,
+        `Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`
       );
 
       // Determine if there's a next page using the limit/offset pattern
@@ -288,7 +393,7 @@ const generatorRouter = new Hono<ContextForHono>()
     } catch (error: any) {
       console.error(
         `API Handler unexpected error fetching generator jobs: ${error.message}`,
-        error,
+        error
       );
 
       return c.json(
@@ -297,7 +402,7 @@ const generatorRouter = new Hono<ContextForHono>()
           message: "Internal server error while fetching images.",
           error: error.message,
         },
-        500,
+        500
       );
     }
   })
@@ -314,7 +419,7 @@ const generatorRouter = new Hono<ContextForHono>()
           status: "success",
           message: "Deleted successfully",
         },
-        200,
+        200
       );
     } catch (e) {
       return c.json(
@@ -323,7 +428,7 @@ const generatorRouter = new Hono<ContextForHono>()
           message: "Internal Server Error while deleting this id",
           error: e instanceof Error ? e?.message : JSON.stringify(e),
         },
-        500,
+        500
       );
     }
   });

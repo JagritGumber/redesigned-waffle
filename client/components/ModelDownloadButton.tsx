@@ -5,7 +5,7 @@ import { StyleSheet, Alert } from 'react-native'; // Keep Alert for now
 import { Download, Check, XCircle, Hourglass, Trash } from '@tamagui/lucide-icons';
 import { Model as CivitaiApiModel } from '~/types/civitai';
 import { CivitaiModelWithRelations } from '~/backend/schema/models'; // Your backend DB model type
-import { useDownloadModel } from '~/hooks/useDownloadModel'; // Import the hook
+import { useDownloadModel } from '~/hooks/upseDownloadModel'; // Import the hook
 
 interface ModelDownloadButtonProps {
   civitaiModel: CivitaiApiModel | null;

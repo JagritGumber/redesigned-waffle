@@ -30,10 +30,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ image }) => {
         },
       }}
       asChild>
-      {/* TouchableOpacity needs width 100% to fill its parent wrapper View */}
-      {/* Its height will be determined by its child (Card) */}
       <TouchableOpacity activeOpacity={0.8} style={styles.imageButton}>
-        {/* Card now defines the aspectRatio based on its width */}
         <Card key={image.imageKey} style={styles.imageCard} position="relative">
           <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         </Card>

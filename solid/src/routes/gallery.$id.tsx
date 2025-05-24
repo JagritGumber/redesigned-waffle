@@ -39,11 +39,11 @@ import {
   TableRow,
 } from "~/components/ui/table"; // Adjust import path if needed
 import { Badge } from "~/components/ui/badge";
-import type { InfoParsedResult } from "~/backend/types/generator"; // Adjust import path if needed
 import { Loader } from "~/components/loader"; // Adjust import path if needed
 import axios from "axios";
 import useDownloadedModels from "~/hooks/useDownloadedModels"; // Adjust import path if needed
 import useGeneratedJobs from "~/hooks/useGeneratedJobs"; // Adjust import path if needed
+import type { GenerateRequestPayloadType } from "~/backend/validators/generation";
 
 export const Route = createFileRoute("/gallery/$id")({
   // Consider adding loader/preload functions if needed, but handling loading inside
@@ -391,31 +391,16 @@ function RouteComponent() {
   const isAnyFetching = () =>
     modelsQuery.isFetching || deleteImageMutation.isPending;
 
-  const displayKeys: Array<keyof InfoParsedResult> = [
+  const displayKeys: Array<keyof GenerateRequestPayloadType> = [
     "prompt",
-    "negative_prompt",
-    "sd_model_name",
-    "sd_vae_name",
-    "sampler_name",
     "steps",
-    "cfg_scale",
     "seed",
     "width",
     "height",
-    "clip_skip",
-    "batch_size",
-    "denoising_strength", // Denoising strength might be in extra_generation_params sometimes
-    "restore_faces",
-    "face_restoration_model",
-    "styles",
-    "job_timestamp",
-    "extra_generation_params", // Keep this for JSON display
+    "checkpoint",
+    "loras",
+    "steps",
   ];
-
-  // Keys that are not in InfoParsedResult but might be in inputPayload
-  const displayInputPayloadKeys: Array<string> = [
-    "override_settings.sd_model_checkpoint",
-  ]; // Use dot notation for nested paths
 
   return (
     <Switch fallback={<Loader />}>
@@ -569,11 +554,7 @@ function RouteComponent() {
                 </DrawerDescription>
               </DrawerHeader>
 
-              <Show
-                when={
-                  currentImage()?.generationInfo || currentImage()?.inputPayload
-                }
-              >
+              <Show when={currentImage()?.inputPayload}>
                 <Table class="w-full px-4 pb-4 text-sm">
                   <TableHeader>
                     <TableRow>
@@ -584,50 +565,12 @@ function RouteComponent() {
                   <TableBody>
                     <Index each={displayKeys}>
                       {(key) => {
-                        const typedKey = key() as keyof InfoParsedResult;
+                        const typedKey =
+                          key() as keyof GenerateRequestPayloadType;
                         // Ensure generationInfo exists before accessing keys
-                        const info = currentImage()?.generationInfo as
-                          | InfoParsedResult
-                          | undefined;
+                        const info = currentImage()
+                          ?.inputPayload as GenerateRequestPayloadType;
                         const value = info?.[typedKey];
-
-                        // Special handling for denoising_strength if it's in extra_generation_params
-                        // Check extra_generation_params first if the main value is null/undefined
-                        if (
-                          typedKey === "denoising_strength" &&
-                          (value == null || value === "") &&
-                          info?.extra_generation_params
-                        ) {
-                          const extraParams =
-                            info.extra_generation_params as any; // Cast to any to access potential keys
-                          const extraValue = extraParams["Denoising strength"]; // Common key name
-                          if (extraValue != null && extraValue !== "") {
-                            // If found in extra params, use that value
-                            return (
-                              <TableRow>
-                                <TableCell class="font-semibold w-24 align-top">
-                                  Denoising Strength
-                                </TableCell>
-                                <TableCell class="text-wrap">
-                                  {String(extraValue)}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          }
-                          // If not found in extra params either, fall through to check main value (which was null) and skip
-                        }
-
-                        // Skip rendering if value is null, empty string, empty array, or empty object (unless extra_generation_params)
-                        if (
-                          value == null ||
-                          value === "" ||
-                          (Array.isArray(value) && value.length === 0) ||
-                          (typeof value === "object" &&
-                            !(typedKey === "extra_generation_params") &&
-                            Object.keys(value).length === 0)
-                        ) {
-                          return null; // Skip rendering this row
-                        }
 
                         // Format the key string
                         const displayKey = String(key()) // Access the value of the signal from Index
@@ -643,34 +586,10 @@ function RouteComponent() {
 
                         let displayValueNode;
 
-                        if (
-                          typedKey === "extra_generation_params" &&
-                          typeof value === "object" &&
-                          Object.keys(value).length > 0 // Only show if object is not empty
-                        ) {
-                          // Special formatting for JSON object
-                          const jsonString = JSON.stringify(value, null, 2);
-                          displayValueNode = (
-                            <pre class="whitespace-pre-wrap break-all text-xs text-wrap bg-gray-800 text-white p-2 rounded-md overflow-auto max-h-40">
-                              {jsonString}
-                            </pre>
-                          );
-                        } else if (Array.isArray(value)) {
+                        if (Array.isArray(value)) {
                           displayValueNode = value.join(", ");
                         } else if (typeof value === "boolean") {
                           displayValueNode = value ? "Yes" : "No";
-                        } else if (typedKey === "job_timestamp") {
-                          // Format timestamp
-                          try {
-                            const date = new Date(value as number);
-                            const formattedDate = date.toLocaleString(); // Uses user's locale
-                            displayValueNode =
-                              formattedDate === "Invalid Date"
-                                ? value
-                                : formattedDate;
-                          } catch (e) {
-                            displayValueNode = value; // Show raw value if formatting fails
-                          }
                         } else if (typeof value === "object") {
                           // Fallback for other unexpected objects (excluding extra_generation_params handled above)
                           // Only stringify if it's a non-empty object
@@ -694,76 +613,6 @@ function RouteComponent() {
                             </TableCell>
                           </TableRow>
                         ) : null;
-                      }}
-                    </Index>
-
-                    <Index each={displayInputPayloadKeys}>
-                      {(itemPath) => {
-                        const path = itemPath().split("."); // e.g., ["override_settings", "sd_model_checkpoint"]
-                        let currentValue: any = JSON.parse(
-                          currentImage()?.inputPayload ?? "{}"
-                        );
-                        let displayKey = itemPath(); // Default display key is the full path
-
-                        // Traverse the object using the path
-                        for (const key of path) {
-                          if (
-                            currentValue &&
-                            typeof currentValue === "object" &&
-                            key in currentValue
-                          ) {
-                            currentValue = currentValue[key];
-                          } else {
-                            currentValue = undefined; // Path not found
-                            break;
-                          }
-                        }
-
-                        let displayNode: string | undefined;
-
-                        if (
-                          itemPath() ===
-                            "override_settings.sd_model_checkpoint" &&
-                          typeof currentValue === "string"
-                        ) {
-                          // If it's the checkpoint path, try to find the model name
-                          displayNode =
-                            modelsQuery.data?.models.find(
-                              (model) =>
-                                model.modelVersions?.find(
-                                  (modelVersion) =>
-                                    modelVersion.files?.find(
-                                      (file) => file.runpodPath === currentValue
-                                    ) !== undefined
-                                ) !== undefined
-                            )?.name || currentValue; // Fallback to the raw path if name not found
-                          displayKey = "Model Checkpoint"; // Use a friendly display key
-                        } else if (currentValue !== undefined) {
-                          // For other payload keys found, just display the value as string
-                          displayNode = String(currentValue);
-                          // Format the key path into a friendly string
-                          displayKey = path
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() + word.slice(1)
-                            )
-                            .join(" ");
-                        }
-
-                        // Only render row if displayNode is found and not empty
-                        if (!displayNode || displayNode === "undefined")
-                          return null; // Also explicitly check for 'undefined' string
-
-                        return (
-                          <TableRow>
-                            <TableCell class="font-semibold w-24 align-top">
-                              {displayKey}
-                            </TableCell>
-                            <TableCell class="text-wrap">
-                              {displayNode}
-                            </TableCell>
-                          </TableRow>
-                        );
                       }}
                     </Index>
                   </TableBody>

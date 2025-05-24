@@ -25,6 +25,18 @@
    * databases, object storage, AI inference, real-time communication and more.
    * https://developers.cloudflare.com/workers/runtime-apis/bindings/
    */
+  "vars": {
+    "API_TOKEN": "9f61f82876b8b2efbd8764e206ff8f2b",
+    "RUNPOD_GENERATOR_ID": "079gbactqqnr4i",
+    "RUNPOD_DOWNLOADER_ID": "kpu2tduymy3ng5",
+    "RUNPOD_WEBHOOK_URL": "https://redesigned-waffle.jagritgumber-cloudflare.workers.dev/api/v1/webhooks/runpod",
+    "RUNPOD_API_KEY": "rpa_OPKOWPORUVGRUIXVAFD7RJLW9O413O78332JM2FNxtb8jj",
+    "R2_ACCOUNT_ID": "8zxIKcnDKh8oumUAOspcidab937COIaWT1BtmTRq",
+    "R2_ACCESS_KEY_ID": "cc90157e9a2e35b98af5bbc0d17fb5ed",
+    "R2_SECRET_ACCESS_KEY": "9748e1b573a17ba3d8dd079f562b46df3e9641aa95545445a78a55ebab9702c5",
+    "R2_PUBLIC_BUCKET_URL": "https://2f3b67e4fd904d6e828cf91b3dbbde32.r2.cloudflarestorage.com",
+    "R2_BUCKET_NAME": "semantic-first-search-bucket"
+  },
   "d1_databases": [
     {
       "binding": "DB",
