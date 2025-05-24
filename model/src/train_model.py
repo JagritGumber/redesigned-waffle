@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 import json
+import os
 
 # Configuration (consistent with prepare_data.py)
 EMBEDDING_DIM = 128 # Must match prepare_data.py and desired model size
@@ -98,12 +99,13 @@ def main(data_path: str, vocab_size: int, model_save_path: str):
 
 
     # 4. Save Model
-    print(f"Python (train_model): Saving model to {model_save_path}...")
+    model_save_file = os.path.join(model_save_path, 'model.keras') # Save inside the directory
+    print(f"Python (train_model): Saving model to {model_save_file}...") # Log the correct file
     try:
         # Ensure the directory exists (should be created by prepare_data.py)
         # os.makedirs(model_save_path, exist_ok=True) # Already done by caller
         # Save in the TensorFlow SavedModel format, loadable by tf.keras.models.load_model
-        model.save(model_save_path, save_format='tf')
+        model.save(model_save_path)
         print("Python (train_model): Model saved successfully.")
     except Exception as e:
         print(f"Python Error (train_model): Failed to save model to {model_save_path} - {e}", file=sys.stderr)
