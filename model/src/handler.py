@@ -1,5 +1,6 @@
 # runpod_handler.py
 # Script to run when the container is deployed (inference handler)
+# Simplified to generate a comma-separated prompt string
 
 import runpod
 import tensorflow as tf
@@ -7,6 +8,7 @@ import json
 import os
 import numpy as np
 import time
+import random # Added for potential shuffling or ordering if needed
 
 # Use RunPodLogger
 log = runpod.RunPodLogger()
@@ -14,15 +16,17 @@ log = runpod.RunPodLogger()
 # Paths inside the container (must match Dockerfile and prepare_data.py)
 MODEL_SAVE_DIR = os.environ.get("MODEL_SAVE_DIR", "/workspace/data/tag_embedding_model")
 VOCAB_SAVE_PATH = os.environ.get("VOCAB_SAVE_PATH", "/workspace/data/tag_embedding_vocab.json")
-MODEL_SAVE_FILE = os.path.join(MODEL_SAVE_DIR, 'model.keras') # Add the file name
+# Define the full path to the .keras file
+MODEL_SAVE_FILE = os.path.join(MODEL_SAVE_DIR, 'model.keras')
 
 # Global variables to hold the loaded model and vocabulary artifacts
 loaded_model = None
-tag_text_to_model_index = None
-model_index_to_tag_text = None
-embedding_matrix = None
-vocabulary_size = 0
+tag_text_to_model_index = None # tag_name -> model_index (int)
+model_index_to_tag_text = None # model_index (int) -> tag_name
+embedding_matrix = None # The full embedding matrix (numpy array)
+vocabulary_size = 0 # Total size including padding (usually max model_index + 1)
 embedding_dim = 0
+
 
 def _load_artifacts():
     """
@@ -101,72 +105,63 @@ def get_tag_name_from_model_index(model_index: int) -> str | None:
      # Returns the tag text or None if index is 0 (padding) or out of bounds
      return model_index_to_tag_text.get(model_index)
 
-def get_tag_embedding_vector(tag_name: str) -> np.ndarray | None:
-    """Retrieves the embedding vector for a single tag name using its model index."""
-    if embedding_matrix is None or tag_text_to_model_index is None: return None
-
-    model_index = get_tag_model_index(tag_name)
-    if model_index is None:
-        # log.warn(f"Handler Warning: Tag '{tag_name}' not found in vocabulary.") # Too noisy during inference
-        return None # Return None for unknown tags or tags not in vocabulary
-
-    try:
-        # Lookup the embedding vector directly from the matrix using the model index
-        embedding_vector = embedding_matrix[model_index]
-        return embedding_vector # Return as numpy array
-    except IndexError:
-        log.error(f"Handler Error: Model index {model_index} out of bounds for embedding matrix (size {embedding_matrix.shape[0]}).")
-        return None
-    except Exception as e:
-        log.error(f"Handler Error: Failed to retrieve embedding for tag '{tag_name}' at index {model_index}: {e}")
-        return None
 
 def handler(job):
     """
     Main handler function for RunPod Serverless requests.
-    job['input'] contains the request payload.
+    job['input'] contains the request payload:
+    { "input": { "query_tags": ["tag1", "tag2"], "limit": 10 } }
     """
-    # Attempt to load artifacts if not already loaded (safe to call repeatedly)
-    _load_artifacts()
+    _load_artifacts() # Attempt to load artifacts
 
-    # Check if artifacts were loaded successfully
     if loaded_model is None or tag_text_to_model_index is None or model_index_to_tag_text is None or embedding_matrix is None:
         log.error("Handler Error: Artifacts could not be loaded. Cannot process request.")
         return {"status": "ERROR", "message": "Model or vocabulary failed to load on worker."}
 
 
-    # Process the input request for tag completion
-    # Expected input format: { "input": { "query_tags": ["tag1", "tag2"], "limit": 10 } }
+    # Process the input request
     input_data = job.get('input', {})
     query_tags = input_data.get('query_tags', [])
-    limit = input_data.get('limit', 10)
+    limit = input_data.get('limit', 10) # Limit on *suggested* tags to add
 
     if not isinstance(query_tags, list) or not query_tags:
         log.warn("Handler: Invalid input. 'query_tags' must be a non-empty list.")
         return {"status": "ERROR", "message": "Invalid input. Please provide a non-empty list of 'query_tags'."}
 
-    # Get embeddings for the query tags
+    # 1. Process input tags, get valid embeddings and their model indices
     query_embeddings = []
-    valid_query_tags = []
+    valid_query_tags = [] # Keep track of input tags found in vocabulary
     query_tag_model_indices = set() # Keep track of indices of query tags to exclude
+
     for tag_name in query_tags:
+        # Normalize tag name if necessary (depends on your training data's tag format)
+        # Assuming tag names from API are already clean / lowercase / spaced as in train_model.py
         model_index = get_tag_model_index(tag_name)
         if model_index is not None:
-             emb = embedding_matrix[model_index] # Get embedding directly using index
-             query_embeddings.append(emb)
-             valid_query_tags.append(tag_name)
-             query_tag_model_indices.add(model_index)
+             # Get embedding directly using index
+             # Ensure index is valid for the matrix shape
+             if 0 <= model_index < embedding_matrix.shape[0]:
+                  emb = embedding_matrix[model_index]
+                  query_embeddings.append(emb)
+                  # Add the *original* tag name from input to the list for the final prompt
+                  valid_query_tags.append(tag_name)
+                  query_tag_model_indices.add(model_index)
+             else:
+                  log.warn(f"Handler Warning: Query tag '{tag_name}' model index {model_index} out of bounds for embedding matrix.")
+
         # else: Tag not in vocab, ignored
 
 
     if not query_embeddings:
         log.warn(f"Handler: No valid query tags found in vocabulary from input: {query_tags}")
-        return {"status": "COMPLETED", "suggestions": [], "message": "No valid query tags found in vocabulary."}
+        # If no valid input tags, return an empty string prompt
+        return {"status": "COMPLETED", "generated_prompt": "", "suggestions_details": []}
 
-    # Calculate the average embedding for the query tags
+
+    # 2. Calculate the average embedding for the valid query tags
     average_embedding = np.mean(query_embeddings, axis=0)
 
-    # Calculate similarity between the average embedding and ALL tag embeddings
+    # 3. Calculate cosine similarity between the average embedding and ALL tag embeddings
     # Use cosine similarity
     # Check if norms are pre-calculated, calculate if not (should happen once)
     if not hasattr(_load_artifacts, 'embedding_norms') or _load_artifacts.embedding_norms is None:
@@ -187,34 +182,33 @@ def handler(job):
          log.error("Handler Error: Zero norm detected in embeddings, cannot compute cosine similarity.")
          return {"status": "ERROR", "message": "Internal error: Zero norm in embeddings."}
 
-
-    # Calculate dot products
     dot_products = np.dot(average_embedding, embedding_matrix.T)
-
-    # Calculate cosine similarities
     similarities = dot_products / (average_embedding_norm * _load_artifacts.embedding_norms)
 
 
-    # Get tag model indices and their similarity scores
-    tag_scores = []
+    # 4. Get tag model indices and their similarity scores for suggestion candidates
+    # Iterate through all possible frequent tag model indices (1 to num_frequent_tags)
+    # Index 0 is padding and should be ignored for suggestions
+    suggestion_candidates = []
     # vocabulary_size is num_frequent_tags + 1
-    # Iterate through all possible model indices (1 to vocabulary_size - 1)
+    # Iterate from 1 up to vocabulary_size (exclusive)
     for model_index in range(1, vocabulary_size): # Start from 1 to skip padding index 0
          # Ensure model_index is within bounds of similarities array
-         if model_index < len(similarities):
-              tag_scores.append((model_index, similarities[model_index]))
+         if 0 <= model_index < len(similarities):
+              suggestion_candidates.append((model_index, similarities[model_index]))
          else:
               log.warn(f"Handler Warning: Model index {model_index} out of bounds for similarity scores array (size {len(similarities)}).")
 
 
-    # Sort tags by similarity score in descending order
-    tag_scores.sort(key=lambda item: item[1], reverse=True)
+    # Sort candidates by similarity score (descending)
+    suggestion_candidates.sort(key=lambda item: item[1], reverse=True)
 
-    # Filter out the query tag indices and get the top suggestions
-    suggestions = []
+    # 5. Filter out the query tag indices and get the top 'limit' suggestions
+    suggested_tags_list = [] # List of suggested tag names
+    suggestions_details = [] # To return details (tag, score) if needed
     added_count = 0
 
-    for model_index, score in tag_scores:
+    for model_index, score in suggestion_candidates:
         # Check if the index is one of the query tags
         if model_index in query_tag_model_indices:
             continue
@@ -222,18 +216,32 @@ def handler(job):
         tag_name = get_tag_name_from_model_index(model_index)
         # tag_name should not be None if model_index is >= 1 and < vocabulary_size
         if tag_name is not None:
-             suggestions.append({"tag": tag_name, "score": float(score)}) # Convert numpy float to standard float
+             suggested_tags_list.append(tag_name)
+             suggestions_details.append({"tag": tag_name, "score": float(score)}) # Convert numpy float to standard float
 
              added_count += 1
              if added_count >= limit:
                  break # Stop once we have enough suggestions
-        # else: Should not happen with valid model_index >= 1
 
+    log.info(f"Handler: Processed query: {valid_query_tags}, found {len(suggested_tags_list)} suggestions.")
 
-    log.info(f"Handler: Processed query: {valid_query_tags}, returning {len(suggestions)} suggestions.")
+    # 6. Construct the final prompt string
+    # Combine valid input tags and the selected suggested tags
+    # Order them as desired (e.g., valid inputs first, then suggestions)
+    all_tags_for_prompt = valid_query_tags + suggested_tags_list
 
-    # Return status COMPLETED and the suggestions
-    return {"status": "COMPLETED", "suggestions": suggestions}
+    # Format into a comma-separated string
+    generated_prompt = ", ".join(all_tags_for_prompt)
+
+    log.info(f"Handler: Generated prompt string: {generated_prompt}")
+
+    # 7. Return the prompt string
+    return {
+        "status": "COMPLETED",
+        "generated_prompt": generated_prompt,
+        # You can still include suggestions_details if you want the scores
+        # "suggestions_details": suggestions_details
+    }
 
 
 # Load the model and vocabulary artifacts when the script starts
