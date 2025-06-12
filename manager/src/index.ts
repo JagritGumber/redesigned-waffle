@@ -9,5 +9,3 @@ const app = new Elysia()
   .listen(8765);
 
 console.log(`Started development server: http://${app.server?.hostname}:${app.server?.port}`);
-
-export default app;
