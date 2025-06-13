@@ -8,7 +8,7 @@ from huggingface_hub import snapshot_download
 
 
 response = requests.get(
-    "https://accepted-consistency-danny-varies.trycloudflare.com/api/v1/model/default"
+    "https://district-race-liberal-hindu.trycloudflare.com/api/v1/model/default"
 )
 
 DOWNLOAD_MAP = response.json()["items"]
@@ -22,12 +22,20 @@ def download_huggingface_model(model_name: str, save_dir: str):
     print(f"Starting download for Hugging Face model: {model_name} to {save_dir}")
     try:
         # Download model files
-        snapshot_download(repo_id=model_name, local_dir=save_dir, local_dir_use_symlinks=False)
+        snapshot_download(
+            repo_id=model_name, local_dir=save_dir, local_dir_use_symlinks=False
+        )
         print(f"Hugging Face model {model_name} downloaded successfully to {save_dir}")
-        return {"status": "COMPLETED", "message": f"Hugging Face model {model_name} downloaded."}
+        return {
+            "status": "COMPLETED",
+            "message": f"Hugging Face model {model_name} downloaded.",
+        }
     except Exception as e:
         print(f"Error downloading Hugging Face model {model_name}: {e}")
-        return {"status": "ERROR", "message": f"Error downloading Hugging Face model {model_name}: {e}"}
+        return {
+            "status": "ERROR",
+            "message": f"Error downloading Hugging Face model {model_name}: {e}",
+        }
 
 
 def download_file_direct(download_url: str, save_path: str):
@@ -130,7 +138,10 @@ if __name__ == "__main__":
     print("\n--- Downloading Hugging Face Models ---")
     # Define the Hugging Face model to download
     HUGGINGFACE_MODELS = [
-        {"name": "KBlueLeaf/DanTagGen-delta-rev2", "path": "./models/DanTagGen-delta-rev2"}
+        {
+            "name": "KBlueLeaf/DanTagGen-delta-rev2",
+            "path": "./models/DanTagGen-delta-rev2",
+        }
     ]
 
     for hf_model in HUGGINGFACE_MODELS:
@@ -138,11 +149,13 @@ if __name__ == "__main__":
         save_path = hf_model["path"]
         # Check if the directory exists and is not empty
         if os.path.exists(save_path) and os.listdir(save_path):
-            print(f"Hugging Face model already exists, skipping download: {model_name} at {save_path}")
+            print(
+                f"Hugging Face model already exists, skipping download: {model_name} at {save_path}"
+            )
             continue
         result = download_huggingface_model(model_name, save_path)
         print(result["message"])
         if result["status"] == "ERROR":
-            pass # Or handle error as needed
+            pass  # Or handle error as needed
 
     print("\nPre-trained model download script finished.")
