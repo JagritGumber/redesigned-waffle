@@ -8,7 +8,7 @@ from huggingface_hub import snapshot_download
 
 
 response = requests.get(
-    "https://district-race-liberal-hindu.trycloudflare.com/api/v1/model/default"
+    'https://district-race-liberal-hindu.trycloudflare.com/api/v1/model/default'
 )
 
 DOWNLOAD_MAP = response.json()["items"]
