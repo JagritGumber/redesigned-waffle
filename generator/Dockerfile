@@ -32,6 +32,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ROOT=/stable-diffusion-webui \
     PYTHONUNBUFFERED=1
 
+COPY generator/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && \
@@ -50,10 +54,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY --from=download /model.safetensors /model.safetensors
 COPY --from=download /defaults/ /defaults/
 
-# install dependencies
-COPY generator/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir -r requirements.txt
 
 COPY generator/test_input.json .
 
