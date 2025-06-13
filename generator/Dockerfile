@@ -3,15 +3,11 @@
 # ---------------------------------------------------------------------------- #
 FROM python:3.10.14-slim AS download
 
-RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget git --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 RUN wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=9f61f82876b8b2efbd8764e206ff8f2b
 
 RUN pip install requests
-RUN pip install wheel setuptools
-# Pre-install torch (CPU version) and xformers to reduce build time in download stage
-RUN pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir xformers==0.0.23.post1
 
 COPY generator/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -37,8 +33,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ROOT=/stable-diffusion-webui \
     PYTHONUNBUFFERED=1
 
+# Pre-install torch (CPU version) and xformers to reduce build time in final image stage
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir xformers==0.0.23.post1
+
 COPY generator/requirements.txt .
-RUN pip install wheel setuptools
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
@@ -49,10 +49,6 @@ RUN apt-get update && \
     fonts-dejavu-core rsync git jq moreutils aria2 wget libgoogle-perftools-dev libtcmalloc-minimal4 procps libgl1 libglib2.0-0 && \
     apt-get autoremove -y && rm -rf /var/lib/apt/lists/* && apt-get clean -y
 
-# Pre-install torch (CPU version) and xformers to reduce build time in final image stage
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir xformers==0.0.23.post1
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
