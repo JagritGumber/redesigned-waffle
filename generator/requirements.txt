@@ -3,3 +3,4 @@ diffusers
 torch
 transformers
 huggingface_hub
+runpod
