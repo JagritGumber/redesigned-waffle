@@ -7,7 +7,7 @@ import requests
 
 
 response = requests.get(
-    "https://redesigned-waffle.jagritgumber-cloudflare.workers.dev/api/v1/model/default"
+    "https://accepted-consistency-danny-varies.trycloudflare.com/api/v1/model/default"
 )
 
 DOWNLOAD_MAP = response.json()["items"]

@@ -39,3 +39,9 @@ export const GenerateRequestPayload = Type.Object({
 });
 
 export type GenerateRequestPayloadType = Static<typeof GenerateRequestPayload>;
+
+export const GeneratePromptRequestPayload = Type.Object({
+  prompt: Type.String(),
+});
+
+export type GeneratePromptRequestPayloadType = Static<typeof GeneratePromptRequestPayload>;

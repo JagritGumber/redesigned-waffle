@@ -1,0 +1,170 @@
+import { Elysia, t } from "elysia";
+import { eq, and, isNotNull, lt, gt, desc, asc } from "drizzle-orm";
+import { generatorJobs } from "@/schema"; // Assuming schema path is relative to manager/src
+
+export const imageRouter = new Elysia({ prefix: "/image" })
+  .get(
+    "/:key",
+    async ({
+      params,
+      set,
+      env,
+    }: {
+      params: { key: string };
+      set: { status: number | undefined; headers: Record<string, string> };
+      env: {
+        R2: any; // Replace 'any' with your R2 bucket type
+      };
+    }) => {
+      const bucket = env.R2;
+
+      if (!bucket) {
+        set.status = 500;
+        return "R2 bucket not configured.";
+      }
+      const key = params.key;
+      if (!key) {
+        set.status = 400;
+        return "Missing image key.";
+      }
+      try {
+        const object = await bucket.get(key);
+
+        if (!object) {
+          set.status = 404;
+          return "Not Found";
+        }
+
+        const contentType =
+          object.httpMetadata?.contentType || "application/octet-stream";
+        const cacheControl =
+          object.httpMetadata?.cacheControl || "public, max-age=86400";
+
+        set.status = 200;
+        set.headers["Content-Type"] = contentType;
+        set.headers["Cache-Control"] = cacheControl;
+        set.headers["ETag"] = object.etag;
+        set.headers["Last-Modified"] = object.uploaded.toUTCString();
+        return object.body;
+      } catch (error: any) {
+        console.error(
+          `Error fetching object ${key} from R2: ${error.message}`,
+          error
+        );
+        set.status = 500;
+        return "Internal server error fetching image.";
+      }
+    }
+  )
+  .get(
+    "/gallery/:id",
+    async ({
+      params,
+      query,
+      set,
+      db,
+    }: {
+      params: { id: string };
+      query: { status?: string };
+      set: { status: number | undefined };
+      db: any; // Replace 'any' with your actual Drizzle DB type
+    }) => {
+      const jobId = params.id; // Get the ID from the URL path
+      const statusFilter = query.status || "COMPLETED";
+
+      if (!db) {
+        console.error(
+          "Server configuration error: Database binding not available."
+        );
+        set.status = 500;
+        return {
+          status: "error",
+          message: "Server configuration error: Database not available.",
+        };
+      }
+
+      if (!jobId) {
+        console.error("Missing job ID in request path.");
+        set.status = 400;
+        return { status: "error", message: "Job ID is required." };
+      }
+
+      try {
+        // 1. Fetch the target job
+        const targetJob = await db.query.generatorJobs.findFirst({
+          where: (jobs: any, { and, eq, isNotNull }: any) =>
+            and(
+              eq(jobs.id, jobId),
+              eq(jobs.status, statusFilter as any), // Apply status filter
+              isNotNull(jobs.imageKey) // Ensure it's an image we can view
+            ),
+        });
+
+        if (!targetJob) {
+          console.warn(
+            `Target job not found or does not meet criteria for ID: ${jobId}`
+          );
+          set.status = 404;
+          return { status: "error", message: "Job not found or not viewable." };
+        }
+
+        const targetCreatedAt = targetJob.createdAt;
+
+        // 2. Fetch jobs *after* the target (which have an *earlier* createdAt in DESC order)
+        const jobsAfter = await db.query.generatorJobs.findMany({
+          where: (jobs: any, { and, lt, eq, isNotNull }: any) =>
+            and(
+              lt(jobs.createdAt, targetCreatedAt), // Earlier timestamp
+              eq(jobs.status, statusFilter as any), // Apply status filter
+              isNotNull(jobs.imageKey) // Ensure it's viewable
+            ),
+          orderBy: (jobs: any, { desc }: any) => desc(jobs.createdAt), // Same sort order as gallery
+        });
+
+        // 3. Fetch jobs *before* the target (which have a *later* createdAt in DESC order)
+        // We need to fetch them in ASC order by createdAt to get the "latest" ones before the target easily
+        const jobsBefore = await db.query.generatorJobs.findMany({
+          where: (jobs: any, { and, gt, eq, isNotNull }: any) =>
+            and(
+              gt(jobs.createdAt, targetCreatedAt), // Later timestamp
+              eq(jobs.status, statusFilter as any), // Apply status filter
+              isNotNull(jobs.imageKey) // Ensure it's viewable
+            ),
+          orderBy: (jobs: any, { asc }: any) => asc(jobs.createdAt), // Need ASC here
+        });
+
+        // 4. Combine results: jobsBefore (reversed), targetJob, jobsAfter
+        // jobsBefore were fetched ASC, so reverse to put them before target in DESC order view
+        const combinedJobs = [...jobsBefore.reverse(), targetJob, ...jobsAfter];
+
+        // Find the index of the target job in the combined list
+        const initialIndex = combinedJobs.findIndex(
+          (job: any) => job.id === targetJob.id
+        );
+
+        console.log(
+          `Fetched ${jobsBefore.length} jobs before, ${jobsAfter.length} jobs after for ID ${jobId}. Combined: ${combinedJobs.length}`
+        );
+
+        set.status = 200;
+        return {
+          status: "success",
+          message: "Successfully fetched job details and neighbors.",
+          items: combinedJobs, // Return the array of jobs
+          initialIndex: initialIndex, // Return the index of the current job
+        };
+      } catch (error: any) {
+        console.error(
+          `API Handler unexpected error fetching job ${jobId} with neighbors: ${error.message}`,
+          error
+        );
+        set.status = 500;
+        return {
+          status: "error",
+          message:
+            "Internal server error while fetching job details and neighbors.",
+          error: error.message,
+        };
+      }
+    }
+  );

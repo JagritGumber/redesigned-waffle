@@ -1,6 +1,6 @@
 // @/schema/generatorJobs.ts
 import { InfoParsedResult } from "@/types/generator";
-import { GenerateRequestPayloadType } from "@/validators/generation";
+import { GenerateRequestPayloadType, GeneratePromptRequestPayloadType } from "@/validators/generation";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const generatorJobs = sqliteTable("generator_jobs", {
@@ -23,7 +23,7 @@ export const generatorJobs = sqliteTable("generator_jobs", {
   }).notNull(),
 
   inputPayload: text("input_payload", { mode: "json" })
-    .$type<GenerateRequestPayloadType>()
+    .$type<GenerateRequestPayloadType | GeneratePromptRequestPayloadType>()
     .notNull(),
 
   generationInfo: text("generation_info", {

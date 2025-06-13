@@ -38,6 +38,7 @@ import {
 import { useDownloadModel } from "~/hooks/useDownloadModel";
 import { formatBytes } from "~/utils/formatBytes";
 import { formatTime } from "~/utils/formatTime";
+import { toast, Toaster } from "solid-sonner";
 
 export const Route = createFileRoute("/models/$id/$vId")({
   component: RouteComponent,
@@ -174,12 +175,28 @@ function RouteComponent() {
             <Button
               class="w-full"
               onClick={() => {
-                downloadMutation.mutate({
-                  model: civitaiModel()!,
-                  versionId: civitaiModelVersion()?.id!,
-                  defaultDownload: true,
-                  fileId: primaryFile()?.id!,
-                });
+                const modelName = civitaiModel()?.name;
+                const toastId = toast.loading(`Downloading ${modelName}...`);
+                downloadMutation.mutate(
+                  {
+                    model: civitaiModel()!,
+                    versionId: civitaiModelVersion()?.id!,
+                    defaultDownload: true,
+                    fileId: primaryFile()?.id!,
+                  },
+                  {
+                    onSuccess: () => {
+                      toast.success(`${modelName} downloaded successfully!`, {
+                        id: toastId,
+                      });
+                    },
+                    onError: (error) => {
+                      toast.error(`Failed to download ${modelName}: ${error.message}`, {
+                        id: toastId,
+                      });
+                    },
+                  }
+                );
               }}
             >
               <Download weight="bold" />
@@ -267,12 +284,28 @@ function RouteComponent() {
                             class="p-0 h-fit"
                             variant={"link"}
                             onClick={() => {
-                              downloadMutation.mutate({
-                                model: civitaiModel()!,
-                                versionId: civitaiModelVersion()?.id!,
-                                defaultDownload: true,
-                                fileId: file.id!,
-                              });
+                              const modelName = civitaiModel()?.name;
+                              const toastId = toast.loading(`Downloading ${modelName}...`);
+                              downloadMutation.mutate(
+                                {
+                                  model: civitaiModel()!,
+                                  versionId: civitaiModelVersion()?.id!,
+                                  defaultDownload: true,
+                                  fileId: file.id!,
+                                },
+                                {
+                                  onSuccess: () => {
+                                    toast.success(`${modelName} downloaded successfully!`, {
+                                      id: toastId,
+                                    });
+                                  },
+                                  onError: (error) => {
+                                    toast.error(`Failed to download ${modelName}: ${error.message}`, {
+                                      id: toastId,
+                                    });
+                                  },
+                                }
+                              );
                             }}
                           >
                             Download
@@ -293,6 +326,7 @@ function RouteComponent() {
                 ""
               }
             ></div>
+            <Toaster />
           </main>
         </Match>
       </Switch>

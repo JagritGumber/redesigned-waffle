@@ -104,7 +104,7 @@ export interface Model {
   cosmetic: null;
   supportsGeneration: boolean;
   stats: Stats;
-  creator: Creator;
+  creator?: Creator;
   tags: string[];
   modelVersions: ModelVersion[];
   downloadUrl: string;

@@ -3,6 +3,7 @@ import runpod
 import requests
 from requests.adapters import HTTPAdapter, Retry
 from runpod import RunPodLogger
+from transformers.pipelines import pipeline
 
 logger = RunPodLogger()
 
@@ -11,6 +12,9 @@ LOCAL_URL = "http://127.0.0.1:3000/sdapi/v1"
 automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
+
+# Load the DanTagGen model
+tag_generator = pipeline("text-generation", model="KBlueLeaf/DanTagGen-delta-rev2")
 
 
 # ---------------------------------------------------------------------------- #
@@ -38,9 +42,9 @@ def wait_for_service(url):
         time.sleep(0.2)
 
 
-def run_inference(inference_request):
+def generate_image_a1111(inference_request):
     """
-    Run inference on a request.
+    Run image generation inference using Automatic1111.
     """
 
     logger.log(inference_request)
@@ -51,18 +55,54 @@ def run_inference(inference_request):
     return response.json()
 
 
+def generate_prompt_ai_dan_tag_gen(prompt_request):
+    """
+    Generate prompt using AI Dan Tag Gen.
+    """
+    logger.log("Generating prompt with AI Dan Tag Gen:", prompt_request)
+
+    # Extract the prompt from the request
+    input_prompt = prompt_request.get("prompt", "")
+
+    # Generate tags using the DanTagGen model
+    generated_output = tag_generator(input_prompt)
+    generated_tags = ""
+    if (
+        generated_output
+        and isinstance(generated_output, list)
+        and len(generated_output) > 0
+    ):
+        generated_tags = generated_output[0].get("generated_text", "")
+    else:
+        logger.log(f"Error: DanTagGen pipeline did not return expected output. Output: {generated_output}")
+        generated_tags = ""  # Fallback to empty string if generation fails
+
+    # Combine the input prompt with the generated tags
+    full_prompt = f"{input_prompt}, {generated_tags}"
+
+    return {"generated_prompt": full_prompt}
+
+
 # ---------------------------------------------------------------------------- #
 #                                RunPod Handler                                #
 # ---------------------------------------------------------------------------- #
 def handler(event):
     """
     This is the handler function that will be called by the serverless.
+    It dispatches to different functions based on the job_type in the input.
     """
+    job_type = event["input"].get("job_type")
+    request_data = event["input"].get("data")
 
-    json = run_inference(event["input"])
+    if job_type == "generate_image":
+        result = generate_image_a1111(request_data)
+    elif job_type == "generate_prompt":
+        result = generate_prompt_ai_dan_tag_gen(request_data)
+    else:
+        raise ValueError(f"Unknown job_type: {job_type}")
 
     # return the output that you want to be returned like pre-signed URLs to output artifacts
-    return json
+    return result
 
 
 if __name__ == "__main__":
