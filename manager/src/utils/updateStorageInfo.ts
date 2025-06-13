@@ -1,18 +1,12 @@
+import db from "@/db";
 import { storageInfo } from "@/schema/storageInfo";
 import { eq } from "drizzle-orm";
 
-export async function updateStorageInfo(
-  context: { env: any; db: any }, // Adjusted to receive context object
-  newSize: number
-) {
-  const db = context.db;
-  const directoryPath = "/runpod-volume/"; // Path to your Runpod volume
+export async function updateStorageInfo(newSize: number) {
+  const directoryPath = "/runpod-volume/";
 
   try {
-    const existingStorageInfo = await db
-      .select()
-      .from(storageInfo)
-      .where(eq(storageInfo.id, 1));
+    const existingStorageInfo = await db.select().from(storageInfo).where(eq(storageInfo.id, 1));
 
     if (existingStorageInfo.length === 0) {
       await db.insert(storageInfo).values({

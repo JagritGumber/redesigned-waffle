@@ -4,16 +4,8 @@ import axios from "axios";
 import { Show } from "solid-js";
 import { ModelList } from "~/components/model-list";
 import { Button } from "~/components/ui/button";
-import {
-  NumberField,
-  NumberFieldInput,
-  NumberFieldLabel,
-} from "~/components/ui/number-field";
-import {
-  TextFieldTextArea,
-  TextField,
-  TextFieldLabel,
-} from "~/components/ui/text-field";
+import { NumberField, NumberFieldInput, NumberFieldLabel } from "~/components/ui/number-field";
+import { TextFieldTextArea, TextField, TextFieldLabel } from "~/components/ui/text-field";
 import { Toggle } from "~/components/ui/toggle";
 import useGenerationModels from "~/hooks/useGenerationModels";
 import {
@@ -70,20 +62,11 @@ function RouteComponent() {
   const cnQuery = useGenerationModels("controlnets");
   const psQuery = useGenerationModels("poses");
 
-  const selectedCheckpoint = useStore(
-    generationStore,
-    (state) => state.checkpoint
-  );
+  const selectedCheckpoint = useStore(generationStore, (state) => state.checkpoint);
   const selectedLoras = useStore(generationStore, (state) => state.lora);
-  const selectedTti = useStore(
-    generationStore,
-    (state) => state.textualInversions
-  );
+  const selectedTti = useStore(generationStore, (state) => state.textualInversions);
   const prompt = useStore(generationStore, (state) => state.prompt);
-  const negativePrompt = useStore(
-    generationStore,
-    (state) => state.negativePrompt
-  );
+  const negativePrompt = useStore(generationStore, (state) => state.negativePrompt);
   const width = useStore(generationStore, (state) => state.width);
   const height = useStore(generationStore, (state) => state.height);
   const seed = useStore(generationStore, (state) => state.seed);
@@ -110,8 +93,8 @@ function RouteComponent() {
   const handleTestGenerate = async () => {
     const payload = buildPayload();
     await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate`,
-      payload
+      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate-image`,
+      payload,
     );
   };
 

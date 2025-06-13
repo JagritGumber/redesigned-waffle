@@ -46,6 +46,7 @@ export {
 export { storageInfo } from "./storageInfo";
 
 export { generatorJobs, type InsertGeneratorJob, type SelectGeneratorJob } from "./generatorJob";
+export { generatorPrompts, type InsertGeneratorPrompt, type SelectGeneratorPrompt } from "./generatorPrompt";
 
 export {
   postTemplates,

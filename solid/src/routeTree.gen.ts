@@ -16,6 +16,7 @@ import { Route as TabsRouteImport } from './routes/tabs/route'
 import { Route as TabsTwoImport } from './routes/tabs/two'
 import { Route as TabsThreeImport } from './routes/tabs/three'
 import { Route as TabsOneImport } from './routes/tabs/one'
+import { Route as TabsFlowImport } from './routes/tabs/flow'
 import { Route as GalleryIdImport } from './routes/gallery.$id'
 import { Route as ModelsIdVIdImport } from './routes/models.$id.$vId'
 
@@ -48,6 +49,12 @@ const TabsThreeRoute = TabsThreeImport.update({
 const TabsOneRoute = TabsOneImport.update({
   id: '/one',
   path: '/one',
+  getParentRoute: () => TabsRouteRoute,
+} as any)
+
+const TabsFlowRoute = TabsFlowImport.update({
+  id: '/flow',
+  path: '/flow',
   getParentRoute: () => TabsRouteRoute,
 } as any)
 
@@ -88,6 +95,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof GalleryIdImport
       parentRoute: typeof rootRoute
     }
+    '/tabs/flow': {
+      id: '/tabs/flow'
+      path: '/flow'
+      fullPath: '/tabs/flow'
+      preLoaderRoute: typeof TabsFlowImport
+      parentRoute: typeof TabsRouteImport
+    }
     '/tabs/one': {
       id: '/tabs/one'
       path: '/one'
@@ -122,12 +136,14 @@ declare module '@tanstack/solid-router' {
 // Create and export the route tree
 
 interface TabsRouteRouteChildren {
+  TabsFlowRoute: typeof TabsFlowRoute
   TabsOneRoute: typeof TabsOneRoute
   TabsThreeRoute: typeof TabsThreeRoute
   TabsTwoRoute: typeof TabsTwoRoute
 }
 
 const TabsRouteRouteChildren: TabsRouteRouteChildren = {
+  TabsFlowRoute: TabsFlowRoute,
   TabsOneRoute: TabsOneRoute,
   TabsThreeRoute: TabsThreeRoute,
   TabsTwoRoute: TabsTwoRoute,
@@ -141,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/tabs/flow': typeof TabsFlowRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -151,6 +168,7 @@ export interface FileRoutesByTo {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/tabs/flow': typeof TabsFlowRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -162,6 +180,7 @@ export interface FileRoutesById {
   '/tabs': typeof TabsRouteRouteWithChildren
   '/marketplace': typeof MarketplaceRoute
   '/gallery/$id': typeof GalleryIdRoute
+  '/tabs/flow': typeof TabsFlowRoute
   '/tabs/one': typeof TabsOneRoute
   '/tabs/three': typeof TabsThreeRoute
   '/tabs/two': typeof TabsTwoRoute
@@ -174,6 +193,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/tabs/flow'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -183,6 +203,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/tabs/flow'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -192,6 +213,7 @@ export interface FileRouteTypes {
     | '/tabs'
     | '/marketplace'
     | '/gallery/$id'
+    | '/tabs/flow'
     | '/tabs/one'
     | '/tabs/three'
     | '/tabs/two'
@@ -232,6 +254,7 @@ export const routeTree = rootRoute
     "/tabs": {
       "filePath": "tabs/route.tsx",
       "children": [
+        "/tabs/flow",
         "/tabs/one",
         "/tabs/three",
         "/tabs/two"
@@ -242,6 +265,10 @@ export const routeTree = rootRoute
     },
     "/gallery/$id": {
       "filePath": "gallery.$id.tsx"
+    },
+    "/tabs/flow": {
+      "filePath": "tabs/flow.tsx",
+      "parent": "/tabs"
     },
     "/tabs/one": {
       "filePath": "tabs/one.tsx",

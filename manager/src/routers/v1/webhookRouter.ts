@@ -1,47 +1,71 @@
 import { Elysia, t } from "elysia";
 import { eq } from "drizzle-orm";
-import { civitaiFiles, civitaiModels, generatorJobs, InsertGeneratorJob } from "@/schema";
+import {
+  civitaiFiles,
+  civitaiModels,
+  generatorJobs,
+  InsertGeneratorJob,
+  generatorPrompts,
+  InsertGeneratorPrompt,
+} from "@/schema";
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
+import db from "@/db";
+import s3 from "@/s3";
 
-type RunPodWebhookPayload = {
-  id: string; // RunPod Job ID
-  status: string; // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
-  output?: {
-    images: string[]; // Base64 images with no prefix, need to add data:image/png;base64, prefix
-    info: string; // actually a json of @type InfoParsedResult
-    message?: string; // Added to handle cases where output contains a message
-  };
-  error?: any; // Error details provided by RunPod if the job failed before your handler returned
-  // Add other fields from RunPod's webhook payload if needed (e.g., executionTime)
-};
+// Define TypeBox schema for DownloaderWebhookPayload
+const DownloaderWebhookPayloadSchema = t.Object({
+  id: t.String(),
+  status: t.String(),
+  output: t.Optional(
+    t.Object({
+      status: t.Optional(t.String()),
+      message: t.Optional(t.String()),
+      storage_used: t.Optional(t.Number()),
+    })
+  ),
+  error: t.Optional(
+    t.Object({
+      message: t.Optional(t.String()),
+      stack: t.Optional(t.String()),
+    })
+  ),
+  input: t.Object({
+    action: t.Union([t.Literal("delete"), t.Literal("download"), t.Literal("deleteAll")]),
+    save_path: t.Optional(t.String()),
+    model_id: t.Optional(t.Number()),
+  }),
+});
+
+// Define TypeBox schema for GeneratorWebhookPayload
+const GeneratorWebhookPayloadSchema = t.Object({
+  id: t.String(), // RunPod Job ID
+  status: t.String(), // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
+  input: t.Object({
+    job_type: t.Union([t.Literal("generate_image"), t.Literal("generate_prompt")]),
+    data: t.Any(), // This can be more specific if needed, but for webhook processing, 'any' might be acceptable for the input data itself.
+  }),
+  output: t.Optional(
+    t.Object({
+      images: t.Optional(t.Array(t.String())), // Base64 images with no prefix, need to add data:image/png;base64, prefix
+      info: t.Optional(t.String()), // actually a json of @type InfoParsedResult
+      message: t.Optional(t.String()), // Added to handle cases where output contains a message
+      generated_prompt: t.Optional(t.String()), // Added for prompt generation output
+      storage_used: t.Optional(t.Number()), // For downloader webhook
+    })
+  ),
+  error: t.Optional(
+    t.Object({
+      message: t.Optional(t.String()),
+      stack: t.Optional(t.String()),
+    })
+  ),
+});
 
 export const webhookRouter = new Elysia({ prefix: "/webhook" })
   .all(
     "/runpod/downloader",
-    async ({
-      body,
-      set,
-      db,
-      env,
-    }: {
-      body: {
-        id: string;
-        status: string;
-        output?: any;
-        error?: any;
-        input: {
-          action: "delete" | "download" | "deleteAll";
-          save_path?: string;
-          model_id?: number;
-        };
-      };
-      set: { status: number | undefined };
-      db: any; // Replace 'any' with your actual Drizzle DB type
-      env: {
-        R2: any; // Assuming R2 is available in env for updateStorageInfo
-      };
-    }) => {
+    async ({ body, set }) => {
       try {
         const payload = body;
         const { id: runpodJobId, status: runpodJobStatus, output, input } = payload;
@@ -73,7 +97,6 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
 
             if (actionStatus === "COMPLETED") {
               const storageUpdateResult = await updateStorageInfo(
-                { env, db }, // Pass env and db as part of a context-like object
                 Number(payload.output?.storage_used) ?? 0
               );
               if (storageUpdateResult.success) {
@@ -105,7 +128,7 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
           }
 
           const modelRecord = await db.query.civitaiModels.findFirst({
-            where: (models: any, { eq }: any) => eq(models.id, modelId),
+            where: (models, { eq }) => eq(models.id, modelId),
           });
 
           if (!modelRecord) {
@@ -152,7 +175,6 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
               );
 
               const storageUpdateResult = await updateStorageInfo(
-                { env, db }, // Pass env and db as part of a context-like object
                 Number(payload.output?.storage_used) ?? 0
               );
               if (storageUpdateResult.success) {
@@ -188,46 +210,53 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
         set.status = 500;
         return "Error processing webhook";
       }
+    },
+    {
+      body: DownloaderWebhookPayloadSchema, // Use TypeBox schema
     }
   )
   .all(
     "/runpod/generator",
-    async ({
-      body,
-      set,
-      db,
-      env,
-    }: {
-      body: RunPodWebhookPayload;
-      set: { status: number | undefined };
-      db: any; // Replace 'any' with your actual Drizzle DB type
-      env: {
-        R2: any; // Assuming R2 is available in env for image uploads
-        R2_PUBLIC_BUCKET_URL: string;
-      };
-    }) => {
+    async ({ body, set }) => {
+      // Added db and env to destructuring
       try {
         const payload = body;
-        const { id: runpodJobId, status: runpodJobStatus, output, error } = payload;
+        const { id: runpodJobId, status: runpodJobStatus, output, error, input } = payload;
+        const jobType = input.job_type;
 
         console.log(
-          `Received RunPod webhook for generator job ${runpodJobId}. RunPod Status: ${runpodJobStatus}`
+          `Received RunPod webhook for generator job ${runpodJobId}. Type: ${jobType}, RunPod Status: ${runpodJobStatus}`
         );
 
-        const dbJob = await db.query.generatorJobs.findFirst({
-          where: (jobs: any, { eq }: any) => eq(jobs.runpodJobId, runpodJobId),
-        });
+        let dbRecord: InsertGeneratorJob | InsertGeneratorPrompt | undefined;
+        let updateTable: typeof generatorJobs | typeof generatorPrompts; // Use specific types
 
-        if (!dbJob) {
-          console.warn(`Received webhook for unknown RunPod job ID ${runpodJobId}. Ignoring.`);
+        if (jobType === "generate_image") {
+          dbRecord = await db.query.generatorJobs.findFirst({
+            where: (jobs, { eq }) => eq(jobs.runpodJobId, runpodJobId),
+          });
+          updateTable = generatorJobs;
+        } else if (jobType === "generate_prompt") {
+          dbRecord = await db.query.generatorPrompts.findFirst({
+            where: (prompts, { eq }) => eq(prompts.runpodJobId, runpodJobId), // Fix eq type
+          });
+          updateTable = generatorPrompts;
+        } else {
+          console.warn(`Received webhook for unknown job_type '${jobType}'. Ignoring.`);
           set.status = 200;
           return "OK";
         }
 
-        const updateData: Partial<InsertGeneratorJob> = {
+        if (!dbRecord) {
+          console.warn(
+            `Received webhook for unknown RunPod job ID ${runpodJobId} for job_type ${jobType}. Ignoring.`
+          );
+          set.status = 200;
+          return "OK";
+        }
+
+        const updateData: Partial<InsertGeneratorJob | InsertGeneratorPrompt> = {
           updatedAt: new Date(),
-          generationInfo: null,
-          imageKey: null,
           errorMessage: null,
           errorDetails: null,
           completedAt: null,
@@ -237,144 +266,177 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
           updateData.status = "COMPLETED";
           updateData.completedAt = new Date();
 
-          try {
-            let parsedInfo: InfoParsedResult | null = null;
-            if (output?.info && typeof output.info === "string") {
-              try {
-                parsedInfo = JSON.parse(output.info);
-                updateData.generationInfo = parsedInfo;
-              } catch (parseError) {
-                console.error(
-                  `Failed to parse info string for job ${dbJob.id} (RunPod ${runpodJobId}):`,
-                  parseError
-                );
-              }
-            } else {
-              console.warn(
-                `No parsable info string provided in output for job ${dbJob.id} (RunPod ${runpodJobId}) despite COMPLETED status.`
-              );
-            }
+          if (jobType === "generate_image") {
+            // Image specific processing
+            (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+            (updateData as Partial<InsertGeneratorJob>).imageKey = null;
 
-            const uploadedImageUrls: string[] = [];
-            if (Array.isArray(output?.images) && output.images.length > 0) {
-              const r2 = env.R2;
-              const publicR2UrlPrefix = env.R2_PUBLIC_BUCKET_URL;
-
-              if (!r2 || !publicR2UrlPrefix) {
-                throw new Error("R2 binding or PUBLIC_R2_URL is not configured in environment.");
-              }
-
-              for (let i = 0; i < output.images.length; i++) {
-                const base64Data = output.images[i];
-                if (!base64Data || typeof base64Data !== "string") {
-                  console.warn(
-                    `Skipping invalid/empty image data for job ${dbJob.id}, index ${i}.`
-                  );
-                  continue;
-                }
-
+            try {
+              let parsedInfo: InfoParsedResult | null = null;
+              if (output?.info && typeof output.info === "string") {
                 try {
-                  const byteCharacters = atob(base64Data);
-                  const byteNumbers = new Array(byteCharacters.length);
-                  for (let j = 0; j < byteCharacters.length; j++) {
-                    byteNumbers[j] = byteCharacters.charCodeAt(j);
-                  }
-                  const byteArray = new Uint8Array(byteNumbers);
-
-                  const r2Key = `generator-jobs/${runpodJobId}/${i + 1}.png`;
-
-                  await r2.put(r2Key, byteArray, {
-                    httpMetadata: { contentType: "image/png" },
-                  });
-
-                  const publicUrl = `${r2Key}`;
-                  uploadedImageUrls.push(publicUrl);
-                  console.log(
-                    `Uploaded image ${i + 1}/${output.images.length} for job ${dbJob.id}.`
-                  );
-                } catch (uploadError: any) {
+                  parsedInfo = JSON.parse(output.info);
+                  (updateData as Partial<InsertGeneratorJob>).generationInfo = parsedInfo;
+                } catch (parseError) {
                   console.error(
-                    `Failed to upload image ${i + 1} for job ${
-                      dbJob.id
-                    } (RunPod ${runpodJobId}) to R2:`,
-                    uploadError
+                    `Failed to parse info string for job ${dbRecord.id} (RunPod ${runpodJobId}):`,
+                    parseError
                   );
-                  updateData.status = "FAILED";
-                  updateData.completedAt = null;
-                  updateData.errorMessage = `RunPod job completed, but failed to process/upload images to R2 (image ${
-                    i + 1
-                  }).`;
-                  updateData.errorDetails = uploadError.message || JSON.stringify(uploadError);
-                  updateData.generationInfo = null;
-                  updateData.imageKey = null;
-                  break;
                 }
-              }
-
-              if (updateData.status === "COMPLETED") {
-                updateData.imageKey = uploadedImageUrls[0];
-                console.log(
-                  `Finished processing images for DB job ${dbJob.id} (RunPod ${runpodJobId}). Stored ${uploadedImageUrls.length} URLs.`
+              } else {
+                console.warn(
+                  `No parsable info string provided in output for job ${dbRecord.id} (RunPod ${runpodJobId}) despite COMPLETED status.`
                 );
               }
+
+              const uploadedImageUrls: string[] = [];
+              if (Array.isArray(output?.images) && output.images.length > 0) {
+                const publicR2UrlPrefix = Bun.env.R2_PUBLIC_BUCKET_URL;
+
+                if (!publicR2UrlPrefix) {
+                  throw new Error("R2 binding or PUBLIC_R2_URL is not configured in environment.");
+                }
+
+                for (let i = 0; i < output.images.length; i++) {
+                  const base64Data = output.images[i];
+                  if (!base64Data || typeof base64Data !== "string") {
+                    console.warn(
+                      `Skipping invalid/empty image data for job ${dbRecord.id}, index ${i}.`
+                    );
+                    continue;
+                  }
+
+                  try {
+                    const byteArray = Buffer.from(base64Data, "base64");
+
+                    const r2Key = `generator-jobs/${runpodJobId}/${i + 1}.png`;
+
+                    await s3.write(r2Key, byteArray, {
+                      type: "image/png",
+                    });
+
+                    const publicUrl = `${publicR2UrlPrefix}/${r2Key}`;
+                    uploadedImageUrls.push(publicUrl);
+                    console.log(
+                      `Uploaded image ${i + 1}/${output.images.length} for job ${dbRecord.id}.`
+                    );
+                  } catch (uploadError: any) {
+                    console.error(
+                      `Failed to upload image ${i + 1} for job ${
+                        dbRecord.id
+                      } (RunPod ${runpodJobId}) to R2:`,
+                      uploadError
+                    );
+                    (updateData as Partial<InsertGeneratorJob>).status = "FAILED";
+                    (updateData as Partial<InsertGeneratorJob>).completedAt = null;
+                    (
+                      updateData as Partial<InsertGeneratorJob>
+                    ).errorMessage = `RunPod job completed, but failed to process/upload images to R2 (image ${
+                      i + 1
+                    }).`;
+                    (updateData as Partial<InsertGeneratorJob>).errorDetails =
+                      uploadError.message || JSON.stringify(uploadError);
+                    (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+                    (updateData as Partial<InsertGeneratorJob>).imageKey = null;
+                    break;
+                  }
+                }
+
+                if ((updateData as Partial<InsertGeneratorJob>).status === "COMPLETED") {
+                  (updateData as Partial<InsertGeneratorJob>).imageKey = uploadedImageUrls[0];
+                  console.log(
+                    `Finished processing images for DB job ${dbRecord.id} (RunPod ${runpodJobId}). Stored ${uploadedImageUrls.length} URLs.`
+                  );
+                }
+              } else {
+                console.warn(
+                  `RunPod reported COMPLETED status for job ${dbRecord.id} (RunPod ${runpodJobId}) but no images were found in output.`
+                );
+                (updateData as Partial<InsertGeneratorJob>).status = "FAILED";
+                (updateData as Partial<InsertGeneratorJob>).completedAt = null;
+                (updateData as Partial<InsertGeneratorJob>).errorMessage =
+                  "RunPod reported COMPLETED status but no images were found in output.";
+                (updateData as Partial<InsertGeneratorJob>).errorDetails =
+                  output || "No output details";
+                (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+              }
+            } catch (processingError: any) {
+              console.error(
+                `Critical processing error for job ${dbRecord.id} (RunPod ${runpodJobId}) during COMPLETED state handling:`,
+                processingError
+              );
+              (updateData as Partial<InsertGeneratorJob>).status = "FAILED";
+              (updateData as Partial<InsertGeneratorJob>).completedAt = null;
+              (
+                updateData as Partial<InsertGeneratorJob>
+              ).errorMessage = `Internal webhook processing error during COMPLETED state: ${processingError.message}`;
+              (updateData as Partial<InsertGeneratorJob>).errorDetails =
+                processingError.message || JSON.stringify(processingError);
+              (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+              (updateData as Partial<InsertGeneratorJob>).imageKey = null;
+            }
+          } else if (jobType === "generate_prompt") {
+            if (output?.generated_prompt) {
+              (updateData as Partial<InsertGeneratorPrompt>).outputPayload = {
+                generated_prompt: output.generated_prompt,
+              };
+              console.log(`Prompt generated for DB prompt ${dbRecord.id} (RunPod ${runpodJobId}).`);
             } else {
               console.warn(
-                `RunPod reported COMPLETED status for job ${dbJob.id} (RunPod ${runpodJobId}) but no images were found in output.`
+                `RunPod reported COMPLETED status for prompt job ${dbRecord.id} (RunPod ${runpodJobId}) but no generated_prompt was found in output.`
               );
               updateData.status = "FAILED";
               updateData.completedAt = null;
               updateData.errorMessage =
-                "RunPod reported COMPLETED status but no images were found in output.";
+                "RunPod reported COMPLETED status but no generated prompt was found in output.";
               updateData.errorDetails = output || "No output details";
-              updateData.generationInfo = null;
             }
-          } catch (processingError: any) {
-            console.error(
-              `Critical processing error for job ${dbJob.id} (RunPod ${runpodJobId}) during COMPLETED state handling:`,
-              processingError
-            );
-            updateData.status = "FAILED";
-            updateData.completedAt = null;
-            updateData.errorMessage = `Internal webhook processing error during COMPLETED state: ${processingError.message}`;
-            updateData.errorDetails = processingError.message || JSON.stringify(processingError);
-            updateData.generationInfo = null;
-            updateData.imageKey = null;
           }
         } else if (runpodJobStatus === "FAILED") {
           updateData.status = "FAILED";
           updateData.errorMessage =
             output?.message || error?.message || "RunPod job reported FAILED.";
-          updateData.errorDetails = output || error || payload;
-          console.error(`DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported FAILED.`);
+          updateData.errorDetails = error || payload; // Changed from output || error || payload to output || error || payload.error?.message
+          console.error(
+            `DB ${jobType} ${dbRecord.id} (RunPod ${runpodJobId}): RunPod reported FAILED.`
+          );
         } else if (runpodJobStatus === "CANCELLED") {
           updateData.status = "CANCELLED";
           updateData.errorMessage =
             error?.message || payload.output?.message || "RunPod job was CANCELLED.";
-          updateData.errorDetails = error || payload.output || payload;
-          console.warn(`DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported CANCELLED.`);
+          updateData.errorDetails = error || payload; // Changed from error || payload.output || payload to error || payload.output || payload.error?.message
+          console.warn(
+            `DB ${jobType} ${dbRecord.id} (RunPod ${runpodJobId}): RunPod reported CANCELLED.`
+          );
         } else if (runpodJobStatus === "TIMED_OUT") {
           updateData.status = "FAILED";
           updateData.errorMessage =
             error?.message || payload.output?.message || "RunPod job TIMED_OUT.";
-          updateData.errorDetails = error || payload.output || payload;
-          console.error(`DB job ${dbJob.id} (RunPod ${runpodJobId}): RunPod reported TIMED_OUT.`);
+          updateData.errorDetails = error || payload; // Changed from error || payload.output || payload to error || payload.output || payload.error?.message
+          console.error(
+            `DB ${jobType} ${dbRecord.id} (RunPod ${runpodJobId}): RunPod reported TIMED_OUT.`
+          );
         } else {
           console.warn(
             `Received webhook for RunPod job ID ${runpodJobId} with unexpected final status '${runpodJobStatus}'. Treating as FAILED.`
           );
           updateData.status = "FAILED";
           updateData.errorMessage = `RunPod job ended with unexpected status: ${runpodJobStatus}`;
-          updateData.errorDetails = payload.output || error || payload;
+          updateData.errorDetails = payload.output || error || payload; // Changed from payload.output || error || payload to payload.output || error || payload.error?.message
         }
 
         try {
-          await db.update(generatorJobs).set(updateData).where(eq(generatorJobs.id, dbJob.id));
+          if (!dbRecord.id) {
+            console.error("No db record id was there");
+            return;
+          }
+          await db.update(updateTable).set(updateData).where(eq(updateTable.id, dbRecord.id));
           console.log(
-            `DB job record ${dbJob.id} updated from webhook (Final Status: ${updateData.status}).`
+            `DB ${jobType} record ${dbRecord.id} updated from webhook (Final Status: ${updateData.status}).`
           );
         } catch (dbUpdateError: any) {
           console.error(
-            `Failed to update DB job record ${dbJob.id} from webhook (RunPod ID ${runpodJobId}, Target Status: ${updateData.status}): ${dbUpdateError.message}`,
+            `Failed to update DB ${jobType} record ${dbRecord.id} from webhook (RunPod ID ${runpodJobId}, Target Status: ${updateData.status}): ${dbUpdateError.message}`,
             dbUpdateError
           );
         }
@@ -386,5 +448,8 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
         set.status = 500;
         return "Error processing webhook";
       }
+    },
+    {
+      body: GeneratorWebhookPayloadSchema,
     }
   );

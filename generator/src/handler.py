@@ -54,10 +54,24 @@ def generate_image_a1111(inference_request):
 
     logger.log(inference_request)
 
-    response = automatic_session.post(
-        url=f"{LOCAL_URL}/txt2img", json=inference_request, timeout=600
-    )
-    return response.json()
+    response = None  # Initialize response to None
+    try:
+        response = automatic_session.post(
+            url=f"{LOCAL_URL}/txt2img", json=inference_request, timeout=600
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logger.log(f"Request to Automatic1111 failed: {e}")
+        logger.log(f"Response content: {response.text if response else 'No response'}")
+        raise  # Re-raise the exception after logging
+    except ValueError as e:
+        logger.log(f"Failed to parse JSON response from Automatic1111: {e}")
+        logger.log(f"Response content: {response.text if response else 'No response'}")
+        raise  # Re-raise the exception after logging
+    except Exception as e:
+        logger.log(f"An unexpected error occurred during image generation: {e}")
+        raise  # Re-raise the exception after logging
 
 
 def generate_prompt_ai_dan_tag_gen(prompt_request):

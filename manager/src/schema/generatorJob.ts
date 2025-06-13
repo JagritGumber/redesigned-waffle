@@ -1,6 +1,9 @@
 // @/schema/generatorJobs.ts
 import { InfoParsedResult } from "@/types/generator";
-import { GenerateRequestPayloadType, GeneratePromptRequestPayloadType } from "@/validators/generation";
+import {
+  GenerateRequestPayloadType,
+  GeneratePromptRequestPayloadType,
+} from "@/validators/generation";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const generatorJobs = sqliteTable("generator_jobs", {
@@ -12,18 +15,11 @@ export const generatorJobs = sqliteTable("generator_jobs", {
 
   status: text("status", {
     // Add 'CANCELLED' to the possible statuses
-    enum: [
-      "PENDING",
-      "RUNNING",
-      "COMPLETED",
-      "FAILED",
-      "WEBHOOK_RECEIVED",
-      "CANCELLED",
-    ],
+    enum: ["PENDING", "RUNNING", "COMPLETED", "FAILED", "WEBHOOK_RECEIVED", "CANCELLED"],
   }).notNull(),
 
   inputPayload: text("input_payload", { mode: "json" })
-    .$type<GenerateRequestPayloadType | GeneratePromptRequestPayloadType>()
+    .$type<GenerateRequestPayloadType>()
     .notNull(),
 
   generationInfo: text("generation_info", {
