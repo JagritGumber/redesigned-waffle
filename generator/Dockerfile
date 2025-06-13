@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf 
 RUN wget -q -O /model.safetensors https://civitai.com/api/download/models/1412789?token=9f61f82876b8b2efbd8764e206ff8f2b
 
 RUN pip install requests
+COPY generator/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY generator/download_pretrained.py .
 
 # Make the script executable (optional but good practice)
