@@ -10,3 +10,4 @@ export const civitaiCreator = sqliteTable("civitaiCreator", {
 });
 
 export type InsertCivitaiCreator = typeof civitaiCreator.$inferInsert;
+export type SelectCivitaiCreator = typeof civitaiCreator.$inferSelect;

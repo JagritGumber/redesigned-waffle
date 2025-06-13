@@ -1,5 +1,4 @@
-import { DrizzleD1Database } from "drizzle-orm/d1";
-import { sql, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import {
   civitaiModels,
   civitaiModelVersions,
@@ -13,14 +12,8 @@ import {
 } from "@/schema";
 import * as schema from "@/schema";
 
-import { Model, ModelVersion, FileVersion } from "@/client/types/civitai";
+import { Model, ModelVersion } from "@/client/types/civitai";
 import db from "@/db";
-
-interface CivitaiServiceEnv {
-  RUNPOD_API_KEY: string;
-  RUNPOD_DOWNLOADER_ID: string;
-  RUNPOD_WEBHOOK_URL: string;
-}
 
 const CIVITAI_API_BASE_URL = "https://civitai.com/api/v1";
 
@@ -64,13 +57,11 @@ interface RegisterOrUpdateCivitaiModelOptions {
  * Registers or updates a Civitai model, a specific version (or latest), its files, and images in the database.
  * Optionally triggers a RunPod download job for a specified file (or the primary file of the selected version).
  *
- * @param env Environment configuration needed for RunPod integration.
  * @param civitaiModelData The model data fetched from the Civitai API.
  * @param options Configuration options for the operation (triggerDownload, versionId, fileId).
  * @returns A result object indicating status, message, and potentially RunPod job ID.
  */
 export async function registerOrUpdateCivitaiModel(
-  env: CivitaiServiceEnv,
   civitaiModelData: Model,
   options?: RegisterOrUpdateCivitaiModelOptions
 ): Promise<{

@@ -140,22 +140,20 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
             </Button>
           </div>
         </Match>
-        <Match when={!selectable && isModel(model)}>
-          <div class="absolute bottom-0 left-0 right-0 bg-background/60 p-2 flex flex-col gap-1">
+        <Match when={!selectable}>
+          <div class="absolute bottom-0 left-0 right-0 p-2 flex flex-col gap-1">
             <div class="flex items-center gap-2">
               <Image
-                src={(model as Model).creator?.image ?? ""}
+                src={model.creator?.image ?? ""}
                 alt={""}
                 layout="constrained"
                 width={24}
                 height={24}
                 class="rounded-full"
               />
-              <p class="text-sm text-foreground/80">
-                {(model as Model).creator?.username ?? "No Creator"}
-              </p>
+              <p class="text-sm text-background">{model.creator?.username ?? "No Creator"}</p>
             </div>
-            <p class="text-base font-semibold text-foreground">{model.name}</p>
+            <p class="text-base font-semibold text-background drop-shadow-md">{model.name}</p>
           </div>
         </Match>
       </Switch>

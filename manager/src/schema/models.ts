@@ -2,14 +2,8 @@
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { ModelState, ModelTypes } from "@/types/models";
-import {
-  civitaiModelVersions,
-  CivitaiModelVersionWithFilesAndImages,
-  SelectCivitaiModelVersion,
-} from "./modelVersions";
-import { civitaiCreator } from "./modelCreator";
-import { SelectCivitaiFile } from "./modelFiles";
-import { SelectCivitaiImage } from "./modelImages";
+import { civitaiModelVersions, CivitaiModelVersionWithFilesAndImages } from "./modelVersions";
+import { civitaiCreator, SelectCivitaiCreator } from "./modelCreator";
 
 export const civitaiModels = sqliteTable("civitaiModel", {
   id: integer("id").primaryKey(),
@@ -34,9 +28,7 @@ export const civitaiModels = sqliteTable("civitaiModel", {
   creatorId: integer("creatorId")
     .references(() => civitaiCreator.id)
     .notNull(),
-  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(
-    () => new Date()
-  ),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
   updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
@@ -45,13 +37,13 @@ export const civitaiModels = sqliteTable("civitaiModel", {
   runpodJobId: text("runpodJobId"),
 });
 
-export const civitaiModelsRelations = relations(
-  civitaiModels,
-  ({ many, one }) => ({
-    modelVersions: many(civitaiModelVersions),
-    creator: one(civitaiCreator),
-  })
-);
+export const civitaiModelsRelations = relations(civitaiModels, ({ many, one }) => ({
+  modelVersions: many(civitaiModelVersions),
+  creator: one(civitaiCreator, {
+    fields: [civitaiModels.creatorId],
+    references: [civitaiCreator.id],
+  }),
+}));
 
 export type SelectCivitaiModel = typeof civitaiModels.$inferSelect;
 export type InsertCivitaiModel = typeof civitaiModels.$inferInsert;
@@ -59,4 +51,5 @@ export type CivitaiModel = typeof civitaiModels;
 
 export interface CivitaiModelWithRelations extends SelectCivitaiModel {
   modelVersions: CivitaiModelVersionWithFilesAndImages[];
+  creator: SelectCivitaiCreator;
 }

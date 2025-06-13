@@ -36,15 +36,11 @@ export const modelRouter = new Elysia({ prefix: "model" })
       try {
         // Call the reusable function to handle registration and download initiation
         // Pass triggerDownload: true (which is the default)
-        const result = await registerOrUpdateCivitaiModel(
-          envConfig,
-          civitaiModelData,
-          {
-            fileId,
-            versionId,
-            triggerDownload: !defaultDownload,
-          }
-        );
+        const result = await registerOrUpdateCivitaiModel(civitaiModelData, {
+          fileId,
+          versionId,
+          triggerDownload: !defaultDownload,
+        });
 
         // Return Elysia response based on the result
         if (result.status === "FAILED") {
@@ -185,6 +181,7 @@ export const modelRouter = new Elysia({ prefix: "model" })
       const models = await db.query.civitaiModels.findMany({
         orderBy: (model, { asc }) => asc(model.createdAt),
         with: {
+          creator: true,
           modelVersions: {
             orderBy: (version, { desc }) => desc(version.publishedAt),
             with: {

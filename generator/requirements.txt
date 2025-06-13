@@ -4,3 +4,4 @@ torch
 transformers
 huggingface_hub
 runpod
+xformers
