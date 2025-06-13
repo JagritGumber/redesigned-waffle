@@ -17,8 +17,8 @@ automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
 # Load the DanTagGen model from local path
 MODEL_PATH = "./models/DanTagGen-delta-rev2"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
+model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, local_files_only=True)
 tag_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
 
