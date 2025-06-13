@@ -16,7 +16,7 @@ retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
 # Load the DanTagGen model from local path
-MODEL_PATH = "./models/DanTagGen-delta-rev2/"
+MODEL_PATH = "./models/DanTagGen-delta-rev2"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
 model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, local_files_only=True)
 tag_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
