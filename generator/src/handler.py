@@ -4,6 +4,8 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 from runpod import RunPodLogger
 from transformers.pipelines import pipeline
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+from transformers.models.auto.modeling_auto import AutoModelForCausalLM
 
 logger = RunPodLogger()
 
@@ -13,8 +15,11 @@ automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
-# Load the DanTagGen model
-tag_generator = pipeline("text-generation", model="KBlueLeaf/DanTagGen-delta-rev2")
+# Load the DanTagGen model from local path
+MODEL_PATH = "./models/DanTagGen-delta-rev2"
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
+tag_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
 
 # ---------------------------------------------------------------------------- #
@@ -74,7 +79,9 @@ def generate_prompt_ai_dan_tag_gen(prompt_request):
     ):
         generated_tags = generated_output[0].get("generated_text", "")
     else:
-        logger.log(f"Error: DanTagGen pipeline did not return expected output. Output: {generated_output}")
+        logger.log(
+            f"Error: DanTagGen pipeline did not return expected output. Output: {generated_output}"
+        )
         generated_tags = ""  # Fallback to empty string if generation fails
 
     # Combine the input prompt with the generated tags

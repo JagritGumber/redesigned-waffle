@@ -3,3 +3,4 @@ diffusers
 torch
 transformers
 xformers
+huggingface_hub

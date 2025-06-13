@@ -4,6 +4,7 @@ import time
 import urllib.parse
 import subprocess
 import requests
+from huggingface_hub import snapshot_download
 
 
 response = requests.get(
@@ -16,9 +17,21 @@ DOWNLOAD_MAP = response.json()["items"]
 CIVITAI_API_TOKEN = "9f61f82876b8b2efbd8764e206ff8f2b"
 
 
+def download_huggingface_model(model_name: str, save_dir: str):
+    """Downloads a Hugging Face model and its tokenizer."""
+    print(f"Starting download for Hugging Face model: {model_name} to {save_dir}")
+    try:
+        # Download model files
+        snapshot_download(repo_id=model_name, local_dir=save_dir, local_dir_use_symlinks=False)
+        print(f"Hugging Face model {model_name} downloaded successfully to {save_dir}")
+        return {"status": "COMPLETED", "message": f"Hugging Face model {model_name} downloaded."}
+    except Exception as e:
+        print(f"Error downloading Hugging Face model {model_name}: {e}")
+        return {"status": "ERROR", "message": f"Error downloading Hugging Face model {model_name}: {e}"}
+
+
 def download_file_direct(download_url: str, save_path: str):
     """Downloads a file directly using wget, bypassing temporary storage."""
-    # Keep your existing wget download function
     start_time = time.time()
     try:
         print(
@@ -113,5 +126,23 @@ if __name__ == "__main__":
         if result["status"] == "ERROR":
             # You might want to exit here or log more severely
             pass  # Or continue with a warning
+
+    print("\n--- Downloading Hugging Face Models ---")
+    # Define the Hugging Face model to download
+    HUGGINGFACE_MODELS = [
+        {"name": "KBlueLeaf/DanTagGen-delta-rev2", "path": "./models/DanTagGen-delta-rev2"}
+    ]
+
+    for hf_model in HUGGINGFACE_MODELS:
+        model_name = hf_model["name"]
+        save_path = hf_model["path"]
+        # Check if the directory exists and is not empty
+        if os.path.exists(save_path) and os.listdir(save_path):
+            print(f"Hugging Face model already exists, skipping download: {model_name} at {save_path}")
+            continue
+        result = download_huggingface_model(model_name, save_path)
+        print(result["message"])
+        if result["status"] == "ERROR":
+            pass # Or handle error as needed
 
     print("\nPre-trained model download script finished.")
