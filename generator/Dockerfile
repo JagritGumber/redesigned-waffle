@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------- #
 #                         Stage 1: Download the models                         #
 # ---------------------------------------------------------------------------- #
-FROM python:3.10.14-slim as download
+FROM python:3.10.14-slim AS download
 
 RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
@@ -28,7 +28,7 @@ RUN python -u download_pretrained.py
 # ---------------------------------------------------------------------------- #
 #                        Stage 2: Build the final image                        #
 # ---------------------------------------------------------------------------- #
-FROM python:3.10.14-slim as build_final_image
+FROM python:3.10.14-slim AS build_final_image
 
 ARG A1111_RELEASE=v1.9.3
 
