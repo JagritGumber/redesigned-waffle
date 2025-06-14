@@ -12,8 +12,8 @@ export const ImageCard = ({ image }: ImageCardProps) => {
       <div class="w-full aspect-square border border-border rounded-md bg-card contain-paint">
         <Image
           class="w-full h-full object-cover"
-          src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/images/${encodeURIComponent(image.imageKey ?? "")}`}
-          alt={image.imageKey ?? ""}
+          src={`${import.meta.env.VITE_BACKEND_URL}/api/v1/images/${encodeURIComponent(image.imageKey?.slice(image.imageKey.indexOf("generator")) ?? "")}`}
+          alt={image.imageKey?.slice(image.imageKey.indexOf("generator")) ?? ""}
           layout="fullWidth"
           background="auto"
         />

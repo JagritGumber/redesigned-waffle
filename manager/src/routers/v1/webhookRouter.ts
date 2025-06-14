@@ -62,7 +62,7 @@ const GeneratorWebhookPayloadSchema = t.Object({
   ),
 });
 
-export const webhookRouter = new Elysia({ prefix: "/webhook" })
+export const webhookRouter = new Elysia({ prefix: "/webhooks" })
   .all(
     "/runpod/downloader",
     async ({ body, set }) => {
@@ -291,12 +291,6 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
 
               const uploadedImageUrls: string[] = [];
               if (Array.isArray(output?.images) && output.images.length > 0) {
-                const publicR2UrlPrefix = Bun.env.R2_PUBLIC_BUCKET_URL;
-
-                if (!publicR2UrlPrefix) {
-                  throw new Error("R2 binding or PUBLIC_R2_URL is not configured in environment.");
-                }
-
                 for (let i = 0; i < output.images.length; i++) {
                   const base64Data = output.images[i];
                   if (!base64Data || typeof base64Data !== "string") {
@@ -315,7 +309,7 @@ export const webhookRouter = new Elysia({ prefix: "/webhook" })
                       type: "image/png",
                     });
 
-                    const publicUrl = `${publicR2UrlPrefix}/${r2Key}`;
+                    const publicUrl = `${r2Key}`;
                     uploadedImageUrls.push(publicUrl);
                     console.log(
                       `Uploaded image ${i + 1}/${output.images.length} for job ${dbRecord.id}.`

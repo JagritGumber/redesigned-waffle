@@ -77,7 +77,7 @@ function RouteComponent() {
       .map((image) => ({
         ...image,
         // Ensure URL is correctly constructed
-        url: `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/${encodeURIComponent(image?.imageKey ?? "")}`,
+        url: `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/${encodeURIComponent(image.imageKey?.slice(image.imageKey.indexOf("generator")) ?? "")}`,
       }));
   });
 
@@ -113,15 +113,13 @@ function RouteComponent() {
       if (index !== -1) {
         // If the ID from the URL is found in the loaded images, update the carousel index
         console.log(
-          `Route change detected ($id=${currentId}), found at index ${index}. Setting carousel index.`
+          `Route change detected ($id=${currentId}), found at index ${index}. Setting carousel index.`,
         ); // Debug
         setCarouselIndex(index); // Update the signal that controls the carousel
       } else {
         // Handle case where the ID from the URL is NOT found in currently loaded pages.
         // This could mean the image is in a later page, or the ID is invalid.
-        console.warn(
-          `Image ID "${currentId}" from URL not found in loaded images.`
-        ); // Debug
+        console.warn(`Image ID "${currentId}" from URL not found in loaded images.`); // Debug
         // Option A: Try to fetch next pages until found (complex)
         // Option B: Default to index 0 and show a message (simpler for now)
         // Option C: Navigate back to the gallery list (if ID is likely invalid)
@@ -131,25 +129,15 @@ function RouteComponent() {
           // Or rely on the pagination trigger effect to handle this if they scroll.
           // For simplicity, let's just set to 0 if not found *in loaded pages*.
           // A more advanced approach might require a separate query or logic.
-          console.warn(
-            `Defaulting to index 0 as ID "${currentId}" not found in loaded pages.`
-          );
+          console.warn(`Defaulting to index 0 as ID "${currentId}" not found in loaded pages.`);
           setCarouselIndex(0);
-        } else if (
-          !imageQuery.isFetching &&
-          !imageQuery.hasNextPage &&
-          currentImages.length > 0
-        ) {
+        } else if (!imageQuery.isFetching && !imageQuery.hasNextPage && currentImages.length > 0) {
           // If all pages loaded and ID still not found, default to 0
           console.warn(
-            `Defaulting to index 0 as ID "${currentId}" not found after loading all pages.`
+            `Defaulting to index 0 as ID "${currentId}" not found after loading all pages.`,
           );
           setCarouselIndex(0);
-        } else if (
-          !imageQuery.isLoading &&
-          !imageQuery.isFetching &&
-          currentImages.length === 0
-        ) {
+        } else if (!imageQuery.isLoading && !imageQuery.isFetching && currentImages.length === 0) {
           // If no images at all, navigate away (handled by the Match condition later)
           console.warn("No images loaded at all.");
           // The <Match when={images().length === 0}> block will handle navigating away
@@ -167,9 +155,7 @@ function RouteComponent() {
       const index = currentImages.findIndex((img) => img.id === currentId);
       const newIndex = index === -1 ? 0 : index;
       if (carouselIndex() !== newIndex) {
-        console.log(
-          `Adjusting carousel index based on params.id after data load: ${newIndex}`
-        );
+        console.log(`Adjusting carousel index based on params.id after data load: ${newIndex}`);
         setCarouselIndex(newIndex);
       }
     }
@@ -184,12 +170,7 @@ function RouteComponent() {
     // Only scroll if API is ready, images exist, index is valid,
     // AND the carousel's *actual* current index is different from our target index.
     // This prevents infinite loops caused by the API's select event updating carouselIndex.
-    if (
-      currentApi &&
-      totalImages > 0 &&
-      targetIndex >= 0 &&
-      targetIndex < totalImages
-    ) {
+    if (currentApi && totalImages > 0 && targetIndex >= 0 && targetIndex < totalImages) {
       // Embla Carousel API provides selectedScrollSnap() to get the current index
       if (currentApi.selectedScrollSnap() !== targetIndex) {
         console.log(`Scrolling carousel API to index ${targetIndex}`); // Debug
@@ -218,7 +199,7 @@ function RouteComponent() {
       // navigate to the new image's route.
       if (newImage && newImage.id !== params().id) {
         console.log(
-          `Carousel slide changed to index ${newIndex}, ID ${newImage.id}. Updating route.`
+          `Carousel slide changed to index ${newIndex}, ID ${newImage.id}. Updating route.`,
         ); // Debug
         router.navigate({
           to: "/gallery/$id", // Use the route definition pattern
@@ -260,7 +241,7 @@ function RouteComponent() {
       !isLoadingMore
     ) {
       console.log(
-        `Nearing end (index ${currentIdx} of ${totalImagesLoaded}), fetching next page...`
+        `Nearing end (index ${currentIdx} of ${totalImagesLoaded}), fetching next page...`,
       ); // Debug
       imageQuery.fetchNextPage(); // Trigger the next page fetch
     }
@@ -298,7 +279,7 @@ function RouteComponent() {
       try {
         // Use axios to make the DELETE request
         const response = await axios.delete(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/${id}`
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/${id}`,
         );
         return response.data; // Return data if needed, or just null/void
       } catch (e) {
@@ -354,9 +335,7 @@ function RouteComponent() {
         }
 
         if (nextImageIdToNavigateTo) {
-          console.log(
-            `Navigating to next image ID: ${nextImageIdToNavigateTo}`
-          ); // Debug
+          console.log(`Navigating to next image ID: ${nextImageIdToNavigateTo}`); // Debug
           // Navigate to the next image's route, replacing the current history entry
           router.navigate({
             to: "/gallery/$id",
@@ -388,8 +367,7 @@ function RouteComponent() {
     imageQuery.isPending ||
     (imageQuery.isSuccess && images().length > 0 && !currentImage());
   // Also consider if any images are being fetched (including next page)
-  const isAnyFetching = () =>
-    modelsQuery.isFetching || deleteImageMutation.isPending;
+  const isAnyFetching = () => modelsQuery.isFetching || deleteImageMutation.isPending;
 
   const displayKeys: Array<keyof GenerateRequestPayloadType> = [
     "prompt",
@@ -426,9 +404,7 @@ function RouteComponent() {
         </div>
       </Match>
 
-      <Match
-        when={imageQuery.isSuccess && images().length > 0 && currentImage()}
-      >
+      <Match when={imageQuery.isSuccess && images().length > 0 && currentImage()}>
         <Show when={!isHidden()}>
           <header>
             <nav class="absolute flex gap-2 justify-between w-full items-center p-2 z-20">
@@ -457,11 +433,7 @@ function RouteComponent() {
                     const imgToDelete = currentImage();
                     if (imgToDelete) {
                       // Prompt user for confirmation before deleting
-                      if (
-                        confirm(
-                          `Are you sure you want to delete image "${imgToDelete.id}"?`
-                        )
-                      ) {
+                      if (confirm(`Are you sure you want to delete image "${imgToDelete.id}"?`)) {
                         deleteImageMutation.mutate(imgToDelete.id); // Pass only the ID
                       }
                     }
@@ -549,9 +521,7 @@ function RouteComponent() {
             <DrawerContent>
               <DrawerHeader>
                 <DrawerTitle>Image Details</DrawerTitle>
-                <DrawerDescription>
-                  Things used to build this image
-                </DrawerDescription>
+                <DrawerDescription>Things used to build this image</DrawerDescription>
               </DrawerHeader>
 
               <Show when={currentImage()?.inputPayload}>
@@ -565,11 +535,9 @@ function RouteComponent() {
                   <TableBody>
                     <Index each={displayKeys}>
                       {(key) => {
-                        const typedKey =
-                          key() as keyof GenerateRequestPayloadType;
+                        const typedKey = key() as keyof GenerateRequestPayloadType;
                         // Ensure generationInfo exists before accessing keys
-                        const info = currentImage()
-                          ?.inputPayload as GenerateRequestPayloadType;
+                        const info = currentImage()?.inputPayload as GenerateRequestPayloadType;
                         const value = info?.[typedKey];
 
                         // Format the key string
@@ -578,10 +546,7 @@ function RouteComponent() {
                           .replace(/_/g, " ")
                           .trim()
                           .split(" ")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
+                          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                           .join(" ");
 
                         let displayValueNode;
@@ -605,12 +570,8 @@ function RouteComponent() {
                         // Only render the row if we have a value node to display
                         return displayValueNode !== undefined ? (
                           <TableRow>
-                            <TableCell class="font-semibold w-24 align-top">
-                              {displayKey}
-                            </TableCell>
-                            <TableCell class="text-wrap">
-                              {displayValueNode as any}{" "}
-                            </TableCell>
+                            <TableCell class="font-semibold w-24 align-top">{displayKey}</TableCell>
+                            <TableCell class="text-wrap">{displayValueNode as any} </TableCell>
                           </TableRow>
                         ) : null;
                       }}
@@ -619,17 +580,9 @@ function RouteComponent() {
                 </Table>
               </Show>
 
-              <Show
-                when={
-                  !currentImage()?.generationInfo &&
-                  !currentImage()?.inputPayload
-                }
-              >
+              <Show when={!currentImage()?.generationInfo && !currentImage()?.inputPayload}>
                 <div class="text-center text-muted-foreground py-8 px-4">
-                  <p>
-                    No detailed generation or input info available for this
-                    image.
-                  </p>
+                  <p>No detailed generation or input info available for this image.</p>
                 </div>
               </Show>
             </DrawerContent>

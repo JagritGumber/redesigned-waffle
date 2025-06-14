@@ -14,6 +14,7 @@ import {
   GeneratePromptRequestPayloadType,
 } from "@/validators/generation"; // Assuming validators path is relative to manager/src
 import db from "@/db";
+import runpodSdk from "runpod-sdk";
 
 export const generatorRouter = new Elysia({ prefix: "/generator" })
   .post(
@@ -180,17 +181,14 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       const initialJobRecord: InsertGeneratorJob = {
         id: newDbJobId,
         status: "PENDING",
-        inputPayload: clientInput satisfies GenerateRequestPayloadType,
+        inputPayload: clientInput,
       };
 
       try {
         await db.insert(generatorJobs).values(initialJobRecord);
         console.log(`Created DB job record: ${newDbJobId} (Status: PENDING)`);
-      } catch (dbInsertError: any) {
-        console.error(
-          `Failed to insert initial DB job record ${newDbJobId}: ${dbInsertError.message}`,
-          dbInsertError
-        );
+      } catch (e: any) {
+        console.error(`Failed to insert initial DB job record ${newDbJobId}: ${e.message}`, e);
         set.status = 500;
         return { status: "error", message: "Internal error recording job request." };
       }
@@ -206,19 +204,12 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
         console.log(`Setting webhook URL for RunPod job: ${webhookUrl}`);
         console.log(clientInput);
 
-        const response = await fetch(`https://api.runpod.ai/v2/${RUNPOD_GENERATOR_ID}/run`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${RUNPOD_API_KEY}`,
-          },
-          body: JSON.stringify({
-            input: modifiedPayload,
-            webhook: webhookUrl,
-          }),
+        const runpod = runpodSdk(Bun.env.RUNPOD_API_KEY);
+        const endpoint = runpod.endpoint(Bun.env.RUNPOD_GENERATOR_ID);
+        const triggeredJob = await endpoint?.run({
+          input: modifiedPayload,
+          webhook: webhookUrl,
         });
-
-        const triggeredJob = await response.json();
 
         if (triggeredJob?.id) {
           runpodJobId = triggeredJob.id;
@@ -292,34 +283,7 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       }
     },
     {
-      body: t.Object({
-        prompt: t.String(),
-        numImages: t.Number(),
-        checkpoint: t.Object({
-          modelId: t.Number(),
-          modelVersionId: t.Number(),
-          weight: t.Number(),
-        }),
-        height: t.Number(),
-        loras: t.Array(
-          t.Object({
-            modelId: t.Number(),
-            modelVersionId: t.Number(),
-            weight: t.Number(),
-          })
-        ),
-        negativePrompt: t.String(),
-        seed: t.Number(),
-        steps: t.Number(),
-        textualInversions: t.Array(
-          t.Object({
-            modelId: t.Number(),
-            modelVersionId: t.Number(),
-            type: t.String(), // Assuming 'positive' or 'negative'
-          })
-        ),
-        width: t.Number(),
-      }),
+      body: GenerateRequestPayload,
     }
   )
   .post(
@@ -382,24 +346,17 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
         console.log(`Setting webhook URL for RunPod prompt: ${webhookUrl}`);
         console.log(clientInput);
 
-        const response = await fetch(`https://api.runpod.ai/v2/${RUNPOD_GENERATOR_ID}/run`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${RUNPOD_API_KEY}`,
-          },
-          body: JSON.stringify({
-            input: {
-              job_type: "generate_prompt", // Added job_type
-              data: {
-                prompt: clientInput.prompt,
-              },
+        const runpod = runpodSdk(Bun.env.RUNPOD_API_KEY);
+        const endpoint = runpod.endpoint(Bun.env.RUNPOD_GENERATOR_ID);
+        const triggeredJob = await endpoint?.run({
+          input: {
+            job_type: "generate_prompt", // Added job_type
+            data: {
+              prompt: clientInput.prompt,
             },
-            webhook: webhookUrl,
-          }),
+          },
+          webhook: webhookUrl,
         });
-
-        const triggeredJob = await response.json();
 
         if (triggeredJob?.id) {
           runpodJobId = triggeredJob.id;
@@ -599,4 +556,53 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
         };
       }
     }
-  );
+  )
+  .get("/prompt-status/:id", async ({ params, set }) => {
+    if (!db) {
+      console.error("Server configuration error: Database binding not available.");
+      set.status = 500;
+      return {
+        status: "error",
+        message: "Server configuration error: Database not available.",
+      };
+    }
+
+    try {
+      const { id } = params;
+      const job = await db.query.generatorPrompts.findFirst({
+        where: (prompts, { eq }) => eq(prompts.id, id),
+      });
+
+      if (!job) {
+        set.status = 404;
+        return { status: "error", message: "Prompt generation job not found." };
+      }
+
+      set.status = 200;
+      return {
+        status: "success",
+        message: "Successfully fetched prompt generation job status.",
+        job: {
+          id: job.id,
+          status: job.status,
+          outputPayload: job.outputPayload,
+          errorMessage: job.errorMessage,
+          errorDetails: job.errorDetails,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          completedAt: job.completedAt,
+        },
+      };
+    } catch (error: any) {
+      console.error(
+        `API Handler unexpected error fetching prompt generation job status: ${error.message}`,
+        error
+      );
+      set.status = 500;
+      return {
+        status: "error",
+        message: "Internal server error while fetching prompt generation job status.",
+        error: error.message,
+      };
+    }
+  });

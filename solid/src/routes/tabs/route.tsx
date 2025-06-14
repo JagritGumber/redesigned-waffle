@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/solid-router";
-import { Image, MagicWand, StackSimple, Sparkle } from "phosphor-solid";
+import { Image, MagicWand, StackSimple } from "phosphor-solid";
 import { Button } from "~/components/ui/button";
 
 export const Route = createFileRoute("/tabs")({
@@ -26,11 +26,6 @@ function RouteComponent() {
         <Link to="/tabs/three" class="w-full" replace>
           <Button class="w-full" variant={"outline"}>
             <Image weight="bold" />
-          </Button>
-        </Link>
-        <Link to="/tabs/flow" class="w-full" replace>
-          <Button class="w-full" variant={"outline"}>
-            <Sparkle weight="bold" />
           </Button>
         </Link>
       </footer>

@@ -151,9 +151,13 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
                 height={24}
                 class="rounded-full"
               />
-              <p class="text-sm text-background">{model.creator?.username ?? "No Creator"}</p>
+              <p class="text-sm text-background drop-shadow-lg drop-shadow-foreground">
+                {model.creator?.username ?? "No Creator"}
+              </p>
             </div>
-            <p class="text-base font-semibold text-background drop-shadow-md">{model.name}</p>
+            <p class="font-semibold text-background text-shadow-lg text-shadow-foreground">
+              {model.name}
+            </p>
           </div>
         </Match>
       </Switch>

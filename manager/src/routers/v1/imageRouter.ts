@@ -1,10 +1,8 @@
 import { Elysia, t } from "elysia";
-import { eq, and, isNotNull, lt, gt, desc, asc } from "drizzle-orm";
-import { generatorJobs } from "@/schema"; // Assuming schema path is relative to manager/src
 import { s3 } from "bun";
 import db from "@/db";
 
-export const imageRouter = new Elysia({ prefix: "/image" })
+export const imageRouter = new Elysia({ prefix: "/images" })
   .get("/:key", async ({ params, set }) => {
     const key = params.key;
     if (!key) {
@@ -12,8 +10,13 @@ export const imageRouter = new Elysia({ prefix: "/image" })
       return "Missing image key.";
     }
     try {
-      const object = s3.file(key);
-      const stat = await object.stat()
+      const object = s3.file(key, {
+        accessKeyId: Bun.env.R2_ACCESS_KEY_ID,
+        endpoint: Bun.env.R2_PUBLIC_BUCKET_URL,
+        bucket: Bun.env.R2_BUCKET_NAME,
+        secretAccessKey: Bun.env.R2_SECRET_ACCESS_KEY,
+      });
+      const stat = await object.stat();
 
       if (!object) {
         set.status = 404;

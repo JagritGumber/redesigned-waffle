@@ -16,10 +16,6 @@ automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
-# Load the DanTagGen model from local path
-# Reverted path for Docker environment where handler.py and models are at root
-MODEL_PATH = "./models/DanTagGen-delta-rev2"
-
 # Global variable for lazy loading the tag generator instance
 _cached_tag_generator = None
 
@@ -30,10 +26,10 @@ def _get_tag_generator():
     global _cached_tag_generator
     if _cached_tag_generator is None:
         logger.log("Initializing DanTagGen model...")
-        # Ensure the path is absolute to satisfy os.PathLike requirements
-        absolute_model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), MODEL_PATH))
-        tokenizer = AutoTokenizer.from_pretrained(absolute_model_path, local_files_only=True)
-        model = AutoModelForCausalLM.from_pretrained(absolute_model_path, local_files_only=True)
+        # Directly load the DanTagGen model from Hugging Face
+        model_name = "KBlueLeaf/DanTagGen-delta-rev2"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name)
         _cached_tag_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
         logger.log("DanTagGen model initialized.")
     return _cached_tag_generator

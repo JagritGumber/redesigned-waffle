@@ -112,25 +112,4 @@ if __name__ == "__main__":
             # You might want to exit here or log more severely
             pass  # Or continue with a warning
 
-    print("\n--- Cloning Hugging Face Model: KBlueLeaf/DanTagGen-delta-rev2 ---")
-    model_name = "KBlueLeaf/DanTagGen-delta-rev2"
-    save_path = "./models/DanTagGen-delta-rev2"
-
-    if os.path.exists(save_path) and os.listdir(save_path):
-        print(f"Hugging Face model already exists, skipping clone: {model_name} at {save_path}")
-    else:
-        os.makedirs(save_path, exist_ok=True)
-        try:
-            subprocess.run(
-                ["git", "clone", f"https://huggingface.co/{model_name}", save_path],
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            print(f"Hugging Face model {model_name} cloned successfully to {save_path}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error cloning Hugging Face model {model_name}: {e.stderr}")
-        except Exception as e:
-            print(f"Unexpected error during cloning: {e}")
-
     print("\nPre-trained model download script finished.")

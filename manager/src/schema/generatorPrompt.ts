@@ -17,6 +17,7 @@ export const generatorPrompts = sqliteTable("generator_prompts", {
       "FAILED",
       "WEBHOOK_RECEIVED",
       "CANCELLED",
+      "TIMED_OUT", // Added TIMED_OUT status
     ],
   }).notNull(),
 
