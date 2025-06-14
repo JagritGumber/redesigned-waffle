@@ -6,7 +6,7 @@ import subprocess
 import requests
 
 response = requests.get(
-    "https://hopes-mainly-stability-flood.trycloudflare.com/api/v1/model/default"
+    "https://appendix-jersey-licence-kingston.trycloudflare.com/api/v1/model/default"
 )
 
 DOWNLOAD_MAP = response.json()["items"]

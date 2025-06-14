@@ -129,4 +129,32 @@ export const imageRouter = new Elysia({ prefix: "/images" })
         error: error.message,
       };
     }
-  });
+  })
+  .post(
+    "/scrape-and-post",
+    async ({ body, set }) => {
+      const { imageId } = body;
+      console.log(`Received request to scrape and post image: ${imageId}`);
+
+      // Placeholder for future Selenium integration
+      // Here you would add logic to:
+      // 1. Fetch image details using imageId from your database/storage
+      // 2. Initialize Selenium (or similar tool)
+      // 3. Log in to DeviantArt/Patreon
+      // 4. Navigate to posting page
+      // 5. Upload image and fill in details
+      // 6. Submit post
+      // 7. Handle success/failure
+
+      set.status = 200;
+      return {
+        status: "success",
+        message: `Scrape and post initiated for image ID: ${imageId}`,
+      };
+    },
+    {
+      body: t.Object({
+        imageId: t.String(),
+      }),
+    },
+  );

@@ -344,18 +344,41 @@ function RouteComponent() {
           });
         } else {
           console.log("No images left, navigating back to gallery list."); // Debug
-          // No images left, go back to the main gallery list page
           router.navigate({
-            to: "/tabs/three", // Adjust this to your gallery list route
+            to: "/tabs/three",
           });
         }
       }
     },
     // onError callback
     onError: (error) => {
-      console.error("Error deleting image:", error); // Log the error
-      // You might want to show a toast or other UI feedback to the user
-      alert(`Failed to delete image: ${error.message}`); // Simple alert for demonstration
+      console.error("Error deleting image:", error); 
+      alert(`Failed to delete image: ${error.message}`);
+    },
+  }));
+
+  // Mutation for initiating scrape and post
+  const scrapeAndPostMutation = useMutation(() => ({
+    mutationFn: async (id: string) => {
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/scrape-and-post`,
+          { imageId: id }, // Send the image ID in the request body
+        );
+        return response.data;
+      } catch (e) {
+        console.error("Scrape and post failed:", e);
+        throw new Error("Failed to initiate scrape and post.");
+      }
+    },
+    onSuccess: (_data, imageId) => {
+      console.log(`Scraping and posting initiated for image ${imageId}.`);
+      alert(`Scraping and posting initiated for image ${imageId}. Check backend logs for progress.`);
+      // Optionally, you might invalidate queries or update UI to reflect pending status
+    },
+    onError: (error) => {
+      console.error("Error initiating scrape and post:", error);
+      alert(`Failed to initiate scrape and post: ${error.message}`);
     },
   }));
 
@@ -426,6 +449,27 @@ function RouteComponent() {
                   disabled={!currentImage() || isAnyFetching()} // Disable if no image or fetching/mutating
                 >
                   <Download weight="bold" />
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    const imgToScrape = currentImage();
+                    if (imgToScrape) {
+                      // Confirm before initiating scrape and post
+                      if (
+                        confirm(
+                          `Are you sure you want to initiate scraping and posting for image "${imgToScrape.id}"?`,
+                        )
+                      ) {
+                        scrapeAndPostMutation.mutate(imgToScrape.id);
+                      }
+                    }
+                  }}
+                  size={"icon"}
+                  variant={"secondary"}
+                  disabled={scrapeAndPostMutation.isPending || !currentImage()}
+                >
+                  Post
                 </Button>
 
                 <Button
