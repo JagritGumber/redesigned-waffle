@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm"; // Import inArray
 import {
   generatorJobs,
   InsertGeneratorJob,
@@ -15,6 +15,7 @@ import {
 } from "@/validators/generation"; // Assuming validators path is relative to manager/src
 import db from "@/db";
 import runpodSdk from "runpod-sdk";
+import s3 from "@/s3";
 
 export const generatorRouter = new Elysia({ prefix: "/generator" })
   .post(
@@ -444,119 +445,151 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       }),
     }
   )
-  .get("/images", async ({ query, set }) => {
-    if (!db) {
-      console.error("Server configuration error: Database binding not available.");
-      set.status = 500;
-      return {
-        status: "error",
-        message: "Server configuration error: Database not available.",
-      };
-    }
-
-    const limit = Number.parseInt(query.limit || "20", 10); // Default limit 20
-    const offset = Number.parseInt(query.offset || "0", 10); // Default offset 0
-    const statusFilter = query.status || "COMPLETED"; // Default to COMPLETED
-
-    // Basic validation
-    if (Number.isNaN(limit) || limit <= 0 || Number.isNaN(offset) || offset < 0) {
-      set.status = 400;
-      return {
-        status: "error",
-        message: "Invalid pagination parameters (limit, offset).",
-      };
-    }
-    // Add validation for statusFilter if needed
-
-    try {
-      console.log(`Fetching images: limit=${limit}, offset=${offset}, status=${statusFilter}`);
-
-      const jobs = await db.query.generatorJobs.findMany({
-        limit,
-        offset,
-        where: (jobs: any, { eq, and, isNotNull }: any) =>
-          and(eq(jobs.status, statusFilter as any), isNotNull(jobs.status)),
-        orderBy: (jobs: any, { desc }: any) => desc(jobs.createdAt),
-      });
-
-      console.log(`Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`);
-
-      console.log(`Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`);
-
-      // Determine if there's a next page using the limit/offset pattern
-      const hasMore = jobs.length === limit;
-      let nextPageUrl: string | null = null;
-
-      if (hasMore) {
-        const nextOffset = offset + limit;
-        nextPageUrl = `/api/v1/generator/images?limit=${limit}&offset=${nextOffset}${
-          query.status ? `&status=${query.status}` : ""
-        }`;
-        console.log("Calculated next page URL:", nextPageUrl);
-      } else {
-        console.log("No more pages.");
-      }
-
-      set.status = 200;
-      return {
-        status: "success",
-        message: "Successfully fetched image generation jobs.",
-        items: jobs, // Returning the job objects (each contains imageUrls array)
-        nextPageUrl: nextPageUrl, // URL for the next page of jobs
-      };
-    } catch (error: any) {
-      console.error(
-        `API Handler unexpected error fetching generator jobs: ${error.message}`,
-        error
-      );
-
-      set.status = 500;
-      return {
-        status: "error",
-        message: "Internal server error while fetching images.",
-        error: error.message,
-      };
-    }
-  })
-  .delete(
-    "/:id",
-    async ({
-      params,
-      set,
-      db,
-    }: {
-      params: { id: string };
-      set: { status: number | undefined }; // Corrected type for set.status
-      db: any; // Replace 'any' with your actual Drizzle DB type
-      env: {
-        RUNPOD_API_KEY: string;
-        RUNPOD_GENERATOR_ID: string;
-        RUNPOD_WEBHOOK_URL: string;
-        R2: any; // Replace 'any' with your R2 bucket type
-        R2_PUBLIC_BUCKET_URL: string;
-      };
-    }) => {
-      try {
-        const id = params.id;
-        const deletedCount = await db
-          .delete(generatorJobs)
-          .where(eq(generatorJobs.id, id))
-          .limit(1);
-        set.status = 200;
-        return {
-          status: "success",
-          message: "Deleted successfully",
-        };
-      } catch (e: any) {
+  .get(
+    "/images",
+    async ({ query, set }) => {
+      if (!db) {
+        console.error("Server configuration error: Database binding not available.");
         set.status = 500;
         return {
           status: "error",
-          message: "Internal Server Error while deleting this id",
-          error: e instanceof Error ? e?.message : JSON.stringify(e),
+          message: "Server configuration error: Database not available.",
         };
       }
+
+      const limit = Number.parseInt(query.limit || "20", 10); // Default limit 20
+      const offset = Number.parseInt(query.offset || "0", 10); // Default offset 0
+
+      // Expect query.status to be a string or an array of strings
+      const statusQuery = query.status;
+      const statusFilter = Array.isArray(statusQuery)
+        ? statusQuery
+        : typeof statusQuery === "string"
+        ? [statusQuery]
+        : undefined; // If not provided, no filter
+
+      // Basic validation
+      if (Number.isNaN(limit) || limit <= 0 || Number.isNaN(offset) || offset < 0) {
+        set.status = 400;
+        return {
+          status: "error",
+          message: "Invalid pagination parameters (limit, offset).",
+        };
+      }
+      // Add validation for statusFilter if needed
+
+      try {
+        console.log(`Fetching images: limit=${limit}, offset=${offset}, status=${statusFilter}`);
+
+        const jobs = await db.query.generatorJobs.findMany({
+          limit,
+          offset,
+          where: (jobs, { and, isNotNull }) =>
+            and(
+              statusFilter ? inArray(jobs.status, statusFilter) : undefined, // Use inArray for array of statuses
+              isNotNull(jobs.status)
+            ),
+          orderBy: (jobs, { desc }) => desc(jobs.createdAt),
+        });
+
+        console.log(`Fetched ${jobs.length} jobs for limit=${limit}, offset=${offset}.`);
+
+        // Determine if there's a next page using the limit/offset pattern
+        const hasMore = jobs.length === limit;
+        let nextPageUrl: string | null = null;
+
+        if (hasMore) {
+          const nextOffset = offset + limit;
+          // Construct nextPageUrl with all status filters
+          const statusParams = statusFilter ? statusFilter.map((s) => `status=${s}`).join("&") : "";
+          nextPageUrl = `${
+            Bun.env.HOST_URL
+          }/api/v1/generator/images?limit=${limit}&offset=${nextOffset}${
+            statusParams ? `&${statusParams}` : ""
+          }`;
+          console.log("Calculated next page URL:", nextPageUrl);
+        } else {
+          console.log("No more pages.");
+        }
+
+        set.status = 200;
+        return {
+          status: "success",
+          message: "Successfully fetched image generation jobs.",
+          items: jobs, // Returning the job objects (each contains imageUrls array)
+          nextPageUrl: nextPageUrl, // URL for the next page of jobs
+        };
+      } catch (error: any) {
+        console.error(
+          `API Handler unexpected error fetching generator jobs: ${error.message}`,
+          error
+        );
+
+        set.status = 500;
+        return {
+          status: "error",
+          message: "Internal server error while fetching images.",
+          error: error.message,
+        };
+      }
+    },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+        offset: t.Optional(t.String()),
+        status: t.Optional(
+          t.Union([
+            t.Array(
+              t.Union([
+                t.Literal("PENDING"),
+                t.Literal("RUNNING"),
+                t.Literal("COMPLETED"),
+                t.Literal("FAILED"),
+                t.Literal("WEBHOOK_RECEIVED"),
+                t.Literal("CANCELLED"),
+              ])
+            ),
+            t.Literal("PENDING"), // Allow single string for backward compatibility if needed
+            t.Literal("RUNNING"),
+            t.Literal("COMPLETED"),
+            t.Literal("FAILED"),
+            t.Literal("WEBHOOK_RECEIVED"),
+            t.Literal("CANCELLED"),
+          ])
+        ),
+        prefix: t.Optional(t.String()),
+      }),
     }
   )
+  .delete("/:id", async ({ params, set }) => {
+    try {
+      const id = params.id;
+
+      // 1. Fetch the job to get image URLs
+      const job = await db.query.generatorJobs.findFirst({
+        where: eq(generatorJobs.id, id),
+      });
+
+      if (job?.imageKey) {
+        await s3.delete(job.imageKey);
+        console.log(`Deleted image ${job.imageKey} from R2.`);
+      }
+
+      const deletedCount = await db.delete(generatorJobs).where(eq(generatorJobs.id, id)).limit(1);
+      set.status = 200;
+      return {
+        status: "success",
+        message: "Deleted successfully",
+      };
+    } catch (e: any) {
+      set.status = 500;
+      return {
+        status: "error",
+        message: "Internal Server Error while deleting this id",
+        error: e instanceof Error ? e?.message : JSON.stringify(e),
+      };
+    }
+  })
   .get("/prompt-status/:id", async ({ params, set }) => {
     if (!db) {
       console.error("Server configuration error: Database binding not available.");

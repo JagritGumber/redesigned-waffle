@@ -1,6 +1,7 @@
 import { RouterProvider, createRouter } from "@tanstack/solid-router";
 import { render } from "solid-js/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
+import { Toaster } from "solid-sonner";
 
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
@@ -25,6 +26,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toaster />
     </QueryClientProvider>
   );
 }

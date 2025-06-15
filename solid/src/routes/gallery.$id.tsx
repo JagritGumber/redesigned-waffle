@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query"; // Import useQuery
 import { createFileRoute, Link, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
@@ -44,6 +44,21 @@ import axios from "axios";
 import useDownloadedModels from "~/hooks/useDownloadedModels"; // Adjust import path if needed
 import useGeneratedJobs from "~/hooks/useGeneratedJobs"; // Adjust import path if needed
 import type { GenerateRequestPayloadType } from "~/backend/validators/generation";
+import { PostImageDrawer } from "~/components/PostImageDrawer"; // Import the new component
+
+// Define a type for the post details from the backend
+export interface PostDetails {
+  // Export the interface
+  id: string;
+  imageId: string;
+  platform: "deviantart" | "patreon";
+  title: string;
+  description: string;
+  tags?: string[];
+  tier?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export const Route = createFileRoute("/gallery/$id")({
   // Consider adding loader/preload functions if needed, but handling loading inside
@@ -64,7 +79,9 @@ function RouteComponent() {
 
   // --- Data Fetching ---
   const modelsQuery = useDownloadedModels(); // Used in Drawer details
-  const imageQuery = useGeneratedJobs(); // Fetches images with pagination
+  const imageQuery = useGeneratedJobs(() => ({
+    status: ["PENDING", "RUNNING", "COMPLETED", "FAILED", "WEBHOOK_RECEIVED", "CANCELLED"],
+  })); // Fetch all statuses for the gallery
 
   // Memo to flatten the paginated image data into a single array
   const images = createMemo(() => {
@@ -118,19 +135,12 @@ function RouteComponent() {
         setCarouselIndex(index); // Update the signal that controls the carousel
       } else {
         // Handle case where the ID from the URL is NOT found in currently loaded pages.
-        // This could mean the image is in a later page, or the ID is invalid.
         console.warn(`Image ID "${currentId}" from URL not found in loaded images.`); // Debug
-        // Option A: Try to fetch next pages until found (complex)
-        // Option B: Default to index 0 and show a message (simpler for now)
-        // Option C: Navigate back to the gallery list (if ID is likely invalid)
-        // Let's default to 0 for now and log a warning. If needed, add logic to fetch more pages.
-        if (!imageQuery.isFetching && imageQuery.hasNextPage) {
-          // If not currently fetching and more pages exist, maybe trigger a fetch here?
-          // Or rely on the pagination trigger effect to handle this if they scroll.
-          // For simplicity, let's just set to 0 if not found *in loaded pages*.
-          // A more advanced approach might require a separate query or logic.
-          console.warn(`Defaulting to index 0 as ID "${currentId}" not found in loaded pages.`);
-          setCarouselIndex(0);
+        if (imageQuery.hasNextPage && !imageQuery.isFetchingNextPage) {
+          // If the image is not found and there are more pages, fetch the next page
+          console.log(`Attempting to fetch next page to find image ID: ${currentId}`);
+          imageQuery.fetchNextPage();
+          // Do NOT set carouselIndex here, let the effect re-run when new data arrives
         } else if (!imageQuery.isFetching && !imageQuery.hasNextPage && currentImages.length > 0) {
           // If all pages loaded and ID still not found, default to 0
           console.warn(
@@ -138,7 +148,7 @@ function RouteComponent() {
           );
           setCarouselIndex(0);
         } else if (!imageQuery.isLoading && !imageQuery.isFetching && currentImages.length === 0) {
-          // If no images at all, navigate away (handled by the Match condition later)
+          // If no images at all, navigate away
           console.warn("No images loaded at all.");
           // The <Match when={images().length === 0}> block will handle navigating away
         }
@@ -279,7 +289,7 @@ function RouteComponent() {
       try {
         // Use axios to make the DELETE request
         const response = await axios.delete(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/${id}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/${id}`,
         );
         return response.data; // Return data if needed, or just null/void
       } catch (e) {
@@ -352,33 +362,8 @@ function RouteComponent() {
     },
     // onError callback
     onError: (error) => {
-      console.error("Error deleting image:", error); 
+      console.error("Error deleting image:", error);
       alert(`Failed to delete image: ${error.message}`);
-    },
-  }));
-
-  // Mutation for initiating scrape and post
-  const scrapeAndPostMutation = useMutation(() => ({
-    mutationFn: async (id: string) => {
-      try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/images/scrape-and-post`,
-          { imageId: id }, // Send the image ID in the request body
-        );
-        return response.data;
-      } catch (e) {
-        console.error("Scrape and post failed:", e);
-        throw new Error("Failed to initiate scrape and post.");
-      }
-    },
-    onSuccess: (_data, imageId) => {
-      console.log(`Scraping and posting initiated for image ${imageId}.`);
-      alert(`Scraping and posting initiated for image ${imageId}. Check backend logs for progress.`);
-      // Optionally, you might invalidate queries or update UI to reflect pending status
-    },
-    onError: (error) => {
-      console.error("Error initiating scrape and post:", error);
-      alert(`Failed to initiate scrape and post: ${error.message}`);
     },
   }));
 
@@ -450,27 +435,16 @@ function RouteComponent() {
                 >
                   <Download weight="bold" />
                 </Button>
-
-                <Button
-                  onClick={() => {
-                    const imgToScrape = currentImage();
-                    if (imgToScrape) {
-                      // Confirm before initiating scrape and post
-                      if (
-                        confirm(
-                          `Are you sure you want to initiate scraping and posting for image "${imgToScrape.id}"?`,
-                        )
-                      ) {
-                        scrapeAndPostMutation.mutate(imgToScrape.id);
-                      }
-                    }
-                  }}
-                  size={"icon"}
-                  variant={"secondary"}
-                  disabled={scrapeAndPostMutation.isPending || !currentImage()}
-                >
-                  Post
-                </Button>
+                <Drawer>
+                  <DrawerTrigger>
+                    <Button size={"icon"} variant={"secondary"} disabled={!currentImage()}>
+                      Post
+                    </Button>
+                  </DrawerTrigger>
+                  <PostImageDrawer
+                    currentImageId={currentImage()?.id} // Pass current image ID for generation
+                  />
+                </Drawer>
 
                 <Button
                   onClick={() => {
@@ -499,7 +473,6 @@ function RouteComponent() {
           </Show>
           <Carousel
             opts={{
-              loop: true,
               containScroll: "keepSnaps",
             }}
             setApi={setApi} // Get the API instance
@@ -528,12 +501,26 @@ function RouteComponent() {
                         "z-index": 5,
                       }}
                     ></div>
-                    <Image
-                      src={image.url || ""}
-                      alt={`Gallery image ${image.id}`}
-                      class={`max-w-full max-h-full object-contain relative z-10`}
-                      layout="fullWidth"
-                    />
+                    <Show
+                      when={
+                        image.status === "PENDING" ||
+                        image.status === "RUNNING" ||
+                        image.status === "WEBHOOK_RECEIVED"
+                      }
+                      fallback={
+                        <Image
+                          src={image.url || ""}
+                          alt={`Gallery image ${image.id}`}
+                          class={`max-w-full max-h-full object-contain relative z-10`}
+                          layout="fullWidth"
+                        />
+                      }
+                    >
+                      {/* This div will act as the background for the processing state */}
+                      <div class="bg-background h-screen w-screen"></div>
+                      {/* Loader as a full-screen overlay, positioned on top of the background */}
+                      <Loader />
+                    </Show>
                   </CarouselItem>
                 )}
               </For>

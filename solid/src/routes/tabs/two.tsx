@@ -7,7 +7,8 @@ import { ModelList } from "~/components/model-list";
 import { Button } from "~/components/ui/button";
 import { NumberField, NumberFieldInput, NumberFieldLabel } from "~/components/ui/number-field";
 import { TextField, TextFieldTextArea, TextFieldLabel } from "~/components/ui/text-field";
-import { Toggle } from "~/components/ui/toggle";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Label } from "~/components/ui/label";
 import useGenerationModels from "~/hooks/useGenerationModels";
 import {
   generationStore,
@@ -15,13 +16,13 @@ import {
   setNegativePrompt,
   setNumImages,
   setPrompt,
-  setRandomSeed,
   setSeed,
   setWidth,
 } from "~/store/generation";
 import { type GenerateRequestPayloadType } from "~/backend/validators/generation";
 import { Badge } from "~/components/ui/badge";
 import type { SelectGeneratorPrompt } from "~/backend/schema/generatorPrompt";
+import { toast } from "solid-sonner";
 
 export const Route = createFileRoute("/tabs/two")({
   component: RouteComponent,
@@ -60,9 +61,9 @@ function RouteComponent() {
   const [startingTags, setStartingTags] = createSignal("");
   const [generatedPrompt, setGeneratedPrompt] = createSignal("");
   const [isLoading, setIsLoading] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
   const [selectedRatio, setSelectedRatio] = createSignal<string | null>(null);
   const [promptJobId, setPromptJobId] = createSignal<string | null>(null);
+  const [isRandomSeedEnabled, setIsRandomSeedEnabled] = createSignal(true); // New state for random seed checkbox
 
   createEffect(() => {
     if (width() && height()) {
@@ -109,6 +110,15 @@ function RouteComponent() {
   };
 
   const handleTestGenerate = async () => {
+    if (!selectedCheckpoint()) {
+      toast.error("Please select a checkpoint before generating.");
+      return;
+    }
+
+    if (isRandomSeedEnabled()) {
+      const newSeed = Math.floor(Math.random() * 1000000000000); // Generate a 12-digit random number
+      setSeed(newSeed);
+    }
     const payload = buildPayload();
     await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate-image`,
@@ -120,7 +130,6 @@ function RouteComponent() {
 
   const generatePrompt = async (promptInput: string) => {
     setIsLoading(true);
-    setError(null);
     setGeneratedPrompt("");
 
     try {
@@ -147,7 +156,7 @@ function RouteComponent() {
       console.log("Prompt generation job initiated:", data);
       // Polling will be handled by Tanstack Query
     } catch (err: any) {
-      setError(err.message);
+      toast.error(`Prompt generation failed: ${err.message}`);
       setGeneratedPrompt("");
       setIsLoading(false);
     }
@@ -183,21 +192,20 @@ function RouteComponent() {
     onSuccess: (data: { job: SelectGeneratorPrompt } | null) => {
       if (!data) {
         // Add null check for data
-        setError("No data received for prompt generation status.");
+        toast.error("No data received for prompt generation status.");
         setGeneratedPrompt("");
         return;
       }
       const jobStatus = data.job?.status; // Access job directly from data
       if (jobStatus === "COMPLETED") {
         setGeneratedPrompt(data.job.outputPayload.generated_prompt);
-        setError(null);
       } else if (jobStatus === "FAILED" || jobStatus === "CANCELLED" || jobStatus === "TIMED_OUT") {
-        setError(data.job.errorMessage || "Prompt generation failed or was cancelled.");
+        toast.error(data.job.errorMessage || "Prompt generation failed or was cancelled.");
         setGeneratedPrompt("");
       }
     },
     onError: (err: any) => {
-      setError(`Polling error: ${err.message}`);
+      toast.error(`Polling error: ${err.message}`);
       setGeneratedPrompt("");
       setIsLoading(false);
     },
@@ -339,11 +347,16 @@ function RouteComponent() {
       <div class="flex items-center gap-2">
         <NumberField class="flex-1" onRawValueChange={setSeed}>
           <TextFieldLabel>Seed</TextFieldLabel>
-          <NumberFieldInput placeholder="-1 for random" value={seed()} />
+          <NumberFieldInput value={seed()} disabled={isRandomSeedEnabled()} />
         </NumberField>
-        <Toggle pressed={randomSeed()} onChange={setRandomSeed}>
-          Random Seed
-        </Toggle>
+        <div class="flex items-center space-x-2">
+          <Checkbox
+            id="random-seed-checkbox"
+            checked={isRandomSeedEnabled()}
+            onChange={setIsRandomSeedEnabled}
+          />
+          <Label for="random-seed-checkbox">Random Seed</Label>
+        </div>
       </div>
 
       <div class="flex gap-2 mt-4">

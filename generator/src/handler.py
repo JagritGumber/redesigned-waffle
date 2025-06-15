@@ -1,10 +1,13 @@
-import os # Added for path manipulation if needed later
+import os  # Added for path manipulation if needed later
 import time
 import runpod
 import requests
 from requests.adapters import HTTPAdapter, Retry
 from runpod import RunPodLogger
 from transformers.pipelines import pipeline
+from transformers.pipelines.base import Pipeline
+from typing import Optional  # Added for type hinting
+
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 from transformers.models.auto.modeling_auto import AutoModelForCausalLM
 
@@ -16,22 +19,15 @@ automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
 
-# Global variable for lazy loading the tag generator instance
-_cached_tag_generator = None
+# Global variable for the tag generator instance
+_cached_tag_generator: Optional[Pipeline] = None  # Use Pipeline for type hinting
+
 
 def _get_tag_generator():
     """
-    Returns the initialized DanTagGen pipeline, initializing it if it hasn't been already.
+    Returns the initialized DanTagGen pipeline.
     """
     global _cached_tag_generator
-    if _cached_tag_generator is None:
-        logger.log("Initializing DanTagGen model...")
-        # Directly load the DanTagGen model from Hugging Face
-        model_name = "KBlueLeaf/DanTagGen-delta-rev2"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-        _cached_tag_generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
-        logger.log("DanTagGen model initialized.")
     return _cached_tag_generator
 
 
@@ -91,7 +87,7 @@ def generate_prompt_ai_dan_tag_gen(prompt_request):
     """
     Generate prompt using AI Dan Tag Gen.
     """
-    tag_generator = _get_tag_generator() # Get the lazily initialized tag generator
+    tag_generator = _get_tag_generator()  # Get the lazily initialized tag generator
 
     logger.log("Generating prompt with AI Dan Tag Gen:", prompt_request)
 
@@ -99,7 +95,11 @@ def generate_prompt_ai_dan_tag_gen(prompt_request):
     input_prompt = prompt_request.get("prompt", "")
 
     # Generate tags using the DanTagGen model
-    generated_output = tag_generator(input_prompt) # Use the lazily loaded tag_generator
+    if tag_generator is None:
+        logger.log("Error: DanTagGen model was not initialized.")
+        return {"generated_prompt": None}
+
+    generated_output = tag_generator(input_prompt)  # Use the initialized tag_generator
     generated_tags = ""
     if (
         generated_output
@@ -143,5 +143,15 @@ def handler(event):
 
 if __name__ == "__main__":
     wait_for_service(url=f"{LOCAL_URL}/sd-models")
+
+    logger.log("Initializing DanTagGen model globally...")
+    model_name = "KBlueLeaf/DanTagGen-delta-rev2"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    _cached_tag_generator = pipeline(
+        "text-generation", model=model, tokenizer=tokenizer
+    )
+    logger.log("DanTagGen model initialized globally.")
+
     print("WebUI API Service is ready. Starting RunPod Serverless...")
     runpod.serverless.start({"handler": handler})

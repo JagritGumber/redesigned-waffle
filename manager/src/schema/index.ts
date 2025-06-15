@@ -90,3 +90,4 @@ export {
 export { scrapedPosts } from "./scrapedPosts";
 
 export { trainingState, type InsertTrainingState, type SelectTrainingState } from "./trainingState";
+export { postImageDetails, postImageDetailsRelations } from "./postImageDetails";

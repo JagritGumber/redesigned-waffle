@@ -2,10 +2,18 @@ import { useInfiniteQuery } from "@tanstack/solid-query";
 import { createMemo, type Accessor } from "solid-js";
 import type { SelectGeneratorJob } from "~/backend/schema";
 
-interface R2ListParams {
+export interface R2ListParams {
   query?: string;
   prefix?: string;
   limit?: number;
+  status?:
+    | "PENDING"
+    | "RUNNING"
+    | "COMPLETED"
+    | "FAILED"
+    | "WEBHOOK_RECEIVED"
+    | "CANCELLED"
+    | Array<"PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "WEBHOOK_RECEIVED" | "CANCELLED">;
 }
 
 interface R2ListPage {
@@ -38,17 +46,23 @@ const fetchR2ImagesPage = async ({
   if (pageParam) {
     fetchUrl = pageParam;
   } else {
-    const url = new URL(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/images`,
-    );
+    const url = new URL(`${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/images`);
 
     url.searchParams.set("limit", defaultLimit.toString());
     if (params?.query) {
       // Add search query parameter if present
       url.searchParams.set("query", params.query);
     }
+    url.searchParams.set("offset", "0");
+    if (params?.status) {
+      if (Array.isArray(params.status)) {
+        url.searchParams.set("status", params.status.join(","));
+      } else {
+        url.searchParams.set("status", params.status);
+      }
+    }
+    console.log(url.searchParams);
     if (params?.prefix) {
-      // Add prefix parameter if present
       url.searchParams.set("prefix", params.prefix);
     }
 
@@ -94,6 +108,13 @@ const useGeneratedJobs = (appliedFilters?: Accessor<R2ListParams>) => {
     getNextPageParam: (lastPage) => {
       return lastPage.nextContinuationToken;
     },
+    refetchInterval: (query) => {
+      const hasProcessingJobs = query.state.data?.pages.some((page) =>
+        page.items.some((item) => item.status === "PENDING" || item.status === "RUNNING"),
+      );
+      return hasProcessingJobs ? 15 * 1000 : 15 * 60 * 1000; // 15 seconds or 15 minutes
+    },
+    gcTime: 1000 * 60 * 60,
   }));
 };
 
