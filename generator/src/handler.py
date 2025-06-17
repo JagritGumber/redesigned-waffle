@@ -4,12 +4,6 @@ import runpod
 import requests
 from requests.adapters import HTTPAdapter, Retry
 from runpod import RunPodLogger
-from transformers.pipelines import pipeline
-from transformers.pipelines.base import Pipeline
-from typing import Optional  # Added for type hinting
-
-from transformers.models.auto.tokenization_auto import AutoTokenizer
-from transformers.models.auto.modeling_auto import AutoModelForCausalLM
 
 logger = RunPodLogger()
 
@@ -18,18 +12,6 @@ LOCAL_URL = "http://127.0.0.1:3000/sdapi/v1"
 automatic_session = requests.Session()
 retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
 automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
-
-# Global variable for the tag generator instance
-_cached_tag_generator: Optional[Pipeline] = None  # Use Pipeline for type hinting
-
-
-def _get_tag_generator():
-    """
-    Returns the initialized DanTagGen pipeline.
-    """
-    global _cached_tag_generator
-    return _cached_tag_generator
-
 
 # ---------------------------------------------------------------------------- #
 #                              Automatic Functions                             #
@@ -83,42 +65,6 @@ def generate_image_a1111(inference_request):
         raise  # Re-raise the exception after logging
 
 
-def generate_prompt_ai_dan_tag_gen(prompt_request):
-    """
-    Generate prompt using AI Dan Tag Gen.
-    """
-    tag_generator = _get_tag_generator()  # Get the lazily initialized tag generator
-
-    logger.log("Generating prompt with AI Dan Tag Gen:", prompt_request)
-
-    # Extract the prompt from the request
-    input_prompt = prompt_request.get("prompt", "")
-
-    # Generate tags using the DanTagGen model
-    if tag_generator is None:
-        logger.log("Error: DanTagGen model was not initialized.")
-        return {"generated_prompt": None}
-
-    generated_output = tag_generator(input_prompt)  # Use the initialized tag_generator
-    generated_tags = ""
-    if (
-        generated_output
-        and isinstance(generated_output, list)
-        and len(generated_output) > 0
-    ):
-        generated_tags = generated_output[0].get("generated_text", "")
-    else:
-        logger.log(
-            f"Error: DanTagGen pipeline did not return expected output. Output: {generated_output}"
-        )
-        generated_tags = ""  # Fallback to empty string if generation fails
-
-    # Combine the input prompt with the generated tags
-    full_prompt = f"{input_prompt}, {generated_tags}"
-
-    return {"generated_prompt": full_prompt}
-
-
 # ---------------------------------------------------------------------------- #
 #                                RunPod Handler                                #
 # ---------------------------------------------------------------------------- #
@@ -132,8 +78,6 @@ def handler(event):
 
     if job_type == "generate_image":
         result = generate_image_a1111(request_data)
-    elif job_type == "generate_prompt":
-        result = generate_prompt_ai_dan_tag_gen(request_data)
     else:
         raise ValueError(f"Unknown job_type: {job_type}")
 
@@ -143,15 +87,6 @@ def handler(event):
 
 if __name__ == "__main__":
     wait_for_service(url=f"{LOCAL_URL}/sd-models")
-
-    logger.log("Initializing DanTagGen model globally...")
-    model_name = "KBlueLeaf/DanTagGen-delta-rev2"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    _cached_tag_generator = pipeline(
-        "text-generation", model=model, tokenizer=tokenizer
-    )
-    logger.log("DanTagGen model initialized globally.")
 
     print("WebUI API Service is ready. Starting RunPod Serverless...")
     runpod.serverless.start({"handler": handler})

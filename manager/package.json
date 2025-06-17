@@ -12,6 +12,7 @@
     "@google/generative-ai": "^0.24.1",
     "@langchain/community": "^0.3.46",
     "@langchain/core": "^0.3.58",
+    "@langchain/google-genai": "^0.2.12",
     "@types/selenium-webdriver": "^4.1.28",
     "axios": "^1.10.0",
     "drizzle-orm": "^0.44.2",

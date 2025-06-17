@@ -1,12 +1,16 @@
 import { Patterns, cron } from "@elysiajs/cron";
-import Characters from "@/services/brain/characters";
+import { promptGenerationService } from "@/services/promptGenerationService";
 
 const rootCron = cron({
   name: "rootBeat",
-  pattern: Patterns.everySecond(),
+  pattern: Patterns.daily(),
   async run() {
     try {
-      const characterForToday = await Characters.getTodaysCharacter();
+      await promptGenerationService.initializeModels();
+
+      const generatedPrompt = await promptGenerationService.generatePrompt(9);
+
+      console.log("Generated Prompt:", generatedPrompt);
     } catch (e) {
       console.error("Runtime Error in daily run", { e });
     }
