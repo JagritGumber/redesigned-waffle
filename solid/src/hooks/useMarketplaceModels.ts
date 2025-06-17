@@ -11,10 +11,10 @@ const useMarketplaceModels = (appliedFilters: Accessor<FetchModelsParams>) => {
 
   return useInfiniteQuery(() => ({
     queryKey: queryKey(),
-    queryFn: ({ pageParam }) => fetchCivitAIModelsPage({ pageParam }),
+    queryFn: ({ pageParam }) => fetchCivitAIModelsPage({ pageParam: pageParam as string }),
     initialPageParam: buildInitialUrl(appliedFilters()),
     getNextPageParam: (lastPage) => {
-      return lastPage.nextPageUrl;
+      return lastPage.nextPageUrl || undefined;
     },
   }));
 };

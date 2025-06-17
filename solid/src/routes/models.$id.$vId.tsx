@@ -1,13 +1,17 @@
-import {
-  createFileRoute,
-  useCanGoBack,
-  useRouter,
-  Link,
-} from "@tanstack/solid-router";
+import { createFileRoute, useCanGoBack, useRouter, Link } from "@tanstack/solid-router";
 import { blurhashToCssGradientString } from "@unpic/placeholder";
 import { Image } from "@unpic/solid";
 import { CaretLeft, Download } from "phosphor-solid";
-import { For, Match, Suspense, Switch } from "solid-js";
+import {
+  For,
+  Match,
+  Suspense,
+  Switch,
+  createSignal,
+  createEffect,
+  onCleanup,
+  Show,
+} from "solid-js";
 import { Loader } from "~/components/loader";
 import {
   Accordion,
@@ -21,6 +25,9 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
 } from "~/components/ui/carousel";
 import { Separator } from "~/components/ui/separator";
 import {
@@ -31,10 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import {
-  useCivitaiModel,
-  useCivitaiModelVersion,
-} from "~/hooks/useCivitaiModel";
+import { useCivitaiModel, useCivitaiModelVersion } from "~/hooks/useCivitaiModel";
 import { useDownloadModel } from "~/hooks/useDownloadModel";
 import { formatBytes } from "~/utils/formatBytes";
 import { formatTime } from "~/utils/formatTime";
@@ -48,6 +52,10 @@ function RouteComponent() {
   const params = Route.useParams();
   const router = useRouter();
   const canGoBack = useCanGoBack();
+
+  const [api, setApi] = createSignal<ReturnType<CarouselApi>>();
+  const [isHidden, setIsHidden] = createSignal(true);
+  const [carouselIndex, setCarouselIndex] = createSignal(0);
 
   const civitaiModelQuery = useCivitaiModel(params);
   const civitaiModelVersionQuery = useCivitaiModelVersion(params);
@@ -80,6 +88,23 @@ function RouteComponent() {
 
   const downloadMutation = useDownloadModel(params);
 
+  // Effect to update carouselIndex when carousel changes slides (using Embla's 'select' event)
+  createEffect(() => {
+    const currentApi = api();
+    if (!currentApi) {
+      return;
+    }
+
+    const onSelect = (emblaApi: ReturnType<CarouselApi>) => {
+      setCarouselIndex(emblaApi?.selectedScrollSnap() ?? 0);
+    };
+
+    currentApi.on("select", onSelect);
+    onCleanup(() => {
+      currentApi.off("select", onSelect);
+    });
+  });
+
   return (
     <Suspense fallback={<Loader />}>
       <Switch>
@@ -87,245 +112,365 @@ function RouteComponent() {
           <Loader />
         </Match>
         <Match when={civitaiModel()}>
-          <header>
-            <nav class="flex gap-2 justify-between p-2">
-              <Button
-                size={"icon"}
-                variant={"outline"}
-                onClick={() => {
-                  canGoBack()
-                    ? router.history.back()
-                    : router.navigate({
-                        to: "/marketplace",
-                      });
-                }}
-              >
-                <CaretLeft weight="bold" />
-              </Button>
-            </nav>
-          </header>
-          <main class="p-2 py-0 flex flex-col gap-2 mb-20">
-            <h1 class="text-lg font-bold md:text-xl lg:text-2xl xl:text-3xl">
-              {civitaiModel()?.name}
-            </h1>
-            <div class="flex gap-1 items-center flex-wrap ">
-              <p class="text-xs font-medium lg:text-sm">
-                Updated: {formatTime(civitaiModelVersion()?.updatedAt ?? "")}
-              </p>
-              <Separator orientation="vertical" />
-              <For each={civitaiModel()?.tags}>
-                {(tag, index) => (
-                  <>
-                    <Badge
-                      class="text-xs lg:text-sm"
-                      variant={index() === 0 ? "default" : "secondary"}
-                    >
-                      {tag.toUpperCase()}
-                    </Badge>
-                    <Separator orientation="vertical" />
-                  </>
-                )}
-              </For>
-            </div>
-            <div class="overflow-auto flex  gap-2">
-              <For each={civitaiModel()?.modelVersions}>
-                {(version) => (
-                  <Link
-                    to="/models/$id/$vId"
-                    params={{
-                      id: params().id,
-                      vId: version.id.toString(),
+          <Show
+            when={!isHidden()}
+            fallback={
+              <header>
+                <nav class="flex gap-2 justify-between p-2">
+                  <Button
+                    size={"icon"}
+                    variant={"outline"}
+                    onClick={() => {
+                      canGoBack()
+                        ? router.history.back()
+                        : router.navigate({
+                            to: "/marketplace",
+                          });
                     }}
                   >
-                    <Button
-                      size={"sm"}
-                      variant={
-                        civitaiModelVersion()?.name === version.name
-                          ? "default"
-                          : "secondary"
-                      }
+                    <CaretLeft weight="bold" />
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const modelName = civitaiModel()?.name;
+                      const toastId = toast.loading(`Downloading ${modelName}...`);
+                      downloadMutation.mutate(
+                        {
+                          model: civitaiModel()!,
+                          versionId: civitaiModelVersion()?.id!,
+                          defaultDownload: true,
+                          fileId: primaryFile()?.id!,
+                        },
+                        {
+                          onSuccess: () => {
+                            toast.success(`${modelName} downloaded successfully!`, {
+                              id: toastId,
+                            });
+                          },
+                          onError: (error) => {
+                            toast.error(`Failed to download ${modelName}: ${error.message}`, {
+                              id: toastId,
+                            });
+                          },
+                        },
+                      );
+                    }}
+                  >
+                    <Download weight="bold" />
+                    Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+                  </Button>
+                </nav>
+              </header>
+            }
+          >
+            <header>
+              <nav class="flex gap-2 justify-between p-2 absolute top-0 left-0">
+                <Button
+                  size={"icon"}
+                  variant={"outline"}
+                  onClick={() => {
+                    canGoBack()
+                      ? router.history.back()
+                      : router.navigate({
+                          to: "/marketplace",
+                        });
+                  }}
+                >
+                  <CaretLeft weight="bold" />
+                </Button>
+                <Badge>
+                  {carouselIndex() + 1} / {civitaiModelVersion()?.images?.length ?? 0}
+                </Badge>
+                <Button
+                  onClick={() => {
+                    const modelName = civitaiModel()?.name;
+                    const toastId = toast.loading(`Downloading ${modelName}...`);
+                    downloadMutation.mutate(
+                      {
+                        model: civitaiModel()!,
+                        versionId: civitaiModelVersion()?.id!,
+                        defaultDownload: true,
+                        fileId: primaryFile()?.id!,
+                      },
+                      {
+                        onSuccess: () => {
+                          toast.success(`${modelName} downloaded successfully!`, {
+                            id: toastId,
+                          });
+                        },
+                        onError: (error) => {
+                          toast.error(`Failed to download ${modelName}: ${error.message}`, {
+                            id: toastId,
+                          });
+                        },
+                      },
+                    );
+                  }}
+                >
+                  <Download weight="bold" />
+                  Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+                </Button>
+              </nav>
+            </header>
+          </Show>
+          <main
+            class={
+              isHidden()
+                ? "p-2 py-0 flex flex-col gap-2 mb-20"
+                : "relative w-full h-dvh bg-black flex justify-center items-center"
+            }
+          >
+            <Show when={isHidden()}>
+              <h1 class="text-lg font-bold md:text-xl lg:text-2xl xl:text-3xl">
+                {civitaiModel()?.name}
+              </h1>
+              <div class="flex gap-1 items-center flex-wrap ">
+                <p class="text-xs font-medium lg:text-sm">
+                  Updated: {formatTime(civitaiModelVersion()?.updatedAt ?? "")}
+                </p>
+                <Separator orientation="vertical" />
+                <For each={civitaiModel()?.tags}>
+                  {(tag, index) => (
+                    <>
+                      <Badge
+                        class="text-xs lg:text-sm"
+                        variant={index() === 0 ? "default" : "secondary"}
+                      >
+                        {tag.toUpperCase()}
+                      </Badge>
+                      <Separator orientation="vertical" />
+                    </>
+                  )}
+                </For>
+              </div>
+              <div class="overflow-auto flex  gap-2">
+                <For each={civitaiModel()?.modelVersions}>
+                  {(version) => (
+                    <Link
+                      to="/models/$id/$vId"
+                      params={{
+                        id: params().id,
+                        vId: version.id.toString(),
+                      }}
                     >
-                      {version.name}
-                    </Button>
-                  </Link>
-                )}
-              </For>
-            </div>
+                      <Button
+                        size={"sm"}
+                        variant={
+                          civitaiModelVersion()?.name === version.name ? "default" : "secondary"
+                        }
+                      >
+                        {version.name}
+                      </Button>
+                    </Link>
+                  )}
+                </For>
+              </div>
+            </Show>
             <Carousel
-              class=" max-w-full md:max-w-[66%] xl:max-w-[78%] select-none"
+              class={
+                isHidden() ? "max-w-full md:max-w-[66%] xl:max-w-[78%] select-none" : "w-full h-dvh"
+              }
               opts={{ loop: true, align: "start" }}
+              setApi={setApi}
             >
-              <CarouselContent>
+              <CarouselContent class={isHidden() ? "" : "-ml-1"}>
                 <For each={civitaiModelVersion()?.images}>
                   {(image) => (
-                    <CarouselItem class="items-center flex lg:basis-1/2 xl:basis-1/3">
+                    <CarouselItem
+                      class={
+                        isHidden()
+                          ? "items-center flex lg:basis-1/2 xl:basis-1/3"
+                          : "pl-1 h-dvh flex justify-center items-center relative"
+                      }
+                      onClick={() => {
+                        setIsHidden((prev) => !prev);
+                      }}
+                    >
+                      <Show when={!isHidden()}>
+                        <div
+                          style={{
+                            "background-image": `url(${image.url || ""})`,
+                            filter: "blur(50px)",
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            "background-size": "cover",
+                            "background-position": "center",
+                            "z-index": 5,
+                          }}
+                        ></div>
+                      </Show>
                       <Image
-                        class="w-full object-cover rounded-md"
+                        class={
+                          isHidden()
+                            ? "w-full object-cover rounded-md"
+                            : "max-w-full max-h-full object-contain relative z-10"
+                        }
                         src={image.url}
-                        alt={image.meta.name ?? "No Name"}
+                        alt={image.meta?.name ?? "No Name"}
                         layout="fullWidth"
-                        background={blurhashToCssGradientString(image.hash)}
+                        background={isHidden() ? blurhashToCssGradientString(image.hash) : "auto"}
                         loading="lazy"
                       />
                     </CarouselItem>
                   )}
                 </For>
               </CarouselContent>
+              <Show when={!isHidden()}>
+                <CarouselPrevious
+                  variant={"secondary"}
+                  class="z-20 absolute top-1/2 left-2 -translate-y-1/2"
+                  disabled={!api() || !api()?.canScrollPrev()}
+                />
+                <CarouselNext
+                  variant={"secondary"}
+                  class="z-20 absolute top-1/2 right-2 -translate-y-1/2"
+                  disabled={!api() || !api()?.canScrollNext()}
+                />
+              </Show>
             </Carousel>
-            <Button
-              class="w-full"
-              onClick={() => {
-                const modelName = civitaiModel()?.name;
-                const toastId = toast.loading(`Downloading ${modelName}...`);
-                downloadMutation.mutate(
-                  {
-                    model: civitaiModel()!,
-                    versionId: civitaiModelVersion()?.id!,
-                    defaultDownload: true,
-                    fileId: primaryFile()?.id!,
-                  },
-                  {
-                    onSuccess: () => {
-                      toast.success(`${modelName} downloaded successfully!`, {
-                        id: toastId,
-                      });
+            <Show when={isHidden()}>
+              <Button
+                class="w-full"
+                onClick={() => {
+                  const modelName = civitaiModel()?.name;
+                  const toastId = toast.loading(`Downloading ${modelName}...`);
+                  downloadMutation.mutate(
+                    {
+                      model: civitaiModel()!,
+                      versionId: civitaiModelVersion()?.id!,
+                      defaultDownload: true,
+                      fileId: primaryFile()?.id!,
                     },
-                    onError: (error) => {
-                      toast.error(`Failed to download ${modelName}: ${error.message}`, {
-                        id: toastId,
-                      });
+                    {
+                      onSuccess: () => {
+                        toast.success(`${modelName} downloaded successfully!`, {
+                          id: toastId,
+                        });
+                      },
+                      onError: (error) => {
+                        toast.error(`Failed to download ${modelName}: ${error.message}`, {
+                          id: toastId,
+                        });
+                      },
                     },
-                  }
-                );
-              }}
-            >
-              <Download weight="bold" />
-              Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
-            </Button>
-            <Accordion multiple={false} collapsible>
-              <AccordionItem value="details">
-                <Table class="border-border border rounded-md">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead colSpan={2}>
-                        <AccordionTrigger class="p-0">Details</AccordionTrigger>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  );
+                }}
+              >
+                <Download weight="bold" />
+                Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+              </Button>
+              <Accordion multiple={false} collapsible>
+                <AccordionItem value="details">
+                  <Table class="border-border border rounded-md">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead colSpan={2}>
+                          <AccordionTrigger class="p-0">Details</AccordionTrigger>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <AccordionContent class="w-full p-0 [&>div]:p-0">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell class="font-medium bg-secondary min-w-28">Type</TableCell>
+                          <TableCell class="w-full">{civitaiModel()?.type}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell class="font-medium bg-secondary min-w-28">Published</TableCell>
+                          <TableCell class="w-full">
+                            {formatTime(civitaiModelVersion()?.publishedAt ?? "")}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell class="font-medium bg-secondary min-w-28">
+                            Base Model
+                          </TableCell>
+                          <TableCell class="w-full">{civitaiModelVersion()?.baseModel}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell class="font-medium bg-secondary min-w-28">
+                            Trigger Words
+                          </TableCell>
+                          <TableCell class="w-full">
+                            <For each={civitaiModelVersion()?.trainedWords}>
+                              {(word) => (
+                                <span class="text-sm font-semibold">{word.toUpperCase()}</span>
+                              )}
+                            </For>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </AccordionContent>
+                  </Table>
+                </AccordionItem>
+              </Accordion>
+              {/* Files Accordion */}
+              <Accordion multiple={false} collapsible>
+                <AccordionItem value="details">
+                  <div class="h-10 px-2 text-left align-middle border-border border flex items-center font-medium text-muted-foreground w-full [&>h3]:w-full">
+                    <AccordionTrigger class="p-0">
+                      {civitaiModelVersion()?.files.length}{" "}
+                      {(civitaiModelVersion()?.files.length ?? 0) <= 1 ? "File" : "Files"}
+                    </AccordionTrigger>
+                  </div>
                   <AccordionContent class="w-full p-0 [&>div]:p-0">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell class="font-medium bg-secondary min-w-28">
-                          Type
-                        </TableCell>
-                        <TableCell class="w-full">
-                          {civitaiModel()?.type}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell class="font-medium bg-secondary min-w-28">
-                          Published
-                        </TableCell>
-                        <TableCell class="w-full">
-                          {formatTime(civitaiModelVersion()?.publishedAt ?? "")}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell class="font-medium bg-secondary min-w-28">
-                          Base Model
-                        </TableCell>
-                        <TableCell class="w-full">
-                          {civitaiModelVersion()?.baseModel}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell class="font-medium bg-secondary min-w-28">
-                          Trigger Words
-                        </TableCell>
-                        <TableCell class="w-full">
-                          <For each={civitaiModelVersion()?.trainedWords}>
-                            {(word) => (
-                              <span class="text-sm font-semibold">
-                                {word.toUpperCase()}
-                              </span>
-                            )}
-                          </For>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </AccordionContent>
-                </Table>
-              </AccordionItem>
-            </Accordion>
-            {/* Files Accordion */}
-            <Accordion multiple={false} collapsible>
-              <AccordionItem value="details">
-                <div class="h-10 px-2 text-left align-middle border-border border flex items-center font-medium text-muted-foreground w-full [&>h3]:w-full">
-                  <AccordionTrigger class="p-0">
-                    {civitaiModelVersion()?.files.length}{" "}
-                    {(civitaiModelVersion()?.files.length ?? 0) <= 1
-                      ? "File"
-                      : "Files"}
-                  </AccordionTrigger>
-                </div>
-                <AccordionContent class="w-full p-0 [&>div]:p-0">
-                  <For each={civitaiModelVersion()?.files}>
-                    {(file) => (
-                      <div class="flex flex-col p-2 w-full [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border border-l border-r ">
-                        <div class="flex justify-between w-full items-center">
-                          <span class="text-sm font-semibold">
-                            {file.metadata.size === "full"
-                              ? "Full Model"
-                              : file.metadata.size}{" "}
-                            {file.metadata.fp} (
-                            {formatBytes((file.sizeKB ?? 0) * 1024)})
-                          </span>
-                          <Button
-                            class="p-0 h-fit"
-                            variant={"link"}
-                            onClick={() => {
-                              const modelName = civitaiModel()?.name;
-                              const toastId = toast.loading(`Downloading ${modelName}...`);
-                              downloadMutation.mutate(
-                                {
-                                  model: civitaiModel()!,
-                                  versionId: civitaiModelVersion()?.id!,
-                                  defaultDownload: true,
-                                  fileId: file.id!,
-                                },
-                                {
-                                  onSuccess: () => {
-                                    toast.success(`${modelName} downloaded successfully!`, {
-                                      id: toastId,
-                                    });
+                    <For each={civitaiModelVersion()?.files}>
+                      {(file) => (
+                        <div class="flex flex-col p-2 w-full [&:not(:last-child)]:border-b [&:not(:last-child)]:border-border border-l border-r ">
+                          <div class="flex justify-between w-full items-center">
+                            <span class="text-sm font-semibold">
+                              {file.metadata.size === "full" ? "Full Model" : file.metadata.size}{" "}
+                              {file.metadata.fp} ({formatBytes((file.sizeKB ?? 0) * 1024)})
+                            </span>
+                            <Button
+                              class="p-0 h-fit"
+                              variant={"link"}
+                              onClick={() => {
+                                const modelName = civitaiModel()?.name;
+                                const toastId = toast.loading(`Downloading ${modelName}...`);
+                                downloadMutation.mutate(
+                                  {
+                                    model: civitaiModel()!,
+                                    versionId: civitaiModelVersion()?.id!,
+                                    defaultDownload: true,
+                                    fileId: file.id!,
                                   },
-                                  onError: (error) => {
-                                    toast.error(`Failed to download ${modelName}: ${error.message}`, {
-                                      id: toastId,
-                                    });
+                                  {
+                                    onSuccess: () => {
+                                      toast.success(`${modelName} downloaded successfully!`, {
+                                        id: toastId,
+                                      });
+                                    },
+                                    onError: (error) => {
+                                      toast.error(
+                                        `Failed to download ${modelName}: ${error.message}`,
+                                        {
+                                          id: toastId,
+                                        },
+                                      );
+                                    },
                                   },
-                                }
-                              );
-                            }}
-                          >
-                            Download
-                          </Button>
+                                );
+                              }}
+                            >
+                              Download
+                            </Button>
+                          </div>
+                          <span>{file.metadata.format}</span>
                         </div>
-                        <span>{file.metadata.format}</span>
-                      </div>
-                    )}
-                  </For>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                      )}
+                    </For>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
-            <div
-              innerHTML={
-                civitaiModelVersion()?.description ??
-                civitaiModel()?.description ??
-                ""
-              }
-            ></div>
+              <div
+                innerHTML={civitaiModelVersion()?.description ?? civitaiModel()?.description ?? ""}
+              ></div>
+            </Show>
             <Toaster />
           </main>
         </Match>

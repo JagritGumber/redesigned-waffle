@@ -28,13 +28,14 @@ export interface FetchModelsParams {
 export const fetchCivitAIModelsPage = async ({
   pageParam, // This will be the URL to fetch
 }: {
-  pageParam: string;
+  pageParam?: string;
 }): Promise<FetchModelsPage> => {
-  console.log("Fetching page:", pageParam); // Debugging
+  const urlToFetch = pageParam || CIVITAI_API_BASE_URL;
+  console.log("Fetching page:", urlToFetch); // Debugging
 
   try {
     // Directly use the URL passed as pageParam
-    const response = await axios.get(pageParam);
+    const response = await axios.get(urlToFetch);
     const data = response.data;
 
     return {

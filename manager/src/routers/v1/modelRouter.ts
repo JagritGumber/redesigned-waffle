@@ -81,6 +81,7 @@ export const modelRouter = new Elysia({ prefix: "model" })
             t.Literal(ModelTypes.AestheticGradient),
             t.Literal(ModelTypes.LORA),
             t.Literal(ModelTypes.Poses),
+            t.Literal(ModelTypes.LoCon),
           ]),
           minor: t.Boolean(),
           poi: t.Boolean(),
@@ -101,7 +102,7 @@ export const modelRouter = new Elysia({ prefix: "model" })
           }),
           creator: t.Object({
             username: t.String(),
-            image: t.String(),
+            image: t.Nullable(t.String()),
           }),
           tags: t.Array(t.String()),
           modelVersions: t.Array(

@@ -4,6 +4,7 @@ export enum ModelTypes {
   Hypernetwork = "Hypernetwork",
   AestheticGradient = "AestheticGradient",
   LORA = "LORA",
+  LoCon = "LoCon",
   Controlnet = "Controlnet",
   Poses = "Poses",
 }
