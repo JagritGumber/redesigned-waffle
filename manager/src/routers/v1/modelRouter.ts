@@ -110,7 +110,7 @@ export const modelRouter = new Elysia({ prefix: "model" })
               index: t.Number(),
               name: t.String(),
               baseModel: t.String(),
-              baseModelType: t.String(),
+              baseModelType: t.Optional(t.String()),
               publishedAt: t.String(),
               availability: t.String(),
               nsfwLevel: t.Number(),
@@ -136,11 +136,11 @@ export const modelRouter = new Elysia({ prefix: "model" })
                   scannedAt: t.String(),
                   metadata: t.Object({
                     format: t.String(),
-                    size: t.Union([t.String(), t.Null()]),
-                    fp: t.Union([t.String(), t.Null()]),
+                    size: t.Optional(t.Union([t.String(), t.Null()])),
+                    fp: t.Optional(t.Union([t.String(), t.Null()])),
                   }),
                   hashes: t.Object({
-                    AutoV1: t.String(),
+                    AutoV1: t.Optional(t.String()),
                     AutoV2: t.String(),
                     SHA256: t.String(),
                     CRC32: t.String(),

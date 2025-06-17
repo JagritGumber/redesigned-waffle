@@ -5,7 +5,7 @@ import { modelTypeToSlang } from "~/utils/modelTypeToSlang";
 import { modelBaseToSlang } from "~/utils/modelBaseToSlang";
 import { Image } from "@unpic/solid";
 import { blurhashToCssGradientString } from "@unpic/placeholder";
-import { createSignal, Match, Switch, type JSX } from "solid-js";
+import { createSignal, Match, Switch, type JSX, createMemo } from "solid-js";
 import { ModelTypes } from "~/backend/types/models";
 import { generationStore, removeTti, setCheckpoint, setLora, setTti } from "~/store/generation";
 import { useStore } from "@tanstack/solid-store";
@@ -26,8 +26,13 @@ export const isModel = (data: CivitaiModelWithRelations | Model): data is Model 
 
 export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   const [target, setTarget] = createSignal<HTMLElement>();
+  const [modelVersionIndex, setModelVersionIndex] = createSignal(0);
 
-  const placeholder = blurhashToCssGradientString(model.modelVersions?.[0]?.images?.[0]?.hash);
+  const currentModelVersion = createMemo(() => {
+    return model.modelVersions?.[modelVersionIndex()];
+  });
+
+  const placeholder = blurhashToCssGradientString(currentModelVersion()?.images?.[0]?.hash);
   const selectedCheckpoint = useStore(
     generationStore,
     (state) => state.checkpoint?.modelId === model.id,
@@ -54,9 +59,9 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   const selectableProps = {
     onClick() {
       if (ModelTypes.Checkpoint === model.type) {
-        setCheckpoint(model.id, model.modelVersions.at(0)!.id);
+        setCheckpoint(model.id, currentModelVersion()!.id);
       } else if (ModelTypes.LORA === model.type) {
-        setLora(model.id, model.modelVersions.at(0)!.id);
+        setLora(model.id, currentModelVersion()!.id);
       } else if (ModelTypes.TextualInversion === model.type) {
         removeTti(model.id);
       }
@@ -71,7 +76,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
     type: "negative" | "positive",
   ) => {
     e.stopPropagation();
-    setTti(model.id, model.modelVersions.at(0)!.id, type);
+    setTti(model.id, currentModelVersion()!.id, type);
   };
 
   onLongPress(target, (e) => {
@@ -80,7 +85,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
       to: "/models/$id/$vId",
       params: {
         id: model.id.toString(),
-        vId: (model.modelVersions?.at(0)?.id ?? 0).toString(),
+        vId: (currentModelVersion()?.id ?? 0).toString(),
       },
     });
   });
@@ -98,7 +103,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
           to: "/models/$id/$vId",
           params: {
             id: model.id.toString(),
-            vId: (model.modelVersions?.at(0)?.id ?? 0).toString(),
+            vId: (currentModelVersion()?.id ?? 0).toString(),
           },
         });
       }}
@@ -106,8 +111,8 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
     >
       <Image
         class="w-full h-full object-cover"
-        src={model.modelVersions?.[0]?.images?.[0]?.url}
-        alt={model.modelVersions?.[0]?.name}
+        src={currentModelVersion()?.images?.[0]?.url}
+        alt={currentModelVersion()?.name}
         layout="fullWidth"
         background={placeholder}
       />
@@ -115,8 +120,15 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
         <Badge variant={"secondary"} class="rounded-r-none">
           {modelTypeToSlang(model.type)}
         </Badge>
-        <Badge variant={"secondary"} class="rounded-l-none">
-          {modelBaseToSlang(model.modelVersions?.[0]?.baseModel ?? "other")}
+        <Badge
+          variant={"secondary"}
+          class="rounded-l-none"
+          onClick={(e) => {
+            e.stopPropagation();
+            setModelVersionIndex((prev) => (prev + 1) % (model.modelVersions?.length ?? 1));
+          }}
+        >
+          {modelBaseToSlang(currentModelVersion()?.baseModel ?? "other")}
         </Badge>
       </div>
       <Switch>
@@ -151,11 +163,11 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
                 height={24}
                 class="rounded-full"
               />
-              <p class="text-sm text-background drop-shadow-lg drop-shadow-foreground">
+              <p class="text-sm text-background drop-shadow-[0_0_2px_rgba(0,0,0,0.9)]">
                 {model.creator?.username ?? "No Creator"}
               </p>
             </div>
-            <p class="font-semibold text-background text-shadow-lg text-shadow-foreground">
+            <p class="font-semibold text-background drop-shadow-[0_0_2px_rgba(0,0,0,0.9)]">
               {model.name}
             </p>
           </div>
