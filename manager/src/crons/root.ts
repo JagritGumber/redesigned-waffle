@@ -1,5 +1,7 @@
 import { Patterns, cron } from "@elysiajs/cron";
-import { promptGenerationService } from "@/services/promptGenerationService";
+import PromptGenerationService from "@/services/promptGenerationService";
+
+const promptGenerationService = new PromptGenerationService();
 
 const rootCron = cron({
   name: "rootBeat",
