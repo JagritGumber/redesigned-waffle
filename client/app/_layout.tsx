@@ -6,8 +6,10 @@ import { useFonts } from 'expo-font';
 
 import config from '../tamagui.config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import axios from 'axios';
 
 SplashScreen.preventAutoHideAsync();
+axios.defaults.withCredentials = true;
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',

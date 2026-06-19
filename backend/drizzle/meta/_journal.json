@@ -64,6 +64,20 @@
       "when": 1747334776596,
       "tag": "0008_brown_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1781712000000,
+      "tag": "0009_user_scoped_generation",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1781798400000,
+      "tag": "0010_user_scoped_models",
+      "breakpoints": true
     }
   ]
 }

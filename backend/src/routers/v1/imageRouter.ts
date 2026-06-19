@@ -1,18 +1,35 @@
 import { ContextForHono } from "@/types/context";
 import { Hono } from "hono";
+import { verifyAuth } from "@hono/auth-js";
+import { getRequiredUserId } from "@/utils/auth";
 
 const imageRouter = new Hono<ContextForHono>()
+  .use("*", verifyAuth())
   .get("/:key", async (c) => {
     const bucket = c.env.R2;
+    const db = c.get("db");
+    const userId = getRequiredUserId(c);
 
     if (!bucket) {
       return c.text("R2 bucket not configured.", 500);
+    }
+    if (!userId) {
+      return c.text("Authentication required.", 401);
     }
     const key = c.req.param("key");
     if (!key) {
       return c.text("Missing image key.", 400);
     }
     try {
+      const ownedJob = await db.query.generatorJobs.findFirst({
+        where: (jobs, { and, eq, like, or }) =>
+          and(eq(jobs.userId, userId), or(eq(jobs.imageKey, key), like(jobs.imageKey, `%${key}`))),
+      });
+
+      if (!ownedJob) {
+        return c.notFound();
+      }
+
       const object = await bucket.get(key);
 
       if (!object) {
@@ -41,6 +58,7 @@ const imageRouter = new Hono<ContextForHono>()
   .get("/gallery/:id", async (c) => {
     const db = c.get("db");
     const jobId = c.req.param("id"); // Get the ID from the URL path
+    const userId = getRequiredUserId(c);
 
     const queryParams = c.req.query();
     const statusFilter = queryParams.status || "COMPLETED";
@@ -58,6 +76,9 @@ const imageRouter = new Hono<ContextForHono>()
         500
       );
     }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
+    }
 
     if (!jobId) {
       console.error("Missing job ID in request path.");
@@ -69,6 +90,7 @@ const imageRouter = new Hono<ContextForHono>()
       const targetJob = await db.query.generatorJobs.findFirst({
         where: (jobs, { and, eq, isNotNull }) =>
           and(
+            eq(jobs.userId, userId),
             eq(jobs.id, jobId),
             eq(jobs.status, statusFilter as any), // Apply status filter
             isNotNull(jobs.imageKey) // Ensure it's an image we can view
@@ -91,6 +113,7 @@ const imageRouter = new Hono<ContextForHono>()
       const jobsAfter = await db.query.generatorJobs.findMany({
         where: (jobs, { and, lt, eq, isNotNull }) =>
           and(
+            eq(jobs.userId, userId),
             lt(jobs.createdAt, targetCreatedAt), // Earlier timestamp
             eq(jobs.status, statusFilter as any), // Apply status filter
             isNotNull(jobs.imageKey) // Ensure it's viewable
@@ -103,6 +126,7 @@ const imageRouter = new Hono<ContextForHono>()
       const jobsBefore = await db.query.generatorJobs.findMany({
         where: (jobs, { and, gt, eq, isNotNull }) =>
           and(
+            eq(jobs.userId, userId),
             gt(jobs.createdAt, targetCreatedAt), // Later timestamp
             eq(jobs.status, statusFilter as any), // Apply status filter
             isNotNull(jobs.imageKey) // Ensure it's viewable

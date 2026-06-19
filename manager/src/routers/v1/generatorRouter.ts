@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia";
-import { eq, inArray } from "drizzle-orm"; // Import inArray
+import { and, eq, inArray } from "drizzle-orm"; // Import inArray
 import {
+  civitaiModelInstalls,
   generatorJobs,
   InsertGeneratorJob,
   generatorPrompts,
@@ -16,11 +17,15 @@ import {
 import db from "@/db";
 import runpodSdk from "runpod-sdk";
 import s3 from "@/s3";
+import { requireUserId } from "@/utils/auth";
 
 export const generatorRouter = new Elysia({ prefix: "/generator" })
   .post(
     "/generate-image",
-    async ({ body, set }) => {
+    async ({ body, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
+
       const { RUNPOD_API_KEY, RUNPOD_GENERATOR_ID, RUNPOD_WEBHOOK_URL } = Bun.env;
 
       if (!RUNPOD_API_KEY || !RUNPOD_GENERATOR_ID || !RUNPOD_WEBHOOK_URL || !db) {
@@ -60,6 +65,35 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
         textualInversions,
         width,
       } = clientInput;
+
+      const requestedModelIds = [
+        checkpoint.modelId,
+        ...loras.map((lora) => lora.modelId),
+        ...textualInversions.map((tti) => tti.modelId),
+      ];
+      const uniqueRequestedModelIds = [...new Set(requestedModelIds)];
+      const installedModels = await db
+        .select({ civitaiModelId: civitaiModelInstalls.civitaiModelId })
+        .from(civitaiModelInstalls)
+        .where(
+          and(
+            eq(civitaiModelInstalls.userId, userId),
+            inArray(civitaiModelInstalls.civitaiModelId, uniqueRequestedModelIds),
+          ),
+        );
+      const installedModelIds = new Set(installedModels.map((model) => model.civitaiModelId));
+      const missingModelIds = uniqueRequestedModelIds.filter(
+        (modelId) => !installedModelIds.has(modelId),
+      );
+
+      if (missingModelIds.length > 0) {
+        set.status = 403;
+        return {
+          status: "error",
+          message: "One or more selected models are not installed for this account.",
+          modelIds: missingModelIds,
+        };
+      }
 
       const checkpointPromise = db.query.civitaiModels.findFirst({
         where: (model: any, { eq }: any) => eq(model.id, checkpoint.modelId),
@@ -181,6 +215,7 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       const newDbJobId = crypto.randomUUID();
       const initialJobRecord: InsertGeneratorJob = {
         id: newDbJobId,
+        userId,
         status: "PENDING",
         inputPayload: clientInput,
       };
@@ -289,7 +324,10 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
   )
   .post(
     "/generate-prompt",
-    async ({ body, set }) => {
+    async ({ body, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
+
       const { RUNPOD_API_KEY, RUNPOD_GENERATOR_ID, RUNPOD_WEBHOOK_URL } = Bun.env;
 
       if (!RUNPOD_API_KEY || !RUNPOD_GENERATOR_ID || !RUNPOD_WEBHOOK_URL || !db) {
@@ -320,6 +358,7 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       const newDbJobId = crypto.randomUUID();
       const initialJobRecord: InsertGeneratorPrompt = {
         id: newDbJobId,
+        userId,
         status: "PENDING",
         inputPayload: clientInput satisfies GeneratePromptRequestPayloadType,
       };
@@ -447,7 +486,10 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
   )
   .get(
     "/images",
-    async ({ query, set }) => {
+    async ({ query, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
+
       if (!db) {
         console.error("Server configuration error: Database binding not available.");
         set.status = 500;
@@ -486,6 +528,7 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
           offset,
           where: (jobs, { and, isNotNull }) =>
             and(
+              eq(jobs.userId, userId),
               statusFilter ? inArray(jobs.status, statusFilter) : undefined, // Use inArray for array of statuses
               isNotNull(jobs.status)
             ),
@@ -561,13 +604,15 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       }),
     }
   )
-  .delete("/:id", async ({ params, set }) => {
+  .delete("/:id", async ({ params, request, set }) => {
     try {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const id = params.id;
 
       // 1. Fetch the job to get image URLs
       const job = await db.query.generatorJobs.findFirst({
-        where: eq(generatorJobs.id, id),
+        where: and(eq(generatorJobs.id, id), eq(generatorJobs.userId, userId)),
       });
 
       if (job?.imageKey) {
@@ -575,7 +620,10 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
         console.log(`Deleted image ${job.imageKey} from R2.`);
       }
 
-      const deletedCount = await db.delete(generatorJobs).where(eq(generatorJobs.id, id)).limit(1);
+      await db
+        .delete(generatorJobs)
+        .where(and(eq(generatorJobs.id, id), eq(generatorJobs.userId, userId)))
+        .limit(1);
       set.status = 200;
       return {
         status: "success",
@@ -590,7 +638,10 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       };
     }
   })
-  .get("/prompt-status/:id", async ({ params, set }) => {
+  .get("/prompt-status/:id", async ({ params, request, set }) => {
+    const userId = await requireUserId(request, set);
+    if (!userId) return { status: "error", message: "Authentication required." };
+
     if (!db) {
       console.error("Server configuration error: Database binding not available.");
       set.status = 500;
@@ -603,7 +654,7 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
     try {
       const { id } = params;
       const job = await db.query.generatorPrompts.findFirst({
-        where: (prompts, { eq }) => eq(prompts.id, id),
+        where: (prompts, { and, eq }) => and(eq(prompts.id, id), eq(prompts.userId, userId)),
       });
 
       if (!job) {

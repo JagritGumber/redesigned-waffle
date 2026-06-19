@@ -1,12 +1,14 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { generatorJobs } from "./generatorJob";
+import users from "./users";
 
 export const postImageDetails = sqliteTable("post_image_details", {
   id: text("id")
     .notNull()
     .primaryKey()
     .references(() => generatorJobs.id, { onDelete: "cascade" }), // Use imageId as primary key
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
   platform: text("platform", { enum: ["deviantart", "patreon"] }).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),

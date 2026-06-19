@@ -5,6 +5,7 @@ import {
   GeneratePromptRequestPayloadType,
 } from "@/validators/generation";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import users from "./users";
 
 export const generatorJobs = sqliteTable("generator_jobs", {
   id: text("id")
@@ -12,6 +13,8 @@ export const generatorJobs = sqliteTable("generator_jobs", {
     .$defaultFn(() => crypto.randomUUID()),
 
   runpodJobId: text("runpod_job_id"),
+
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
 
   status: text("status", {
     // Add 'CANCELLED' to the possible statuses

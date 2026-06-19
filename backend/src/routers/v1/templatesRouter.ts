@@ -3,6 +3,8 @@
 import { ContextForHono } from "@/types/context"; // Adjust the import path
 import { Hono } from "hono";
 import { eq, and, desc } from "drizzle-orm";
+import { verifyAuth } from "@hono/auth-js";
+import { getRequiredUserId } from "@/utils/auth";
 import {
   postTemplates,
   postTypeEnum,
@@ -16,19 +18,25 @@ const generateUniqueId = () =>
   Date.now().toString(36) + Math.random().toString(36).substring(2, 15);
 
 const templatesRouter = new Hono<ContextForHono>()
+  .use("*", verifyAuth())
   // GET all templates
   .get("/", async (c) => {
     const db = c.get("db");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
 
     try {
       const allTemplates: SelectPostTemplate[] = await db
         .select()
         .from(postTemplates)
+        .where(eq(postTemplates.userId, userId))
         .orderBy(desc(postTemplates.updatedAt));
 
       return c.json({
@@ -49,10 +57,14 @@ const templatesRouter = new Hono<ContextForHono>()
   .get("/:id", async (c) => {
     const db = c.get("db");
     const templateId = c.req.param("id");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
 
     if (!templateId) {
@@ -62,7 +74,7 @@ const templatesRouter = new Hono<ContextForHono>()
     try {
       const template: SelectPostTemplate | undefined =
         await db.query.postTemplates.findFirst({
-          where: eq(postTemplates.id, templateId),
+          where: and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)),
         });
 
       if (!template) {
@@ -89,10 +101,14 @@ const templatesRouter = new Hono<ContextForHono>()
   // CREATE new template
   .post("/", async (c) => {
     const db = c.get("db");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
 
     try {
@@ -147,6 +163,7 @@ const templatesRouter = new Hono<ContextForHono>()
 
       const newTemplate: InsertPostTemplate = {
         id: generateUniqueId(),
+        userId,
         name: name.trim(),
         type: type as (typeof postTypeEnum)[number],
         title: title.trim(),
@@ -166,7 +183,7 @@ const templatesRouter = new Hono<ContextForHono>()
       // Fetching ensures all DB defaults/transforms are included
       const createdTemplate: SelectPostTemplate | undefined =
         await db.query.postTemplates.findFirst({
-          where: eq(postTemplates.id, newTemplate.id!),
+          where: and(eq(postTemplates.id, newTemplate.id!), eq(postTemplates.userId, userId)),
         });
 
       return c.json(
@@ -190,10 +207,14 @@ const templatesRouter = new Hono<ContextForHono>()
   .put("/:id", async (c) => {
     const db = c.get("db");
     const templateId = c.req.param("id");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
     if (!templateId) {
       return c.json(
@@ -305,7 +326,7 @@ const templatesRouter = new Hono<ContextForHono>()
       const result = await db
         .update(postTemplates)
         .set(updatedData)
-        .where(eq(postTemplates.id, templateId));
+        .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
       if (result.meta?.count === 0) {
         return c.json({ status: "error", message: "Template not found." }, 404);
@@ -328,10 +349,14 @@ const templatesRouter = new Hono<ContextForHono>()
   .patch("/:id", async (c) => {
     const db = c.get("db");
     const templateId = c.req.param("id");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
     if (!templateId) {
       return c.json(
@@ -354,7 +379,7 @@ const templatesRouter = new Hono<ContextForHono>()
 
       const existingTemplate: SelectPostTemplate | undefined =
         await db.query.postTemplates.findFirst({
-          where: eq(postTemplates.id, templateId),
+          where: and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)),
         });
 
       if (!existingTemplate) {
@@ -474,7 +499,7 @@ const templatesRouter = new Hono<ContextForHono>()
       const result = await db
         .update(postTemplates)
         .set(updateData)
-        .where(eq(postTemplates.id, templateId));
+        .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
       if (result.meta?.count === 0) {
         return c.json(
@@ -503,10 +528,14 @@ const templatesRouter = new Hono<ContextForHono>()
   .delete("/:id", async (c) => {
     const db = c.get("db");
     const templateId = c.req.param("id");
+    const userId = getRequiredUserId(c);
 
     if (!db) {
       console.error("DB binding not available.");
       return c.json({ status: "error", message: "Server config error." }, 500);
+    }
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
     }
 
     if (!templateId) {
@@ -519,7 +548,7 @@ const templatesRouter = new Hono<ContextForHono>()
     try {
       const result = await db
         .delete(postTemplates)
-        .where(eq(postTemplates.id, templateId));
+        .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
       if (result.meta?.count === 0) {
         return c.json({ status: "error", message: "Template not found." }, 404);

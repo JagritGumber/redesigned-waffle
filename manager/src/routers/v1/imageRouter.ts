@@ -4,9 +4,10 @@ import db from "@/db";
 import { PostService } from "@/services/postService"; // Import the new service
 import { postImageDetails, SelectPostImageDetails } from "@/schema/postImageDetails"; // Import postImageDetails schema
 import { generatorJobs } from "@/schema/generatorJob"; // Import generatorJobs schema
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import axios from "axios"; // Import axios to fetch image data
+import { requireUserId } from "@/utils/auth";
 
 const postService = new PostService(); // Instantiate the service
 
@@ -58,13 +59,13 @@ async function generateImageDetails(
     }
   }
 
-  const systemPrompt = `You are an AI assistant and a creator who is creating content for himself, as an NSFW artist. Your task is to generate brief, direct, and character-focused post details (title, description, and tags) for an image based on a user-provided prompt. If existing details are provided, enhance them. The output should be in JSON format. Avoid overly poetic or abstract language; focus on concrete details about the character and scene.
+  const systemPrompt = `You are an AI assistant for a self-hostable image generation studio. Your task is to generate brief, direct, safe-for-work post details (title, description, and tags) for an image based on a user-provided prompt. If existing details are provided, enhance them. The output should be in JSON format. Avoid overly poetic or abstract language; focus on concrete details about the subject, style, and scene.
 
 
 Instructions:
 1.  **Title**: Create a very brief, catchy title (max 10 words) that directly relates to the character or main subject. If an existing title is provided, enhance it or generate a new one if it's too generic or poetic. Examples: "Blonde Maid Enjoying", "Yellow-Haired Maid", "Adventurer in Forest".
 2.  **Description**: Write a very brief, descriptive summary (max 30 words) that highlights the character's actions, appearance, or the immediate scene. If an existing description is provided, enhance it. Focus on what is visually present.
-3.  **Tags**: Generate 3-5 relevant, comma-separated tags that are specific to the character, their attributes, or the scene. If existing tags are provided, add to them or refine them.
+3.  **Tags**: Generate 3-5 relevant, comma-separated tags that are specific to the subject, style, attributes, or scene. If existing tags are provided, add to them or refine them. Do not include adult, explicit, nude, fetish, or sexual tags.
 
 Example Output:
 {
@@ -94,7 +95,7 @@ Example Output:
     },
     {
       category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     },
     {
       category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
@@ -169,7 +170,9 @@ Example Output:
 export const imageRouter = new Elysia({ prefix: "/images" })
   .post(
     "/generate-and-save-post-details",
-    async ({ body, set }) => {
+    async ({ body, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const { imageId, currentTitle, currentDescription, currentTags, forceRegenerate } = body;
 
       if (!db) {
@@ -180,7 +183,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       try {
         // 1. Fetch the image job to get the prompt
         const imageJob = await db.query.generatorJobs.findFirst({
-          where: (jobs, { eq }) => eq(jobs.id, imageId),
+          where: (jobs, { and, eq }) => and(eq(jobs.id, imageId), eq(jobs.userId, userId)),
         });
 
         if (!imageJob || !imageJob.inputPayload?.prompt || !imageJob.imageKey) {
@@ -206,7 +209,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
 
         // 3. Check if details already exist for this imageId
         const existingDetails = await db.query.postImageDetails.findFirst({
-          where: (details, { eq }) => eq(details.id, imageId),
+          where: (details, { and, eq }) => and(eq(details.id, imageId), eq(details.userId, userId)),
         });
 
         let savedDetails: SelectPostImageDetails[];
@@ -218,9 +221,10 @@ export const imageRouter = new Elysia({ prefix: "/images" })
               title,
               description,
               tags,
+              userId,
               updatedAt: new Date(),
             })
-            .where(eq(postImageDetails.id, imageId))
+            .where(and(eq(postImageDetails.id, imageId), eq(postImageDetails.userId, userId)))
             .returning();
           console.log(`Updated post details for image ${imageId}`);
         } else {
@@ -229,6 +233,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
             .insert(postImageDetails)
             .values({
               id: imageId, // Use imageId as the primary key 'id'
+              userId,
               platform: "deviantart", // Default platform
               title,
               description,
@@ -268,7 +273,9 @@ export const imageRouter = new Elysia({ prefix: "/images" })
   )
   .put(
     "/post-details",
-    async ({ body, set }) => {
+    async ({ body, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const { imageId, title, description, tags, platform, tier } = body;
 
       if (!db) {
@@ -277,8 +284,16 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       }
 
       try {
+        const imageJob = await db.query.generatorJobs.findFirst({
+          where: (jobs, { and, eq }) => and(eq(jobs.id, imageId), eq(jobs.userId, userId)),
+        });
+        if (!imageJob) {
+          set.status = 404;
+          return { status: "error", message: "Image not found." };
+        }
+
         const existingDetails = await db.query.postImageDetails.findFirst({
-          where: (details, { eq }) => eq(details.id, imageId),
+          where: (details, { and, eq }) => and(eq(details.id, imageId), eq(details.userId, userId)),
         });
 
         let savedDetails: SelectPostImageDetails[];
@@ -293,7 +308,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
               tier,
               updatedAt: new Date(),
             })
-            .where(eq(postImageDetails.id, imageId))
+            .where(and(eq(postImageDetails.id, imageId), eq(postImageDetails.userId, userId)))
             .returning();
           console.log(`Updated post details for image ${imageId}`);
         } else {
@@ -301,6 +316,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
             .insert(postImageDetails)
             .values({
               id: imageId,
+              userId,
               title,
               description,
               tags,
@@ -340,7 +356,9 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       }),
     }
   )
-  .get("/post-details/:imageId", async ({ params, set }) => {
+  .get("/post-details/:imageId", async ({ params, request, set }) => {
+    const userId = await requireUserId(request, set);
+    if (!userId) return { status: "error", message: "Authentication required." };
     const { imageId } = params;
 
     if (!db) {
@@ -350,7 +368,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
 
     try {
       const existingDetails = await db.query.postImageDetails.findFirst({
-        where: (details, { eq }) => eq(details.id, imageId),
+        where: (details, { and, eq }) => and(eq(details.id, imageId), eq(details.userId, userId)),
       });
 
       if (existingDetails) {
@@ -363,7 +381,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       } else {
         // If no existing details, generate and save new ones
         const imageJob = await db.query.generatorJobs.findFirst({
-          where: (jobs, { eq }) => eq(jobs.id, imageId),
+          where: (jobs, { and, eq }) => and(eq(jobs.id, imageId), eq(jobs.userId, userId)),
         });
 
         if (!imageJob || !imageJob.inputPayload?.prompt || !imageJob.imageKey) {
@@ -387,6 +405,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
           .insert(postImageDetails)
           .values({
             id: imageId,
+            userId,
             platform: "deviantart", // Default platform
             title,
             description,
@@ -413,13 +432,24 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       };
     }
   })
-  .get("/:key", async ({ params, set }) => {
+  .get("/:key", async ({ params, request, set }) => {
+    const userId = await requireUserId(request, set);
+    if (!userId) return "Authentication required.";
     const key = params.key;
     if (!key) {
       set.status = 400;
       return "Missing image key.";
     }
     try {
+      const ownedJob = await db.query.generatorJobs.findFirst({
+        where: (jobs, { and, eq, like, or }) =>
+          and(eq(jobs.userId, userId), or(eq(jobs.imageKey, key), like(jobs.imageKey, `%${key}`))),
+      });
+      if (!ownedJob) {
+        set.status = 404;
+        return "Not Found";
+      }
+
       const object = s3.file(key, {
         accessKeyId: Bun.env.R2_ACCESS_KEY_ID,
         endpoint: Bun.env.R2_PUBLIC_BUCKET_URL,
@@ -450,7 +480,9 @@ export const imageRouter = new Elysia({ prefix: "/images" })
   })
   .get(
     "/gallery/:id",
-    async ({ params, query, set }) => {
+    async ({ params, query, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const jobId = params.id; // Get the ID from the URL path
       // Expect query.status to be a string or an array of strings
       const statusQuery = query.status;
@@ -480,6 +512,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
         const targetJob = await db.query.generatorJobs.findFirst({
           where: (jobs, { and, eq, isNotNull, inArray }) =>
             and(
+              eq(jobs.userId, userId),
               eq(jobs.id, jobId),
               statusFilter ? inArray(jobs.status, statusFilter) : undefined, // Apply status filter only if present
               isNotNull(jobs.imageKey) // Ensure it's an image we can view
@@ -498,6 +531,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
         const jobsAfter = await db.query.generatorJobs.findMany({
           where: (jobs, { and, lt, isNotNull, inArray }) =>
             and(
+              eq(jobs.userId, userId),
               lt(jobs.createdAt, targetCreatedAt), // Earlier timestamp
               statusFilter ? inArray(jobs.status, statusFilter) : undefined, // Apply status filter only if present
               isNotNull(jobs.imageKey) // Ensure it's viewable
@@ -510,6 +544,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
         const jobsBefore = await db.query.generatorJobs.findMany({
           where: (jobs, { and, gt, isNotNull, inArray }) =>
             and(
+              eq(jobs.userId, userId),
               gt(jobs.createdAt, targetCreatedAt), // Later timestamp
               statusFilter ? inArray(jobs.status, statusFilter) : undefined, // Apply status filter only if present
               isNotNull(jobs.imageKey) // Ensure it's viewable
@@ -565,7 +600,9 @@ export const imageRouter = new Elysia({ prefix: "/images" })
   )
   .post(
     "/scrape-and-post",
-    async ({ body, set }) => {
+    async ({ body, request, set }) => {
+      const userId = await requireUserId(request, set);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const { imageId, platform, tier } = body; // Only expect imageId, platform, and tier
       console.log(`Received request to scrape and post image: ${imageId} to ${platform}`);
 
@@ -577,7 +614,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       try {
         // Fetch image details from the database
         const imageJob = await db.query.generatorJobs.findFirst({
-          where: (jobs, { eq }) => eq(jobs.id, imageId),
+          where: (jobs, { and, eq }) => and(eq(jobs.id, imageId), eq(jobs.userId, userId)),
         });
 
         if (!imageJob || !imageJob.imageKey) {
@@ -587,7 +624,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
 
         // Fetch the saved post details from the database
         const savedPostDetails = await db.query.postImageDetails.findFirst({
-          where: (details, { eq }) => eq(details.id, imageId),
+          where: (details, { and, eq }) => and(eq(details.id, imageId), eq(details.userId, userId)),
         });
 
         if (!savedPostDetails) {
@@ -641,7 +678,9 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       }),
     }
   )
-  .delete("/:id", async ({ params, set }) => {
+  .delete("/:id", async ({ params, request, set }) => {
+    const userId = await requireUserId(request, set);
+    if (!userId) return { status: "error", message: "Authentication required." };
     const imageId = params.id;
 
     if (!db) {
@@ -652,7 +691,7 @@ export const imageRouter = new Elysia({ prefix: "/images" })
     try {
       // 1. Find the image job to get the imageKey for R2 deletion
       const imageJob = await db.query.generatorJobs.findFirst({
-        where: (jobs, { eq }) => eq(jobs.id, imageId),
+        where: (jobs, { and, eq }) => and(eq(jobs.id, imageId), eq(jobs.userId, userId)),
       });
 
       if (!imageJob) {
@@ -678,8 +717,12 @@ export const imageRouter = new Elysia({ prefix: "/images" })
       }
 
       // 3. Delete from the database
-      await db.delete(generatorJobs).where(eq(generatorJobs.id, imageId));
-      await db.delete(postImageDetails).where(eq(postImageDetails.id, imageId)); // Also delete associated post details
+      await db
+        .delete(generatorJobs)
+        .where(and(eq(generatorJobs.id, imageId), eq(generatorJobs.userId, userId)));
+      await db
+        .delete(postImageDetails)
+        .where(and(eq(postImageDetails.id, imageId), eq(postImageDetails.userId, userId))); // Also delete associated post details
 
       console.log(`Image ${imageId} and its post details deleted from database.`);
 

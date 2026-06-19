@@ -59,7 +59,7 @@ async function getJobDetailsWithNeighbors(
     const url = `${BACKEND_URL}/api/v1/images/gallery/${encodeURIComponent(
       id
     )}?limitBefore=${limitBefore}&limitAfter=${limitAfter}&status=${statusFilter}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: 'include' });
 
     if (!response.ok) {
       console.error('API fetch error:', response.status, response.statusText);

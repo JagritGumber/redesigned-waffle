@@ -38,6 +38,9 @@ if (!API_BASE_URL) {
 const TEMPLATES_API_URL = `${API_BASE_URL}/api/v1/post-templates`; // Adjust if your routes differ
 const IMAGE_API_URL = `${API_BASE_URL}/api/v1/generator/images`; // Your images route
 
+const authFetch = (input: RequestInfo | URL, init?: RequestInit) =>
+  fetch(input, { ...init, credentials: 'include' });
+
 const handleApiResponse = async <T>(response: Response): Promise<T | T[] | void> => {
   const data: ApiResponse<T> = await response.json();
 
@@ -61,19 +64,19 @@ const handleApiResponse = async <T>(response: Response): Promise<T | T[] | void>
 // --- API Functions ---
 
 export const fetchTemplates = async (): Promise<SelectPostTemplate[]> => {
-  const response = await fetch(TEMPLATES_API_URL);
+  const response = await authFetch(TEMPLATES_API_URL);
   return handleApiResponse<SelectPostTemplate>(response) as Promise<SelectPostTemplate[]>;
 };
 
 export const fetchTemplateById = async (id: string): Promise<SelectPostTemplate> => {
-  const response = await fetch(`${TEMPLATES_API_URL}/${id}`);
+  const response = await authFetch(`${TEMPLATES_API_URL}/${id}`);
   return handleApiResponse<SelectPostTemplate>(response) as Promise<SelectPostTemplate>;
 };
 
 export const createTemplate = async (
   templateData: TemplatePayload
 ): Promise<SelectPostTemplate> => {
-  const response = await fetch(TEMPLATES_API_URL, {
+  const response = await authFetch(TEMPLATES_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -85,7 +88,7 @@ export const createTemplate = async (
 
 export const updateTemplate = async (id: string, templateData: TemplatePayload): Promise<void> => {
   // Using PUT here to replace the whole template state as discussed
-  const response = await fetch(`${TEMPLATES_API_URL}/${id}`, {
+  const response = await authFetch(`${TEMPLATES_API_URL}/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -100,7 +103,7 @@ export const patchTemplate = async (
   id: string,
   templateData: Partial<TemplatePayload>
 ): Promise<void> => {
-  const response = await fetch(`${TEMPLATES_API_URL}/${id}`, {
+  const response = await authFetch(`${TEMPLATES_API_URL}/${id}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -111,7 +114,7 @@ export const patchTemplate = async (
 };
 
 export const deleteTemplate = async (id: string): Promise<void> => {
-  const response = await fetch(`${TEMPLATES_API_URL}/${id}`, {
+  const response = await authFetch(`${TEMPLATES_API_URL}/${id}`, {
     method: 'DELETE',
   });
   await handleApiResponse<void>(response); // Delete might return success without a body
@@ -192,7 +195,7 @@ export const fetchR2ImagesPage = async ({
   }
 
   try {
-    const response = await fetch(fetchUrl);
+    const response = await authFetch(fetchUrl);
 
     if (!response.ok) {
       const errorBody = await response.text();

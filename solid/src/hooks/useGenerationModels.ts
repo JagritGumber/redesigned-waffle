@@ -8,6 +8,7 @@ const getModels = async (
   try {
     const response = await axios.get<{ models: CivitaiModelWithRelations[] }>(
       `${import.meta.env.VITE_BACKEND_URL}/api/v1/model/${type.toLowerCase().replace(/ /g, "-")}`,
+      { withCredentials: true },
     );
     if (response.status !== 200) {
       console.error(`Failed to fetch ${type}:`, response.status);

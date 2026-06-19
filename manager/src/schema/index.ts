@@ -10,6 +10,12 @@ export {
   type CivitaiModelWithRelations,
   type InsertCivitaiModel,
 } from "./models";
+export {
+  civitaiModelInstalls,
+  civitaiModelInstallsRelations,
+  type InsertCivitaiModelInstall,
+  type SelectCivitaiModelInstall,
+} from "./modelInstall";
 export { civitaiCreator, type InsertCivitaiCreator } from "./modelCreator";
 export {
   type CivitaiFile,

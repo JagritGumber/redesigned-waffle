@@ -6,13 +6,14 @@ import subprocess
 import requests
 
 response = requests.get(
-    "https://privacy-stood-published-sandy.trycloudflare.com/api/v1/model/default"
+    os.environ.get("SELFHOST_STUDIO_BACKEND_URL", "http://localhost:8765")
+    + "/api/v1/model/default"
 )
 
 DOWNLOAD_MAP = response.json()["items"]
 
-# Optional: Civitai API Token for higher rate limits, passed as an environment variable during build
-CIVITAI_API_TOKEN = "9f61f82876b8b2efbd8764e206ff8f2b"
+# Optional: Civitai API token for higher rate limits.
+CIVITAI_API_TOKEN = os.environ.get("CIVITAI_API_TOKEN")
 
 
 def download_file_direct(download_url: str, save_path: str):
@@ -32,7 +33,8 @@ def download_file_direct(download_url: str, save_path: str):
             f"Retrieved Civitai Token from environment variable: {civitai_token is not None}"
         )
 
-        query_params["token"] = [civitai_token] if civitai_token is not None else [""]
+        if civitai_token:
+            query_params["token"] = [civitai_token]
         updated_query_string = urllib.parse.urlencode(query_params, doseq=True)
         updated_download_url = urllib.parse.urlunparse(
             parsed_download_url._replace(query=updated_query_string)

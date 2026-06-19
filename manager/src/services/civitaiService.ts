@@ -9,6 +9,7 @@ import {
   InsertCivitaiFile,
   InsertCivitaiImage,
   civitaiCreator,
+  civitaiModelInstalls,
 } from "@/schema";
 import * as schema from "@/schema";
 
@@ -51,6 +52,7 @@ interface RegisterOrUpdateCivitaiModelOptions {
   triggerDownload?: boolean;
   versionId?: number;
   fileId?: number;
+  userId?: string;
 }
 
 /**
@@ -78,6 +80,7 @@ export async function registerOrUpdateCivitaiModel(
   const triggerDownload = options?.triggerDownload ?? true;
   const requestedVersionId = options?.versionId;
   const requestedFileId = options?.fileId;
+  const userId = options?.userId;
   const versionRequired = !triggerDownload;
 
   const { id, name, description, type, nsfw, creator, tags, modelVersions } = civitaiModelData;
@@ -135,6 +138,25 @@ export async function registerOrUpdateCivitaiModel(
       throw new Error(`Failed to save or update model with Civitai ID ${id}.`);
     }
     savedCivitaiModelId = savedCivitaiModel.id;
+
+    if (userId) {
+      await db
+        .insert(civitaiModelInstalls)
+        .values({
+          userId,
+          civitaiModelId: savedCivitaiModel.id,
+          status: "READY",
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [civitaiModelInstalls.userId, civitaiModelInstalls.civitaiModelId],
+          set: {
+            status: "READY",
+            updatedAt: new Date(),
+          },
+        });
+    }
+
     finalStatus = "SUCCESS";
     finalMessage = `Model ${id} metadata saved.`;
   } catch (error: any) {

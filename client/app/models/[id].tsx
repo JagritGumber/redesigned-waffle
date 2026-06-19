@@ -574,7 +574,6 @@ const ModelDetailScreen = () => {
                   Published At: {new Date(selectedVersion.publishedAt).toLocaleDateString()}
                 </Text>
                 <Text>Availability: {selectedVersion.availability}</Text>
-                <Text>NSFW Level: {selectedVersion.nsfwLevel}</Text>
                 {selectedVersion.description && (
                   <>
                     <Text fontWeight="bold" marginTop={8} marginBottom={4}>

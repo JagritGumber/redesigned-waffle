@@ -14,7 +14,7 @@ export async function getJobDetailsWithNeighbors(
       id,
     )}?status=${statusFilter}`;
     console.log("Fetching:", url); // Log URL for debugging
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: "include" });
 
     return response.json();
   } catch (error) {

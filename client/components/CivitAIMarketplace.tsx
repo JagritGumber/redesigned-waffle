@@ -46,7 +46,7 @@ const CivitAIMarketplace = () => {
     username: '',
     types: [],
     sort: '',
-    nsfw: true,
+    nsfw: false,
     limit: 20,
   });
 

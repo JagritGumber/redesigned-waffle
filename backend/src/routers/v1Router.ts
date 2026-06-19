@@ -6,12 +6,14 @@ import webhookRouter from "./v1/webhookRouter";
 import generatorRouter from "./v1/generatorRouter";
 import imageRouter from "./v1/imageRouter";
 import templatesRouter from "./v1/templatesRouter";
+import authRouter from "./v1/authRouter";
 
 const v1Router = new Hono<ContextForHono>()
   .get("/hi", (c) => {
     return c.text("Hello!");
   })
   .route("/webhooks", webhookRouter)
+  .route("/auth", authRouter)
   .route("/group", groupRouter)
   .route("/model", modelRouter)
   .route("/generator", generatorRouter)

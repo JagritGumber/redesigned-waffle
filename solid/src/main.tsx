@@ -2,9 +2,12 @@ import { RouterProvider, createRouter } from "@tanstack/solid-router";
 import { render } from "solid-js/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import { Toaster } from "solid-sonner";
+import axios from "axios";
 
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
+
+axios.defaults.withCredentials = true;
 
 const router = createRouter({
   routeTree,

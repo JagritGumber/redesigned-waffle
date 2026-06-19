@@ -140,6 +140,7 @@ const ModelSelectItemCard: React.FC<ModelSelectItemCardProps> = ({ model }) => {
         `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/model/${model.id}`,
         {
           method: 'PATCH',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },

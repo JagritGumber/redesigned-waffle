@@ -37,7 +37,7 @@ export const useMarketplaceStore = create<MarketplaceStore>((set, get) => ({
       error: null,
     });
     try {
-      let url = `https://civitai.com/api/v1/models?page=${pageNumber}&query=${query}&token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=${true}`;
+      let url = `https://civitai.com/api/v1/models?page=${pageNumber}&query=${query}&token=${process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN}&nsfw=${false}`;
       if (filters.tag) {
         url += `&tag=${filters.tag}`;
       }

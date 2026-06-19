@@ -10,6 +10,7 @@ import {
 import { civitaiCreator } from "./modelCreator";
 import { SelectCivitaiFile } from "./modelFiles";
 import { SelectCivitaiImage } from "./modelImages";
+import users from "./users";
 
 export const civitaiModels = sqliteTable("civitaiModel", {
   id: integer("id").primaryKey(),
@@ -43,6 +44,7 @@ export const civitaiModels = sqliteTable("civitaiModel", {
   defaultWeight: real("defaultWeight").default(0.6), // Added the defaultWeight field
   status: text("status"),
   runpodJobId: text("runpodJobId"),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const civitaiModelsRelations = relations(
@@ -50,6 +52,10 @@ export const civitaiModelsRelations = relations(
   ({ many, one }) => ({
     modelVersions: many(civitaiModelVersions),
     creator: one(civitaiCreator),
+    user: one(users, {
+      fields: [civitaiModels.userId],
+      references: [users.id],
+    }),
   })
 );
 

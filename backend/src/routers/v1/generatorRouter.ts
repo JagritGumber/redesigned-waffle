@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { generatorJobs, InsertGeneratorJob } from "@/schema";
 
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
+import { verifyAuth } from "@hono/auth-js";
+import { getRequiredUserId } from "@/utils/auth";
 import { Value } from "@sinclair/typebox/value";
 import {
   GenerateRequestPayload,
@@ -12,7 +14,13 @@ import {
 } from "@/validators/generation";
 
 const generatorRouter = new Hono<ContextForHono>()
+  .use("*", verifyAuth())
   .post("/generate", async (c) => {
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
+    }
+
     const { RUNPOD_API_KEY, RUNPOD_GENERATOR_ID, RUNPOD_WEBHOOK_URL } = c.env;
     const db = c.get("db");
 
@@ -185,6 +193,7 @@ const generatorRouter = new Hono<ContextForHono>()
     const newDbJobId = crypto.randomUUID();
     const initialJobRecord: InsertGeneratorJob = {
       id: newDbJobId,
+      userId,
       status: "PENDING",
       inputPayload: clientInput satisfies GenerateRequestPayloadType,
     };
@@ -310,6 +319,10 @@ const generatorRouter = new Hono<ContextForHono>()
   })
   .get("/images", async (c) => {
     const db = c.get("db");
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
+    }
 
     if (!db) {
       console.error(
@@ -350,7 +363,7 @@ const generatorRouter = new Hono<ContextForHono>()
         limit,
         offset,
         where: (jobs, { eq, and, isNotNull }) =>
-          and(eq(jobs.status, statusFilter as any), isNotNull(jobs.status)),
+          and(eq(jobs.userId, userId), eq(jobs.status, statusFilter as any), isNotNull(jobs.status)),
         orderBy: (jobs, { desc }) => desc(jobs.createdAt),
       });
 
@@ -410,9 +423,13 @@ const generatorRouter = new Hono<ContextForHono>()
     try {
       const id = c.req.param("id");
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ status: "error", message: "Authentication required." }, 401);
+      }
       const deletedCount = await db
         .delete(generatorJobs)
-        .where(eq(generatorJobs.id, id))
+        .where(and(eq(generatorJobs.id, id), eq(generatorJobs.userId, userId)))
         .limit(1);
       return c.json(
         {

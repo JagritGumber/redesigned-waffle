@@ -70,7 +70,7 @@ const fetchR2ImagesPage = async ({
   }
 
   try {
-    const response = await fetch(fetchUrl);
+    const response = await fetch(fetchUrl, { credentials: 'include' });
 
     if (!response.ok) {
       const errorBody = await response.text();

@@ -18,8 +18,9 @@ function CreateGroupButton({ onGroupCreated }: CreateGroupButtonProps) {
     setIsCreating(true);
     setCreationError(null);
     try {
-      const response = await fetch('http://127.0.0.1:8787/api/v1/group', {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

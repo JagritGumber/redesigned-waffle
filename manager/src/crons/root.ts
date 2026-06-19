@@ -10,7 +10,7 @@ const rootCron = cron({
     try {
       await promptGenerationService.initializeModels();
 
-      const generatedPrompt = await promptGenerationService.generatePrompt(9);
+      const generatedPrompt = await promptGenerationService.generatePrompt(3);
 
       console.log("Generated Prompt:", generatedPrompt);
     } catch (e) {

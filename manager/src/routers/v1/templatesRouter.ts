@@ -7,6 +7,7 @@ import {
   SelectPostTemplate,
 } from "@/schema";
 import { PostType } from "@/schema";
+import { requireUserId } from "@/utils/auth";
 
 // Helper to generate unique IDs
 const generateUniqueId = () =>
@@ -18,11 +19,15 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
     "/",
     async ({
       set,
+      request,
       db,
     }: {
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       if (!db) {
         console.error("DB binding not available.");
         set.status = 500;
@@ -33,6 +38,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
         const allTemplates: SelectPostTemplate[] = await db
           .select()
           .from(postTemplates)
+          .where(eq(postTemplates.userId, userId))
           .orderBy(desc(postTemplates.updatedAt));
 
         set.status = 200;
@@ -55,12 +61,16 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
     async ({
       params,
       set,
+      request,
       db,
     }: {
       params: { id: string };
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const templateId = params.id;
 
       if (!db) {
@@ -77,7 +87,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
       try {
         const template: SelectPostTemplate | undefined =
           await db.query.postTemplates.findFirst({
-            where: eq(postTemplates.id, templateId),
+            where: and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)),
           });
 
         if (!template) {
@@ -108,12 +118,16 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
     async ({
       body,
       set,
+      request,
       db,
     }: {
       body: any; // Define a more specific type if available
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       if (!db) {
         console.error("DB binding not available.");
         set.status = 500;
@@ -171,6 +185,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
 
         const newTemplate: InsertPostTemplate = {
           id: generateUniqueId(),
+          userId,
           name: name.trim(),
           type: type as (typeof postTypeEnum)[number],
           title: title.trim(),
@@ -188,7 +203,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
 
         const createdTemplate: SelectPostTemplate | undefined =
           await db.query.postTemplates.findFirst({
-            where: eq(postTemplates.id, newTemplate.id!),
+            where: and(eq(postTemplates.id, newTemplate.id!), eq(postTemplates.userId, userId)),
           });
 
         set.status = 201;
@@ -212,13 +227,17 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
       params,
       body,
       set,
+      request,
       db,
     }: {
       params: { id: string };
       body: any; // Define a more specific type if available
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const templateId = params.id;
 
       if (!db) {
@@ -315,7 +334,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
         const result = await db
           .update(postTemplates)
           .set(updatedData)
-          .where(eq(postTemplates.id, templateId));
+          .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
         if (result.meta?.count === 0) {
           set.status = 404;
@@ -342,13 +361,17 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
       params,
       body,
       set,
+      request,
       db,
     }: {
       params: { id: string };
       body: any; // Define a more specific type if available
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const templateId = params.id;
 
       if (!db) {
@@ -374,7 +397,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
 
         const existingTemplate: SelectPostTemplate | undefined =
           await db.query.postTemplates.findFirst({
-            where: eq(postTemplates.id, templateId),
+            where: and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)),
           });
 
         if (!existingTemplate) {
@@ -481,7 +504,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
         const result = await db
           .update(postTemplates)
           .set(updateData)
-          .where(eq(postTemplates.id, templateId));
+          .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
         if (result.meta?.count === 0) {
           set.status = 404;
@@ -507,12 +530,16 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
     async ({
       params,
       set,
+      request,
       db,
     }: {
       params: { id: string };
+      request: Request;
       set: { status: number | undefined };
       db: any; // Replace 'any' with your actual Drizzle DB type
     }) => {
+      const userId = await requireUserId(request, set as any);
+      if (!userId) return { status: "error", message: "Authentication required." };
       const templateId = params.id;
 
       if (!db) {
@@ -529,7 +556,7 @@ export const templatesRouter = new Elysia({ prefix: "/templates" })
       try {
         const result = await db
           .delete(postTemplates)
-          .where(eq(postTemplates.id, templateId));
+          .where(and(eq(postTemplates.id, templateId), eq(postTemplates.userId, userId)));
 
         if (result.meta?.count === 0) {
           set.status = 404;

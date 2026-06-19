@@ -1,0 +1,8 @@
+# The Cloudflare Worker backend is experimental. The stable self-host backend for Solid is ../manager.
+AUTH_SECRET=
+RUNPOD_GENERATOR_ID=
+RUNPOD_DOWNLOADER_ID=
+RUNPOD_WEBHOOK_URL=
+RUNPOD_API_KEY=
+R2_PUBLIC_BUCKET_URL=
+R2_BUCKET_NAME=

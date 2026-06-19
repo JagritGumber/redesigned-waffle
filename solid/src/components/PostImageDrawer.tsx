@@ -54,6 +54,7 @@ export function PostImageDrawer(props: PostImageDrawerProps) {
     (imageId: string) =>
       alovaInstance.Get<PostDetails>(`/api/v1/images/post-details/${imageId}`, {
         name: `postDetails-${imageId}`, // Unique name for caching
+        credentials: "include",
       }),
     {
       initialData: undefined, // it initially can either be undefined or {}

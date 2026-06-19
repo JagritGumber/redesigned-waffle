@@ -137,6 +137,7 @@ function RouteComponent() {
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate-prompt`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -168,6 +169,7 @@ function RouteComponent() {
       if (!promptJobId()) return null;
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/prompt-status/${promptJobId()}`,
+        { credentials: "include" },
       );
       if (!response.ok) {
         const errorData = await response.json();

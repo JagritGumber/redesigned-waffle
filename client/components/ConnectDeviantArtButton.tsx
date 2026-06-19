@@ -18,7 +18,7 @@ function ConnectDeviantArtButton({
     const initiateDeviantArtAuth = useCallback(async () => {
         const backendAuthUrlEndpoint = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group/connect/deviantart/${groupId}`; // Replace with your backend URL
         try {
-            const response = await fetch(backendAuthUrlEndpoint);
+            const response = await fetch(backendAuthUrlEndpoint, { credentials: 'include' });
             const data = await response.json();
             if (response.ok && data.authUrl) {
                 const redirectUri = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/group/connect/deviantart/callback`;

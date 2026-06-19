@@ -3,16 +3,29 @@ import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { accounts, groups } from "@/schema";
 import { and, eq, aliasedTable } from "drizzle-orm";
+import { verifyAuth } from "@hono/auth-js";
+import { getRequiredUserId } from "@/utils/auth";
 
 const groupRouter = new Hono<ContextForHono>()
+    .use("*", async (c, next) => {
+        if (c.req.path.includes("/connect/patreon/callback") || c.req.path.includes("/connect/deviantart/callback")) {
+            return next();
+        }
+        return verifyAuth()(c, next);
+    })
     .post("/", async (c) => {
         try {
             const db = c.get("db");
+            const userId = getRequiredUserId(c);
+            if (!userId) {
+                return c.json({ message: "Authentication required." }, 401);
+            }
             const { name } = await c.req.json<{ name: string }>();
             const newGroup = await db
                 .insert(groups)
                 .values({
                     name: name,
+                    userId,
                 })
                 .returning();
 
@@ -38,6 +51,10 @@ const groupRouter = new Hono<ContextForHono>()
     .get("/", async (c) => {
         try {
             const db = c.get("db");
+            const userId = getRequiredUserId(c);
+            if (!userId) {
+                return c.json({ message: "Authentication required." }, 401);
+            }
 
             const deviantartAccounts = aliasedTable(accounts, "deviantart_accounts");
 
@@ -49,7 +66,8 @@ const groupRouter = new Hono<ContextForHono>()
                 })
                 .from(groups)
                 .leftJoin(accounts, eq(groups.patreonAccountId, accounts.id))
-                .leftJoin(deviantartAccounts, eq(groups.deviantartAccountId, deviantartAccounts.id));
+                .leftJoin(deviantartAccounts, eq(groups.deviantartAccountId, deviantartAccounts.id))
+                .where(eq(groups.userId, userId));
 
             if (allGroupsWithRelations && allGroupsWithRelations.length > 0) {
                 const groupsWithNestedRelations = allGroupsWithRelations.map((row) => ({
@@ -99,7 +117,7 @@ const groupRouter = new Hono<ContextForHono>()
                                 refresh_token: tokenData.refresh_token || account.refresh_token, // Use new if available, otherwise keep the old one
                                 expires_at: Math.floor(Date.now() / 1000) + tokenData.expires_in,
                             })
-                            .where(eq(accounts.id, account.id));
+                            .where(and(eq(accounts.id, account.id), eq(accounts.userId, userId)));
                         return tokenData.access_token;
                     } catch (error) {
                         console.error("Error refreshing Patreon token:", error);
@@ -148,7 +166,7 @@ const groupRouter = new Hono<ContextForHono>()
                                 refresh_token: tokenData.refresh_token,
                                 expires_at: Math.floor(Date.now() / 1000) + tokenData.expires_in,
                             })
-                            .where(eq(accounts.id, account.id));
+                            .where(and(eq(accounts.id, account.id), eq(accounts.userId, userId)));
                         return tokenData.access_token;
                     } catch (error) {
                         console.error("Error refreshing DeviantArt token:", error);
@@ -198,7 +216,8 @@ const groupRouter = new Hono<ContextForHono>()
                     })
                     .from(groups)
                     .leftJoin(accounts, eq(groups.patreonAccountId, accounts.id))
-                    .leftJoin(deviantartAccounts, eq(groups.deviantartAccountId, deviantartAccounts.id));
+                    .leftJoin(deviantartAccounts, eq(groups.deviantartAccountId, deviantartAccounts.id))
+                    .where(eq(groups.userId, userId));
 
                 const updatedGroupsWithNestedRelations = updatedGroupsResult.map((row) => ({
                     ...row.group,
@@ -227,13 +246,17 @@ const groupRouter = new Hono<ContextForHono>()
     .patch("/:id", async (c) => {
         try {
             const db = c.get("db");
+            const userId = getRequiredUserId(c);
+            if (!userId) {
+                return c.json({ message: "Authentication required." }, 401);
+            }
             const id = c.req.param("id");
             const { name } = await c.req.json<{ name: string }>();
 
             const updatedGroup = await db
                 .update(groups)
                 .set({ name: name })
-                .where(eq(groups.id, id))
+                .where(and(eq(groups.id, id), eq(groups.userId, userId)))
                 .returning();
 
             if (updatedGroup && updatedGroup.length > 0) {
@@ -255,11 +278,15 @@ const groupRouter = new Hono<ContextForHono>()
     .delete("/:id", async (c) => {
         try {
             const db = c.get("db");
+            const userId = getRequiredUserId(c);
+            if (!userId) {
+                return c.json({ message: "Authentication required." }, 401);
+            }
             const id = c.req.param("id");
 
             const deletedGroup = await db
                 .delete(groups)
-                .where(eq(groups.id, id))
+                .where(and(eq(groups.id, id), eq(groups.userId, userId)))
                 .returning();
 
             if (deletedGroup && deletedGroup.length > 0) {
@@ -280,7 +307,7 @@ const groupRouter = new Hono<ContextForHono>()
     })
     .get("/connect/patreon/callback", async (c) => {
         const code = c.req.query("code");
-        const state = c.req.query("state"); // Should contain the groupId
+        const state = c.req.query("state"); // userId:groupId
         const db = c.get("db");
 
         if (!code) {
@@ -339,8 +366,8 @@ const groupRouter = new Hono<ContextForHono>()
             const patreonUserId = userData.data.id;
 
             // --- Step 3: Find or create account for the group ---
-            const groupId = state;
-            if (!groupId) {
+            const [userId, groupId] = state?.split(":") ?? [];
+            if (!userId || !groupId) {
                 return c.text("Group ID not provided in the state.", 400);
             }
 
@@ -350,7 +377,8 @@ const groupRouter = new Hono<ContextForHono>()
                 .where(
                     and(
                         eq(accounts.provider, "patreon"),
-                        eq(accounts.providerAccountId, patreonUserId)
+                        eq(accounts.providerAccountId, patreonUserId),
+                        eq(accounts.userId, userId)
                     )
                 )
                 .limit(1);
@@ -364,6 +392,7 @@ const groupRouter = new Hono<ContextForHono>()
                     .values({
                         provider: "patreon",
                         providerAccountId: patreonUserId,
+                        userId,
                         access_token: tokenData.access_token,
                         refresh_token: tokenData.refresh_token,
                         type: "oauth",
@@ -381,7 +410,7 @@ const groupRouter = new Hono<ContextForHono>()
                         refresh_token: tokenData.refresh_token,
                         expires_at: expiresAt,
                     })
-                    .where(eq(accounts.id, patreonAccountId));
+                    .where(and(eq(accounts.id, patreonAccountId), eq(accounts.userId, userId)));
             }
 
             // --- Step 4: Update the group with the Patreon account ID ---
@@ -389,7 +418,7 @@ const groupRouter = new Hono<ContextForHono>()
                 await db
                     .update(groups)
                     .set({ patreonAccountId: patreonAccountId })
-                    .where(eq(groups.id, groupId));
+                    .where(and(eq(groups.id, groupId), eq(groups.userId, userId)));
                 return c.html(`
           <!DOCTYPE html>
           <html>
@@ -415,7 +444,7 @@ const groupRouter = new Hono<ContextForHono>()
     // DeviantArt Callback (similar structure)
     .get("/connect/deviantart/callback", async (c) => {
         const code = c.req.query("code");
-        const state = c.req.query("state"); // Should contain the groupId
+        const state = c.req.query("state"); // userId:groupId
         const db = c.get("db");
 
         if (!code) {
@@ -476,8 +505,8 @@ const groupRouter = new Hono<ContextForHono>()
             const deviantartUserId = userData.userid;
 
             // --- Step 3: Find or create account for the group ---
-            const groupId = state;
-            if (!groupId) {
+            const [userId, groupId] = state?.split(":") ?? [];
+            if (!userId || !groupId) {
                 return c.text("Group ID not provided in the state.", 400);
             }
 
@@ -487,7 +516,8 @@ const groupRouter = new Hono<ContextForHono>()
                 .where(
                     and(
                         eq(accounts.provider, "deviantart"),
-                        eq(accounts.providerAccountId, deviantartUserId)
+                        eq(accounts.providerAccountId, deviantartUserId),
+                        eq(accounts.userId, userId)
                     )
                 )
                 .limit(1);
@@ -501,6 +531,7 @@ const groupRouter = new Hono<ContextForHono>()
                     .values({
                         provider: "deviantart",
                         providerAccountId: deviantartUserId,
+                        userId,
                         access_token: tokenData.access_token,
                         refresh_token: tokenData.refresh_token,
                         type: "oauth",
@@ -518,7 +549,7 @@ const groupRouter = new Hono<ContextForHono>()
                         refresh_token: tokenData.refresh_token,
                         expires_at: expiresAt,
                     })
-                    .where(eq(accounts.id, deviantartAccountId));
+                    .where(and(eq(accounts.id, deviantartAccountId), eq(accounts.userId, userId)));
             }
 
             // --- Step 4: Update the group with the DeviantArt account ID ---
@@ -526,7 +557,7 @@ const groupRouter = new Hono<ContextForHono>()
                 await db
                     .update(groups)
                     .set({ deviantartAccountId: deviantartAccountId })
-                    .where(eq(groups.id, groupId));
+                    .where(and(eq(groups.id, groupId), eq(groups.userId, userId)));
                 return c.html(`
           <!DOCTYPE html>
           <html>
@@ -551,10 +582,22 @@ const groupRouter = new Hono<ContextForHono>()
     })
     .get("/connect/patreon/:id", async (c) => {
         const groupId = c.req.param("id");
+        const userId = getRequiredUserId(c);
+        if (!userId) {
+            return c.json({ message: "Authentication required." }, 401);
+        }
+        const db = c.get("db");
+        const group = await db.query.groups.findFirst({
+            where: and(eq(groups.id, groupId), eq(groups.userId, userId)),
+            columns: { id: true },
+        });
+        if (!group) {
+            return c.json({ message: `Group with ID ${groupId} not found` }, 404);
+        }
         const clientId = c.env.ONE_CLIENT_ID;
         const redirectUri = `${c.env.PROD_URL}/api/v1/group/connect/patreon/callback`;
         const scope = "identity";
-        const state = groupId;
+        const state = `${userId}:${groupId}`;
 
         const authUrl = `https://www.patreon.com/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
             redirectUri
@@ -564,11 +607,23 @@ const groupRouter = new Hono<ContextForHono>()
     })
     .get("/connect/deviantart/:id", async (c) => {
         const groupId = c.req.param("id");
+        const userId = getRequiredUserId(c);
+        if (!userId) {
+            return c.json({ message: "Authentication required." }, 401);
+        }
+        const db = c.get("db");
+        const group = await db.query.groups.findFirst({
+            where: and(eq(groups.id, groupId), eq(groups.userId, userId)),
+            columns: { id: true },
+        });
+        if (!group) {
+            return c.json({ message: `Group with ID ${groupId} not found` }, 404);
+        }
         const clientId = c.env.TWO_CLIENT_ID;
         const redirectUri = `${c.env.PROD_URL}/api/v1/group/connect/deviantart/callback`;
         const responseType = "code";
         const scope = "user";
-        const state = groupId;
+        const state = `${userId}:${groupId}`;
 
         const authUrl = `https://www.deviantart.com/oauth2/authorize?response_type=${responseType}&client_id=${clientId}&redirect_uri=${encodeURIComponent(
             redirectUri

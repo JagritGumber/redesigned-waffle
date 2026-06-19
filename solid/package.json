@@ -1,11 +1,12 @@
 {
-  "name": "my-app",
+  "name": "selfhost-studio-web",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
     "start": "vite --port 3000",
-    "build": "vite build && tsc",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "serve": "vite preview",
     "test": "vitest run"
   },

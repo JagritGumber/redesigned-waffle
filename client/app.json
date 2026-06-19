@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Auto Disposal",
-    "slug": "auto-disposal",
+    "name": "Selfhost Studio",
+    "slug": "selfhost-studio",
     "version": "1.0.0",
-    "scheme": "auto-disposal",
+    "scheme": "selfhost-studio",
     "newArchEnabled": false,
     "web": {
       "bundler": "metro",
@@ -33,7 +33,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.jagritgumber.autodisposal",
+      "package": "com.jagritgumber.selfhoststudio",
       "buildType": "apk"
     },
     "extra": {

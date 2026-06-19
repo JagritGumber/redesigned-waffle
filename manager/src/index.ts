@@ -10,12 +10,13 @@ const app = new Elysia({ prefix: "/api" })
   .use(r2CleanupCron)
   .use(
     cors({
-      origin: "localhost:3000",
+      origin: Bun.env.FRONTEND_URL ?? "http://localhost:3000",
+      credentials: true,
     })
   )
   .get("/", () => "Hello Elysia")
   .use(v1Router)
   .use(dataRouter)
-  .listen(8765);
+  .listen(Number(Bun.env.PORT ?? 8765));
 
 console.log(`Started development server: http://${app.server?.hostname}:${app.server?.port}`);

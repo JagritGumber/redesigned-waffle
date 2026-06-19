@@ -127,6 +127,20 @@
       "when": 1749981502407,
       "tag": "0017_regular_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1781884800000,
+      "tag": "0018_user_scoped_studio_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1781971200000,
+      "tag": "0019_user_model_installs",
+      "breakpoints": true
     }
   ]
 }

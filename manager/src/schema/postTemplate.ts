@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import users from "./users";
 
 export const postTypeEnum = ["text", "poll"] as const;
 export type PostType = (typeof postTypeEnum)[number];
@@ -7,6 +8,7 @@ export const postTemplates = sqliteTable("postTemplates", {
   id: text("id")
     .$default(() => crypto.randomUUID())
     .primaryKey(),
+  userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: text("type", { enum: postTypeEnum }).notNull(),
   title: text("title").notNull(),

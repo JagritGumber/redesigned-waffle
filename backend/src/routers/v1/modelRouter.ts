@@ -11,9 +11,16 @@ import {
 } from "@/services/civitaiService";
 import { Model } from "@/client/types/civitai";
 import { ModelTypes } from "@/types/models";
+import { verifyAuth } from "@hono/auth-js";
+import { getRequiredUserId } from "@/utils/auth";
 
 const modelRouter = new Hono<ContextForHono>()
+  .use("*", verifyAuth())
   .post("/", async (c) => {
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ error: "Authentication required." }, 401);
+    }
     const {
       model: civitaiModelData,
       versionId,
@@ -56,6 +63,16 @@ const modelRouter = new Hono<ContextForHono>()
     }
 
     try {
+      if (civitaiModelData.nsfw || civitaiModelData.nsfwLevel > 1) {
+        return c.json(
+          {
+            error:
+              "This studio only accepts safe-for-work models. Choose a general-audience model to download.",
+          },
+          400
+        );
+      }
+
       // Call the reusable function to handle registration and download initiation
       // Pass triggerDownload: true (which is the default)
       const result = await registerOrUpdateCivitaiModel(
@@ -65,6 +82,7 @@ const modelRouter = new Hono<ContextForHono>()
         {
           fileId,
           versionId,
+          userId,
           triggerDownload: !defaultDownload,
         }
       );
@@ -100,9 +118,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         // where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
         orderBy: (model, { asc }) => asc(model.createdAt),
+        where: (model, { and, eq }) => and(eq(model.userId, userId), eq(model.nsfw, false)),
         with: {
           modelVersions: {
             orderBy: (version, { desc }) => desc(version.publishedAt),
@@ -132,12 +155,22 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/default", async (c) => {
     try {
       const db = c.get("db");
-      const versions = await db.query.civitaiModelVersions.findMany({
-        where: (version, { eq }) => eq(version.required, true),
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
+      const models = await db.query.civitaiModels.findMany({
+        where: (model, { eq }) => eq(model.userId, userId),
         with: {
-          files: true,
+          modelVersions: {
+            where: (version, { eq }) => eq(version.required, true),
+            with: {
+              files: true,
+            },
+          },
         },
       });
+      const versions = models.flatMap((model) => model.modelVersions);
 
       return c.json(
         {
@@ -160,11 +193,11 @@ const modelRouter = new Hono<ContextForHono>()
     }
   })
   .delete("/", async (c) => {
-    const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
-    const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
-    const webhookUrl = c.env.RUNPOD_WEBHOOK_URL + "/downloader";
-    const endpoint = runpod.endpoint(runpodDownloaderId);
     const db = c.get("db");
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ error: "Authentication required." }, 401);
+    }
 
     // --- SECURITY CHECK: Require confirmation parameter ---
     const confirm = c.req.query("confirm");
@@ -182,34 +215,18 @@ const modelRouter = new Hono<ContextForHono>()
     }
 
     try {
-      const runpodJob = await endpoint!.run({
-        input: {
-          action: "deleteAll",
-          save_path: "/runpod-volume/workspace/",
+      await db
+        .update(civitaiModels)
+        .set({ status: "DELETED", updatedAt: new Date() })
+        .where(eq(civitaiModels.userId, userId));
+
+      return c.json(
+        {
+          message: "All models for this account were marked deleted.",
+          status: "COMPLETED",
         },
-        webhook: webhookUrl,
-      });
-
-      if (runpodJob.id) {
-        console.log(
-          `Deletion initiated for all files. RunPod Job ID: ${runpodJob.id}`
-        );
-
-        return c.json(
-          {
-            message: "Deletion initiated for all files.",
-            status: "IN_PROGRESS",
-            runpodJobId: runpodJob.id,
-          },
-          200
-        );
-      } else {
-        console.error("Failed to initiate Runpod deletion job:", runpodJob);
-        return c.json(
-          { error: "Failed to initiate Runpod deletion job." },
-          500
-        );
-      }
+        200
+      );
     } catch (error) {
       console.error("Error deleting all models and related data:", error);
       return c.json(
@@ -221,10 +238,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/checkpoints", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) =>
-          eq(civitaiModels.type, ModelTypes.Checkpoint),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.Checkpoint), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -251,10 +272,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/textual-inversions", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) =>
-          eq(civitaiModels.type, ModelTypes.TextualInversion),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.TextualInversion), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -284,10 +309,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/hypernetworks", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) =>
-          eq(civitaiModels.type, ModelTypes.Hypernetwork),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.Hypernetwork), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -317,10 +346,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/aesthetic-gradients", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) =>
-          eq(civitaiModels.type, ModelTypes.AestheticGradient),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.AestheticGradient), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -349,9 +382,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/loras", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) => eq(civitaiModels.type, ModelTypes.LORA),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.LORA), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -378,10 +416,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/controlnets", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) =>
-          eq(civitaiModels.type, ModelTypes.Controlnet),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.Controlnet), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -408,9 +450,14 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/poses", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ error: "Authentication required." }, 401);
+      }
       const models = await db.query.civitaiModels.findMany({
         orderBy: (models, { asc }) => asc(models.createdAt),
-        where: (models, { eq }) => eq(civitaiModels.type, ModelTypes.Poses),
+        where: (models, { and, eq }) =>
+          and(eq(models.userId, userId), eq(models.type, ModelTypes.Poses), eq(models.nsfw, false)),
         with: {
           modelVersions: {
             with: {
@@ -437,6 +484,10 @@ const modelRouter = new Hono<ContextForHono>()
   .get("/:id", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ message: "Authentication required." }, 401);
+      }
       const id = c.req.param("id");
       const [model] = await db
         .select()
@@ -444,6 +495,8 @@ const modelRouter = new Hono<ContextForHono>()
         .where(
           and(
             or(eq(civitaiModels.id, Number(id))),
+            eq(civitaiModels.userId, userId),
+            eq(civitaiModels.nsfw, false),
             not(eq(civitaiModels.status, "DELETED"))
           )
         )
@@ -474,6 +527,10 @@ const modelRouter = new Hono<ContextForHono>()
   .patch("/:id", async (c) => {
     try {
       const db = c.get("db");
+      const userId = getRequiredUserId(c);
+      if (!userId) {
+        return c.json({ message: "Authentication required." }, 401);
+      }
       const id = c.req.param("id");
       const body = await c.req.json<{ defaultWeight: number }>();
       const newWeight = body.defaultWeight;
@@ -481,7 +538,7 @@ const modelRouter = new Hono<ContextForHono>()
       const updatedModelResult = await db
         .update(civitaiModels)
         .set({ defaultWeight: newWeight, updatedAt: new Date() })
-        .where(eq(civitaiModels.id, Number(id)))
+        .where(and(eq(civitaiModels.id, Number(id)), eq(civitaiModels.userId, userId)))
         .returning();
 
       if (updatedModelResult && updatedModelResult.length > 0) {
@@ -512,6 +569,10 @@ const modelRouter = new Hono<ContextForHono>()
   .delete("/:id", async (c) => {
     const id = c.req.param("id");
     const db = c.get("db");
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ error: "Authentication required." }, 401);
+    }
     const runpodDownloaderId = c.env.RUNPOD_DOWNLOADER_ID;
     const runpod = runpodSdk(c.env.RUNPOD_API_KEY);
     const webhookUrl = c.env.RUNPOD_WEBHOOK_URL + "/downloader";
@@ -527,7 +588,8 @@ const modelRouter = new Hono<ContextForHono>()
     try {
       // 1. Fetch the model, latest version, and primary file to get runpodPath
       const model = await db.query.civitaiModels.findFirst({
-        where: (civitaiModels, { eq, or }) => eq(civitaiModels.id, Number(id)),
+        where: (civitaiModels, { and, eq }) =>
+          and(eq(civitaiModels.id, Number(id)), eq(civitaiModels.userId, userId)),
         with: {
           modelVersions: {
             orderBy: (versions, { desc }) => desc(versions.publishedAt),

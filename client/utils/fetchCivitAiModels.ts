@@ -18,7 +18,7 @@ export interface FetchModelsParams {
   username?: string;
   types?: string[];
   sort?: string;
-  // Add other base params like limit, nsfw, token etc.
+  // Add other base params like limit, token, and safe content filtering.
   limit?: number;
   nsfw?: boolean;
   period?: string; // Example, if sort needs period
@@ -56,7 +56,7 @@ export const fetchCivitAIModelsPage = async ({
 export const buildInitialUrl = (baseParams: FetchModelsParams): string => {
   const urlParams = new URLSearchParams({
     token: process.env.EXPO_PUBLIC_CIVITAI_API_TOKEN,
-    nsfw: `${baseParams.nsfw ?? true}`,
+    nsfw: `${baseParams.nsfw ?? false}`,
   });
 
   if (baseParams.query) urlParams.set('query', baseParams.query);

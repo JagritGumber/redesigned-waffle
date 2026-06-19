@@ -62,6 +62,7 @@ interface RegisterOrUpdateCivitaiModelOptions {
   triggerDownload?: boolean;
   versionId?: number;
   fileId?: number;
+  userId?: string;
 }
 
 /**
@@ -93,6 +94,7 @@ export async function registerOrUpdateCivitaiModel(
   const triggerDownload = options?.triggerDownload ?? true;
   const requestedVersionId = options?.versionId;
   const requestedFileId = options?.fileId;
+  const userId = options?.userId;
   const versionRequired = !triggerDownload;
 
   const { id, name, description, type, nsfw, creator, tags, modelVersions } =
@@ -132,6 +134,7 @@ export async function registerOrUpdateCivitaiModel(
         creatorId: savedCreator.id,
         tags: tags,
         type: type,
+        userId,
       } satisfies InsertCivitaiModel)
       .onConflictDoUpdate({
         target: civitaiModels.id,
@@ -142,6 +145,7 @@ export async function registerOrUpdateCivitaiModel(
           nsfw,
           creatorId: savedCreator.id,
           tags: tags,
+          userId,
           updatedAt: new Date(),
         },
       })
