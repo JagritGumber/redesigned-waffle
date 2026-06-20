@@ -9,6 +9,7 @@
     "verify:external-model-pipeline": "bun scripts/verifyExternalModelPipelineCheck.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "verify:account-scoped-models:db": "bun test tests/routers/v1/modelInstallAccountScope.test.ts",
+    "verify:account-scoped-models:api": "bun test tests/routers/v1/modelRouterAccountScope.test.ts",
     "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",
     "check:readiness": "bun scripts/checkSelfHostReadiness.ts",
     "check:external-pipeline": "bun scripts/checkExternalModelPipeline.ts",

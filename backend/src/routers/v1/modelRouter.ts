@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
 import { civitaiFiles, civitaiModelInstalls, civitaiModels, civitaiModelVersions } from "@/schema";
-import { and, asc, desc, eq, inArray, not, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, not, or, sql } from "drizzle-orm";
 import { civitaiImages } from "@/schema";
 import runpodSdk from "runpod-sdk";
 import {
@@ -54,12 +54,12 @@ async function getInstalledModels(db: any, userId: string, type?: ModelTypes) {
 
   const models = await db.query.civitaiModels.findMany({
     orderBy: (models: any, { asc }: any) => asc(models.createdAt),
-    where: (models: any, { and, eq, inArray, not }: any) =>
+    where: (models: any, { and, eq, inArray, isNull, not, or }: any) =>
       and(
         inArray(models.id, ids),
         type ? eq(models.type, type) : undefined,
         eq(models.nsfw, false),
-        not(eq(models.status, "DELETED")),
+        or(isNull(models.status), not(eq(models.status, "DELETED"))),
       ),
     with: {
       modelVersions: {
@@ -200,8 +200,12 @@ const modelRouter = new Hono<ContextForHono>()
       const models = await db.query.civitaiModels.findMany({
         // where: (model, { eq, not }) => not(eq(model.status, "DELETED")),
         orderBy: (model, { asc }) => asc(model.createdAt),
-        where: (model, { and, eq, inArray, not }) =>
-          and(inArray(model.id, ids), eq(model.nsfw, false), not(eq(model.status, "DELETED"))),
+        where: (model, { and, eq, inArray, isNull, not, or }) =>
+          and(
+            inArray(model.id, ids),
+            eq(model.nsfw, false),
+            or(isNull(model.status), not(eq(model.status, "DELETED"))),
+          ),
         with: {
           modelVersions: {
             orderBy: (version, { desc }) => desc(version.publishedAt),
@@ -477,7 +481,7 @@ const modelRouter = new Hono<ContextForHono>()
           and(
             eq(civitaiModels.id, Number(id)),
             eq(civitaiModels.nsfw, false),
-            not(eq(civitaiModels.status, "DELETED"))
+            or(isNull(civitaiModels.status), not(eq(civitaiModels.status, "DELETED")))
           )
         )
         .limit(1);

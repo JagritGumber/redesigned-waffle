@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { and, eq, not } from "drizzle-orm";
+import { and, eq, isNull, not, or } from "drizzle-orm";
 import { civitaiModelInstalls, civitaiModels, civitaiModelVersions } from "@/schema";
 import { registerOrUpdateCivitaiModel } from "@/services/civitaiService";
 import { ModelTypes } from "@/types/models";
@@ -58,12 +58,12 @@ async function getInstalledModels(userId: string, type?: ModelTypes) {
 
   const models = await db.query.civitaiModels.findMany({
     orderBy: (model, { asc }) => asc(model.createdAt),
-    where: (model, { and, eq, inArray, not }) =>
+    where: (model, { and, eq, inArray, isNull, not, or }) =>
       and(
         inArray(model.id, ids),
         eq(model.nsfw, false),
         type ? eq(model.type, type) : undefined,
-        not(eq(model.status, "DELETED")),
+        or(isNull(model.status), not(eq(model.status, "DELETED"))),
       ),
     with: {
       creator: true,
@@ -300,7 +300,7 @@ export const modelRouter = new Elysia({ prefix: "model" })
           and(
             eq(civitaiModels.id, id),
             eq(civitaiModels.nsfw, false),
-            not(eq(civitaiModels.status, "DELETED")),
+            or(isNull(civitaiModels.status), not(eq(civitaiModels.status, "DELETED"))),
           ),
         )
         .limit(1);

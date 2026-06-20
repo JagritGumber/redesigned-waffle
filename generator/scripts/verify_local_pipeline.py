@@ -56,6 +56,11 @@ FAST_CHECKS = [
         ROOT / "manager",
     ),
     (
+        "manager account-scoped models api",
+        ["bun", "run", "verify:account-scoped-models:api"],
+        ROOT / "manager",
+    ),
+    (
         "manager self-host readiness",
         ["bun", "run", "verify:self-host-readiness"],
         ROOT / "manager",
