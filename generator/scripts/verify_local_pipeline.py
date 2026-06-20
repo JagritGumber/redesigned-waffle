@@ -30,6 +30,7 @@ FAST_CHECKS = [
         ROOT,
     ),
     ("manager model image status", ["bun", "run", "verify:model-image-status"], ROOT / "manager"),
+    ("manager model image webhook", ["bun", "run", "verify:model-image-webhook"], ROOT / "manager"),
     (
         "manager runpod build polling",
         ["bun", "run", "verify:runpod-build-polling"],
