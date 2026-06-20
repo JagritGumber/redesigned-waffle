@@ -14,6 +14,13 @@ assert(
   "External checker should make GitHub dispatch an explicit dry-run action.",
 );
 assert(
+  checker.includes("--wait") &&
+    checker.includes("waitForGithubDryRun") &&
+    checker.includes("/actions/workflows/model-image-rebuild.yml/runs") &&
+    checker.includes("conclusion === \"success\""),
+  "External checker should optionally wait for the dry-run workflow to complete successfully.",
+);
+assert(
   checker.includes("Values are not printed"),
   "External checker should make it clear that secret values are redacted.",
 );
@@ -30,9 +37,10 @@ assert(
 );
 assert(
   workflow.includes("dryRun") &&
+    workflow.includes("run-name: Model image rebuild") &&
     workflow.includes("Validate dry-run payload") &&
     workflow.includes("env.DRY_RUN != 'true'"),
-  "Model image rebuild workflow should support payload validation without release/build side effects.",
+  "Model image rebuild workflow should support identifiable payload validation without release/build side effects.",
 );
 assert(
   workflow.includes("Skipping migration commit, release, RunPod hook, and manager callback"),

@@ -153,11 +153,12 @@ bun run check:external-pipeline
 
 To prove GitHub `repository_dispatch` reaches the workflow without creating a
 migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
-run the opt-in smoke dispatch:
+run the opt-in smoke dispatch. Add `--wait` to wait for the GitHub Actions
+dry-run workflow to complete:
 
 ```bash
 cd manager
-bun run check:external-pipeline -- --dispatch-dry-run
+bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
 ## Open Source

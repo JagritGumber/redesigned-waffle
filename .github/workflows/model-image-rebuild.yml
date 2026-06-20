@@ -1,4 +1,5 @@
 name: Model Image Rebuild
+run-name: Model image rebuild ${{ github.event.client_payload.buildTriggerId || inputs.buildTriggerId }}
 
 on:
   repository_dispatch:

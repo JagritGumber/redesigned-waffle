@@ -5,6 +5,9 @@ type Check = {
 };
 
 const dispatchDryRun = Bun.argv.includes("--dispatch-dry-run");
+const waitForDryRun = Bun.argv.includes("--wait");
+const DRY_RUN_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
+const DRY_RUN_POLL_INTERVAL_MS = 5 * 1000;
 
 function hasValue(key: string) {
   return Boolean(Bun.env[key]?.trim());
@@ -108,7 +111,77 @@ async function dispatchGithubDryRun(): Promise<boolean> {
       ? "repository_dispatch accepted; workflow will validate payload without creating a release."
       : `repository_dispatch failed (${response.status}).`,
   });
-  return ok;
+  if (!ok || !waitForDryRun) {
+    return ok;
+  }
+
+  return waitForGithubDryRun(buildTriggerId);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForGithubDryRun(buildTriggerId: string): Promise<boolean> {
+  const repository = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
+  const deadline = Date.now() + DRY_RUN_WAIT_TIMEOUT_MS;
+  const expectedTitle = `Model image rebuild ${buildTriggerId}`;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(
+      `https://api.github.com/repos/${repository}/actions/workflows/model-image-rebuild.yml/runs?event=repository_dispatch&per_page=20`,
+      { headers: githubHeaders() },
+    );
+
+    if (!response.ok) {
+      printCheck({
+        name: "GitHub dry-run workflow",
+        ok: false,
+        detail: `Could not read workflow runs (${response.status}).`,
+      });
+      return false;
+    }
+
+    const payload = (await response.json()) as {
+      workflow_runs?: Array<{
+        id?: number;
+        display_title?: string;
+        status?: string;
+        conclusion?: string | null;
+        html_url?: string;
+      }>;
+    };
+    const run = payload.workflow_runs?.find((candidate) => candidate.display_title === expectedTitle);
+
+    if (run?.status === "completed") {
+      const ok = run.conclusion === "success";
+      printCheck({
+        name: "GitHub dry-run workflow",
+        ok,
+        detail: ok
+          ? `Completed successfully: ${run.html_url ?? `run ${run.id}`}`
+          : `Completed with conclusion ${run.conclusion ?? "unknown"}: ${run.html_url ?? `run ${run.id}`}`,
+      });
+      return ok;
+    }
+
+    if (run) {
+      printCheck({
+        name: "GitHub dry-run workflow",
+        ok: true,
+        detail: `Found run ${run.id}; status is ${run.status ?? "unknown"}.`,
+      });
+    }
+
+    await sleep(DRY_RUN_POLL_INTERVAL_MS);
+  }
+
+  printCheck({
+    name: "GitHub dry-run workflow",
+    ok: false,
+    detail: `Timed out waiting for ${expectedTitle}.`,
+  });
+  return false;
 }
 
 async function checkRunPodEndpoint(): Promise<boolean> {
@@ -183,7 +256,9 @@ async function checkRunPodEndpoint(): Promise<boolean> {
 }
 
 console.log("External model pipeline check");
-console.log("Values are not printed. Network calls are read-only unless --dispatch-dry-run is passed.\n");
+console.log(
+  "Values are not printed. Network calls are read-only unless --dispatch-dry-run is passed; add --wait to wait for the dry-run workflow result.\n",
+);
 
 let ok = requireEnv([
   "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
@@ -208,6 +283,8 @@ if (!ok) {
 
 console.log(
   dispatchDryRun
-    ? "\nExternal model pipeline dry-run dispatch passed."
+    ? waitForDryRun
+      ? "\nExternal model pipeline dry-run workflow passed."
+      : "\nExternal model pipeline dry-run dispatch passed."
     : "\nExternal model pipeline read-only checks passed.",
 );

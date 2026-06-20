@@ -7,6 +7,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "model-image-rebuild.yml"
 
 REQUIRED_SNIPPETS = {
     "repository_dispatch trigger": "repository_dispatch:",
+    "identifiable workflow run name": "run-name: Model image rebuild",
     "manual workflow dispatch": "workflow_dispatch:",
     "dry-run input": "dryRun:",
     "dry-run payload resolver": "DRY_RUN=",

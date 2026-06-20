@@ -69,11 +69,11 @@ bun run check:external-pipeline
 
 To confirm `repository_dispatch` reaches the workflow without creating a
 migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
-run:
+run the opt-in dry-run and wait for the GitHub Actions result:
 
 ```bash
 cd ../manager
-bun run check:external-pipeline -- --dispatch-dry-run
+bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
 RunPod GitHub integration builds and deploys when the workflow creates a
