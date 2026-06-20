@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import db from "@/db";
+import type { StatusMap } from "elysia";
+import db, { type DbClient } from "@/db";
 import sessions from "@/schema/sessions";
 import users from "@/schema/users";
 
@@ -33,20 +34,10 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return Bun.password.verify(password, hash);
 }
 
-export function setSessionCookie(set: { headers: Record<string, string> }, token: string) {
-  const secure = Bun.env.NODE_ENV === "production" ? "; Secure" : "";
-  set.headers["Set-Cookie"] = `${SESSION_COOKIE}=${encodeURIComponent(
-    token,
-  )}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secure}`;
-}
-
-export function clearSessionCookie(set: { headers: Record<string, string> }) {
-  set.headers["Set-Cookie"] = `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
-}
-
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(userId: string, tx?: DbClient): Promise<string> {
   const token = crypto.randomUUID() + crypto.randomUUID().replaceAll("-", "");
-  await db.insert(sessions).values({
+  const conn = tx ?? db;
+  await conn.insert(sessions).values({
     sessionToken: token,
     userId,
     expires: new Date(Date.now() + SESSION_TTL_MS),
@@ -76,7 +67,7 @@ export async function getSessionUser(request: Request) {
 
 export async function requireUserId(
   request: Request,
-  set: { status?: number; headers: Record<string, string> },
+  set: { status?: number | keyof StatusMap },
 ): Promise<string | null> {
   const user = await getSessionUser(request);
   if (!user) {

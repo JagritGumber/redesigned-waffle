@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia";
 import { eq } from "drizzle-orm";
 import {
   civitaiFiles,
+  civitaiModelInstalls,
   civitaiModels,
   generatorJobs,
   InsertGeneratorJob,
@@ -12,6 +13,8 @@ import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
 import db from "@/db";
 import s3 from "@/s3";
+import { triggerModelImageBuild } from "@/services/modelImageBuildService";
+import { resolveModelImageWebhookState } from "@/services/modelImageStatusService";
 
 // Define TypeBox schema for DownloaderWebhookPayload
 const DownloaderWebhookPayloadSchema = t.Object({
@@ -34,6 +37,8 @@ const DownloaderWebhookPayloadSchema = t.Object({
     action: t.Union([t.Literal("delete"), t.Literal("download"), t.Literal("deleteAll")]),
     save_path: t.Optional(t.String()),
     model_id: t.Optional(t.Number()),
+    civitai_file_id: t.Optional(t.Number()),
+    db_file_id: t.Optional(t.Number()),
   }),
 });
 
@@ -62,7 +67,56 @@ const GeneratorWebhookPayloadSchema = t.Object({
   ),
 });
 
+const ModelImageWebhookPayloadSchema = t.Object({
+  buildTriggerId: t.String(),
+  status: t.String(),
+  image: t.Optional(t.String()),
+  message: t.Optional(t.String()),
+});
+
 export const webhookRouter = new Elysia({ prefix: "/webhooks" })
+  .all(
+    "/model-image",
+    async ({ body, request, set }) => {
+      const expectedToken = Bun.env.MODEL_IMAGE_WEBHOOK_TOKEN;
+      if (expectedToken) {
+        const authorization = request.headers.get("authorization");
+        if (authorization !== `Bearer ${expectedToken}`) {
+          set.status = 401;
+          return { status: "error", message: "Invalid model image webhook token." };
+        }
+      }
+
+      const { buildTriggerId, status, image, message } = body;
+      const webhookState = resolveModelImageWebhookState({
+        status,
+        image,
+        message,
+      });
+
+      const updated = await db
+        .update(civitaiModelInstalls)
+        .set({
+          status: webhookState.installStatus,
+          statusMessage: webhookState.statusMessage,
+          deployedAt: webhookState.deployedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(civitaiModelInstalls.buildTriggerId, buildTriggerId))
+        .returning();
+
+      if (updated.length === 0) {
+        set.status = 404;
+        return { status: "error", message: "No model install found for build trigger." };
+      }
+
+      set.status = 200;
+      return { status: "success", installsUpdated: updated.length };
+    },
+    {
+      body: ModelImageWebhookPayloadSchema,
+    },
+  )
   .all(
     "/runpod/downloader",
     async ({ body, set }) => {
@@ -86,16 +140,61 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
             })
             .where(eq(civitaiFiles.runpodJobId, runpodJobId))
             .returning();
-          const updatedModel = await db.update(civitaiModels).set({
-            status: actionStatus === "COMPLETED" ? "DOWNLOADED" : "DOWNLOAD_FAILED",
-          });
 
           if (updatedFile.length > 0) {
+            const file = updatedFile[0];
+            const modelId = input.model_id;
+            if (modelId !== undefined) {
+              await db
+                .update(civitaiModels)
+                .set({
+                  status: actionStatus === "COMPLETED" ? "DOWNLOADED" : "DOWNLOAD_FAILED",
+                  updatedAt: new Date(),
+                })
+                .where(eq(civitaiModels.id, modelId));
+            }
+
             console.log(
               `Updated download status for file linked to RunPod job ID ${runpodJobId} to ${actionStatus}`
             );
 
             if (actionStatus === "COMPLETED") {
+              let installStatus = "READY";
+              let statusMessage = "Model downloaded and ready.";
+              let buildTriggerId: string | null = null;
+
+              if (modelId !== undefined) {
+                try {
+                  const build = await triggerModelImageBuild({
+                    civitaiModelId: modelId,
+                    civitaiFileId: file.id,
+                    downloadUrl: file.downloadUrl,
+                    runpodPath: file.runpodPath,
+                    runpodJobId,
+                  });
+                  installStatus = build.triggered ? "BUILD_QUEUED" : "READY";
+                  buildTriggerId = build.buildTriggerId;
+                  statusMessage = build.message;
+                } catch (buildError: any) {
+                  installStatus = "BUILD_FAILED";
+                  statusMessage =
+                    buildError?.message || "Model downloaded, but Docker image rebuild failed.";
+                  console.error("Failed to trigger model image rebuild:", buildError);
+                }
+              }
+
+              await db
+                .update(civitaiModelInstalls)
+                .set({
+                  status: installStatus,
+                  statusMessage,
+                  buildTriggerId,
+                  downloadCompletedAt: new Date(),
+                  buildTriggeredAt: installStatus === "BUILD_QUEUED" ? new Date() : null,
+                  updatedAt: new Date(),
+                })
+                .where(eq(civitaiModelInstalls.runpodJobId, runpodJobId));
+
               const storageUpdateResult = await updateStorageInfo(
                 Number(payload.output?.storage_used) ?? 0
               );
@@ -107,7 +206,16 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
                   storageUpdateResult.error
                 );
               }
-            } else if (actionStatus === "ERROR") {
+            } else if (actionStatus === "ERROR" || actionStatus === "FAILED") {
+              await db
+                .update(civitaiModelInstalls)
+                .set({
+                  status: "DOWNLOAD_FAILED",
+                  statusMessage: output?.message || "Model download failed.",
+                  updatedAt: new Date(),
+                })
+                .where(eq(civitaiModelInstalls.runpodJobId, runpodJobId));
+
               console.error(
                 `Download failed for RunPod job ID ${runpodJobId}:`,
                 output?.message || payload.error || "Unknown error"

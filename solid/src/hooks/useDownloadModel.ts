@@ -23,13 +23,20 @@ export const useDownloadModel = (
       const response = await axios.post<{
         message: string;
         status: string;
+        installStatus?: string | null;
+        statusMessage?: string | null;
+        buildTriggerId?: string | null;
         runpodJobId?: string;
-      }>(`${import.meta.env.VITE_BACKEND_URL}/api/v1/model`, {
-        model,
-        versionId,
-        fileId,
-        defaultDownload,
-      });
+      }>(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/model`,
+        {
+          model,
+          versionId,
+          fileId,
+          defaultDownload,
+        },
+        { withCredentials: true },
+      );
       return response.data;
     },
     onSuccess: (data) => {
@@ -38,6 +45,10 @@ export const useDownloadModel = (
       queryClient.invalidateQueries({
         queryKey: ["downloadedModel", String(params().vId)],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["installedModel", String(params().id)],
+      });
+      queryClient.invalidateQueries({ queryKey: ["downloadedModels"] });
     },
     onError: (error) => {
       console.error("Download initiation failed:", error);
@@ -45,6 +56,10 @@ export const useDownloadModel = (
       queryClient.invalidateQueries({
         queryKey: ["downloadedModel", String(params().vId)],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["installedModel", String(params().id)],
+      });
+      queryClient.invalidateQueries({ queryKey: ["downloadedModels"] });
     },
   }));
 };

@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { ContextForHono } from "@/types/context";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   civitaiFiles,
+  civitaiModelInstalls,
   civitaiModels,
   generatorJobs,
   InsertGeneratorJob,
 } from "@/schema"; // Import civitaiModels
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
+import { resolveModelImageWebhookState } from "@/services/modelImageStatusService";
 
 type RunPodWebhookPayload = {
   id: string; // RunPod Job ID
@@ -22,6 +24,49 @@ type RunPodWebhookPayload = {
 };
 
 const webhookRouter = new Hono<ContextForHono>()
+  .all("/model-image", async (c) => {
+    const expectedToken = c.env.MODEL_IMAGE_WEBHOOK_TOKEN;
+    if (expectedToken) {
+      const authHeader = c.req.header("authorization");
+      if (authHeader !== `Bearer ${expectedToken}`) {
+        return c.text("Unauthorized", 401);
+      }
+    }
+
+    try {
+      const payload = await c.req.json<{
+        buildTriggerId: string;
+        status: string;
+        image?: string;
+        message?: string;
+      }>();
+
+      if (!payload.buildTriggerId) {
+        return c.text("buildTriggerId is required", 400);
+      }
+
+      const webhookState = resolveModelImageWebhookState({
+        status: payload.status,
+      });
+
+      const db = c.get("db");
+      await db
+        .update(civitaiModelInstalls)
+        .set({
+          status: webhookState.modelStatus,
+          statusMessage: payload.message ?? null,
+          imageName: payload.image ?? null,
+          deployedAt: webhookState.deployedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(civitaiModelInstalls.buildTriggerId, payload.buildTriggerId));
+
+      return c.json({ ok: true });
+    } catch (error) {
+      console.error("Error processing model image webhook:", error);
+      return c.text("Error processing webhook", 500);
+    }
+  })
   .all("/runpod/downloader", async (c) => {
     try {
       // Update payload type to include model_id in input for delete action
@@ -33,7 +78,9 @@ const webhookRouter = new Hono<ContextForHono>()
         input: {
           action: "delete" | "download" | "deleteAll";
           save_path?: string;
-          model_id?: number; // <-- Add model_id for delete action
+          model_id?: number | string; // RunPod payloads may serialize this as a string.
+          user_id?: string;
+          civitai_file_id?: number;
         };
       }>();
       const {
@@ -68,10 +115,24 @@ const webhookRouter = new Hono<ContextForHono>()
           })
           .where(eq(civitaiFiles.runpodJobId, runpodJobId))
           .returning();
-        const updatedModel = await db.update(civitaiModels).set({
-          status:
-            actionStatus === "COMPLETED" ? "DOWNLOADED" : "DOWNLOAD_FAILED",
-        });
+
+        if (runpodJobId) {
+          await db
+            .update(civitaiModelInstalls)
+            .set({
+              status:
+                actionStatus === "COMPLETED"
+                  ? "DOWNLOADED"
+                  : "DOWNLOAD_FAILED",
+              statusMessage: output?.message ?? null,
+              updatedAt: new Date(),
+            })
+            .where(eq(civitaiModelInstalls.runpodJobId, runpodJobId));
+        } else {
+          console.warn(
+            `Downloader webhook did not include a RunPod job id; skipped install status update.`
+          );
+        }
 
         if (updatedFile.length > 0) {
           console.log(
@@ -113,6 +174,7 @@ const webhookRouter = new Hono<ContextForHono>()
       else if (input.action === "delete") {
         const modelId = input.model_id; // Get the model_id passed in the input
         const savePath = input.save_path; // Get save_path from input
+        const userId = input.user_id;
 
         if (modelId === undefined) {
           // Use undefined check for optional number
@@ -153,16 +215,28 @@ const webhookRouter = new Hono<ContextForHono>()
           // You might want to log specific error details here
         }
 
-        // Update the civitaiModels table
+        if (!userId && !runpodJobId) {
+          console.warn(
+            `Delete webhook for model ${modelId} did not include user_id or runpod job id; skipped install status update.`
+          );
+          return c.text("OK", 200);
+        }
+
         await db
-          .update(civitaiModels)
+          .update(civitaiModelInstalls)
           .set({
             status: newStatus,
-            // Optionally clear deletionRunpodJobId or keep for history
-            runpodJobId: null, // Clear the job ID once processed
+            runpodJobId: null,
             updatedAt: new Date(),
           })
-          .where(eq(civitaiModels.id, modelId));
+          .where(
+            runpodJobId
+              ? eq(civitaiModelInstalls.runpodJobId, runpodJobId)
+              : and(
+                  eq(civitaiModelInstalls.userId, userId!),
+                  eq(civitaiModelInstalls.civitaiModelId, Number(modelId)),
+                ),
+          );
 
         console.log(consoleMessage);
       }
@@ -171,12 +245,18 @@ const webhookRouter = new Hono<ContextForHono>()
       else if (input.action === "deleteAll") {
         if (actionStatus === "COMPLETED") {
           try {
-            await db.update(civitaiModels).set({
-              status: "DELETED",
-              updatedAt: new Date(),
-            });
+            if (!input.user_id) {
+              console.warn(
+                `DELETE ALL webhook for RunPod job ${runpodJobId} did not include user_id; skipped install deletion.`
+              );
+              return c.text("OK", 200);
+            }
+
+            await db
+              .delete(civitaiModelInstalls)
+              .where(eq(civitaiModelInstalls.userId, input.user_id));
             console.log(
-              `DELETE ALL COMPLETED (RunPod job ID ${runpodJobId}). All models in DB marked as DELETED.`
+              `DELETE ALL COMPLETED (RunPod job ID ${runpodJobId}). Account installs removed.`
             );
 
             // Update storage after deleteAll

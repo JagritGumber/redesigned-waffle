@@ -9,6 +9,7 @@ import Credentials from "@auth/core/providers/credentials";
 import { eq } from "drizzle-orm";
 import users from "@/schema/users";
 import comparePassword from "@/utils/secrets/comparePassword";
+import { pollRunPodModelImageBuilds } from "@/services/runpodBuildStatusService";
 
 const app = new Hono<ContextForHono>()
   .use(
@@ -88,4 +89,12 @@ const app = new Hono<ContextForHono>()
 export default {
   port: 8080,
   fetch: app.fetch,
+  async scheduled(_controller: ScheduledController, env: ContextForHono["Bindings"], ctx: ExecutionContext) {
+    const db = drizzle(env.DB, { schema });
+    ctx.waitUntil(
+      pollRunPodModelImageBuilds(db, env).catch((error) => {
+        console.error("RunPod model image build polling failed:", error);
+      }),
+    );
+  },
 };

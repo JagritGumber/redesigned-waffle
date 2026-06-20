@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # ---------------------------------------------------------------------------- #
 #                         Stage 1: Download the models                         #
 # ---------------------------------------------------------------------------- #
@@ -5,22 +6,14 @@ FROM python:3.10.14-slim as download
 
 RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-ARG CIVITAI_API_TOKEN=
-RUN if [ -n "$CIVITAI_API_TOKEN" ]; then \
-      wget -q -O /model.safetensors "https://civitai.com/api/download/models/1412789?token=${CIVITAI_API_TOKEN}"; \
-    else \
-      wget -q -O /model.safetensors "https://civitai.com/api/download/models/1412789"; \
-    fi
+COPY generator/scripts/download_model_layer.py /usr/local/bin/download_model_layer.py
+COPY generator/model-migrations/ /model-migrations/
 
-RUN pip install requests
-COPY generator/download_pretrained.py .
-
-# Make the script executable (optional but good practice)
-RUN chmod +x download_pretrained.py
-
-# Execute the download script to fetch Civitai models
-# Use python -u to prevent output buffering
-RUN python -u download_pretrained.py
+# Model migrations are rendered as one RUN layer per model. Keep this block generated
+# with: python generator/scripts/render_model_dockerfile.py
+# BEGIN MODEL MIGRATION LAYERS
+RUN --mount=type=secret,id=civitai_api_token python /usr/local/bin/download_model_layer.py --manifest /model-migrations/0000-base.json
+# END MODEL MIGRATION LAYERS
 
 
 # ---------------------------------------------------------------------------- #
@@ -50,8 +43,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements_versions.txt && \
     python -c "from launch import prepare_environment; prepare_environment()" --skip-torch-cuda-test
 
-COPY --from=download /model.safetensors /model.safetensors
 COPY --from=download /defaults/ /defaults/
+COPY --from=download /runpod-volume/ /runpod-volume/
 
 # install dependencies
 COPY generator/requirements.txt .

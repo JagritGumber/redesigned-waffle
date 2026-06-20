@@ -13,6 +13,7 @@ interface DownloadedModelsResponse {
 const getAllDownloadedModels = async (): Promise<DownloadedModelsResponse> => {
   const response = await axios.get(
     `${import.meta.env.VITE_BACKEND_URL}/api/v1/model`, // Your backend endpoint for all models
+    { withCredentials: true },
   );
   if (response.status !== 200) {
     console.error("Failed to fetch all downloaded models:", response.status);
@@ -28,6 +29,13 @@ const useDownloadedModels = () => {
   return useQuery<DownloadedModelsResponse, Error>(() => ({
     queryKey: ["downloadedModels"], // Unique key for fetching all downloaded models
     queryFn: getAllDownloadedModels,
+    refetchInterval: (query) => {
+      const models = query.state.data?.models ?? [];
+      const hasActiveInstall = models.some((model: any) =>
+        ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"].includes(model.status),
+      );
+      return hasActiveInstall ? 5000 : false;
+    },
   }));
 };
 

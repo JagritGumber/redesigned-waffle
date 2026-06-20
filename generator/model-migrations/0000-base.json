@@ -1,0 +1,5 @@
+{
+  "id": "0000-base",
+  "description": "Initial no-op migration. Add model migrations as immutable JSON files after this one.",
+  "noop": true
+}

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
-import { and, eq } from "drizzle-orm";
-import { generatorJobs, InsertGeneratorJob } from "@/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import { civitaiModelInstalls, generatorJobs, InsertGeneratorJob } from "@/schema";
 
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
@@ -66,6 +66,37 @@ const generatorRouter = new Hono<ContextForHono>()
       textualInversions,
       width,
     } = clientInput;
+
+    const requestedModelIds = [
+      checkpoint.modelId,
+      ...loras.map((lora) => lora.modelId),
+      ...textualInversions.map((tti) => tti.modelId),
+    ];
+    const uniqueRequestedModelIds = [...new Set(requestedModelIds)];
+    const installedModels = await db
+      .select({ id: civitaiModelInstalls.civitaiModelId })
+      .from(civitaiModelInstalls)
+      .where(
+        and(
+          eq(civitaiModelInstalls.userId, userId),
+          inArray(civitaiModelInstalls.civitaiModelId, uniqueRequestedModelIds),
+        ),
+      );
+    const installedModelIds = new Set(installedModels.map((model) => model.id));
+    const missingModelIds = uniqueRequestedModelIds.filter(
+      (modelId) => !installedModelIds.has(modelId),
+    );
+
+    if (missingModelIds.length > 0) {
+      return c.json(
+        {
+          status: "error",
+          message: "One or more selected models are not installed for this account.",
+          modelIds: missingModelIds,
+        },
+        403,
+      );
+    }
 
     const checkpointPromise = db.query.civitaiModels.findFirst({
       where: (model, { eq }) => eq(model.id, checkpoint.modelId),

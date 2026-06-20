@@ -14,6 +14,7 @@ import { CaretDown, CaretUp } from "phosphor-solid";
 import type { DOMElement } from "solid-js/jsx-runtime";
 import { onLongPress } from "solidjs-use";
 import { useNavigate } from "@tanstack/solid-router";
+import { ModelInstallStatus } from "./model-install-status";
 
 export interface ModelCardProps {
   model: CivitaiModelWithRelations | Model;
@@ -45,6 +46,8 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
     state.textualInversions?.find((tti) => tti.modelId === model.id),
   );
   const navigate = useNavigate();
+  const installStatus = () => (model as any).status as string | null | undefined;
+  const installMessage = () => (model as any).statusMessage as string | null | undefined;
 
   const isSelected = () => {
     if (ModelTypes.Checkpoint === model.type) {
@@ -131,6 +134,13 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
           {modelBaseToSlang(currentModelVersion()?.baseModel ?? "other")}
         </Badge>
       </div>
+      <ModelInstallStatus
+        status={installStatus()}
+        message={installMessage()}
+        showMessage
+        class="absolute right-1 top-1 max-w-[calc(100%-0.5rem)] text-right"
+        messageClass="block max-w-44 truncate rounded-sm bg-background/85 px-1 py-0.5 text-[11px] font-medium text-foreground shadow-sm"
+      />
       <Switch>
         <Match when={selectable && ModelTypes.TextualInversion === model.type}>
           <div class="absolute bottom-1 left-1 flex gap-0.5 justify-between">

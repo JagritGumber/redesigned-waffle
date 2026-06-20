@@ -10,6 +10,7 @@ export const getAllDownloadedModels =
   async (): Promise<DownloadedModelsResponse> => {
     const response = await axios.get(
       `${import.meta.env.VITE_BACKEND_URL}/api/v1/model`, // Your backend endpoint for all models
+      { withCredentials: true },
     );
     if (response.status !== 200) {
       console.error("Failed to fetch all downloaded models:", response.status);

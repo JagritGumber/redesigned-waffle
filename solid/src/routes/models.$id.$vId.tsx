@@ -40,9 +40,11 @@ import {
 } from "~/components/ui/table";
 import { useCivitaiModel, useCivitaiModelVersion } from "~/hooks/useCivitaiModel";
 import { useDownloadModel } from "~/hooks/useDownloadModel";
+import { useInstalledModel } from "~/hooks/useInstalledModel";
 import { formatBytes } from "~/utils/formatBytes";
 import { formatTime } from "~/utils/formatTime";
 import { toast, Toaster } from "solid-sonner";
+import { ModelInstallStatus, isActiveModelInstall } from "~/components/model-install-status";
 
 export const Route = createFileRoute("/models/$id/$vId")({
   component: RouteComponent,
@@ -59,6 +61,7 @@ function RouteComponent() {
 
   const civitaiModelQuery = useCivitaiModel(params);
   const civitaiModelVersionQuery = useCivitaiModelVersion(params);
+  const installedModelQuery = useInstalledModel(params);
   const civitaiModel = () => {
     if (!civitaiModelQuery.data) {
       return null;
@@ -87,6 +90,16 @@ function RouteComponent() {
   };
 
   const downloadMutation = useDownloadModel(params);
+  const installedModel = () => installedModelQuery.data?.model;
+  const installStatus = () => installedModel()?.status;
+  const installMessage = () => installedModel()?.statusMessage;
+  const isInstallBusy = () => downloadMutation.isPending || isActiveModelInstall(installStatus());
+  const installToastMessage = (modelName: string | undefined, result: { installStatus?: string | null; statusMessage?: string | null }) => {
+    if (isActiveModelInstall(result.installStatus)) {
+      return result.statusMessage ?? "Model install started. The Docker image build may take a while.";
+    }
+    return `${modelName} is ready.`;
+  };
 
   // Effect to update carouselIndex when carousel changes slides (using Embla's 'select' event)
   createEffect(() => {
@@ -131,6 +144,7 @@ function RouteComponent() {
                     <CaretLeft weight="bold" />
                   </Button>
                   <Button
+                    disabled={isInstallBusy()}
                     onClick={() => {
                       const modelName = civitaiModel()?.name;
                       const toastId = toast.loading(`Downloading ${modelName}...`);
@@ -142,8 +156,8 @@ function RouteComponent() {
                           fileId: primaryFile()?.id!,
                         },
                         {
-                          onSuccess: () => {
-                            toast.success(`${modelName} downloaded successfully!`, {
+                          onSuccess: (result) => {
+                            toast.success(installToastMessage(modelName, result), {
                               id: toastId,
                             });
                           },
@@ -157,7 +171,9 @@ function RouteComponent() {
                     }}
                   >
                     <Download weight="bold" />
-                    Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+                    {isInstallBusy()
+                      ? "Installing..."
+                      : `Download (${formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})`}
                   </Button>
                 </nav>
               </header>
@@ -182,6 +198,7 @@ function RouteComponent() {
                   {carouselIndex() + 1} / {civitaiModelVersion()?.images?.length ?? 0}
                 </Badge>
                 <Button
+                  disabled={isInstallBusy()}
                   onClick={() => {
                     const modelName = civitaiModel()?.name;
                     const toastId = toast.loading(`Downloading ${modelName}...`);
@@ -193,8 +210,8 @@ function RouteComponent() {
                         fileId: primaryFile()?.id!,
                       },
                       {
-                        onSuccess: () => {
-                          toast.success(`${modelName} downloaded successfully!`, {
+                        onSuccess: (result) => {
+                          toast.success(installToastMessage(modelName, result), {
                             id: toastId,
                           });
                         },
@@ -208,7 +225,9 @@ function RouteComponent() {
                   }}
                 >
                   <Download weight="bold" />
-                  Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+                  {isInstallBusy()
+                    ? "Installing..."
+                    : `Download (${formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})`}
                 </Button>
               </nav>
             </header>
@@ -225,6 +244,13 @@ function RouteComponent() {
                 {civitaiModel()?.name}
               </h1>
               <div class="flex gap-1 items-center flex-wrap ">
+                <ModelInstallStatus
+                  status={installStatus()}
+                  message={installMessage()}
+                  showMessage
+                  class="basis-full max-w-full"
+                  messageClass="mt-1 block w-full max-w-full rounded-md border border-border bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground"
+                />
                 <p class="text-xs font-medium lg:text-sm">
                   Updated: {formatTime(civitaiModelVersion()?.updatedAt ?? "")}
                 </p>
@@ -334,6 +360,7 @@ function RouteComponent() {
             <Show when={isHidden()}>
               <Button
                 class="w-full"
+                disabled={isInstallBusy()}
                 onClick={() => {
                   const modelName = civitaiModel()?.name;
                   const toastId = toast.loading(`Downloading ${modelName}...`);
@@ -345,8 +372,8 @@ function RouteComponent() {
                       fileId: primaryFile()?.id!,
                     },
                     {
-                      onSuccess: () => {
-                        toast.success(`${modelName} downloaded successfully!`, {
+                      onSuccess: (result) => {
+                        toast.success(installToastMessage(modelName, result), {
                           id: toastId,
                         });
                       },
@@ -360,7 +387,9 @@ function RouteComponent() {
                 }}
               >
                 <Download weight="bold" />
-                Download ({formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})
+                {isInstallBusy()
+                  ? "Installing..."
+                  : `Download (${formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})`}
               </Button>
               <Accordion multiple={false} collapsible>
                 <AccordionItem value="details">
@@ -428,6 +457,7 @@ function RouteComponent() {
                             <Button
                               class="p-0 h-fit"
                               variant={"link"}
+                              disabled={isInstallBusy()}
                               onClick={() => {
                                 const modelName = civitaiModel()?.name;
                                 const toastId = toast.loading(`Downloading ${modelName}...`);
@@ -439,8 +469,8 @@ function RouteComponent() {
                                     fileId: file.id!,
                                   },
                                   {
-                                    onSuccess: () => {
-                                      toast.success(`${modelName} downloaded successfully!`, {
+                                    onSuccess: (result) => {
+                                      toast.success(installToastMessage(modelName, result), {
                                         id: toastId,
                                       });
                                     },
@@ -456,7 +486,7 @@ function RouteComponent() {
                                 );
                               }}
                             >
-                              Download
+                              {isInstallBusy() ? "Installing..." : "Download"}
                             </Button>
                           </div>
                           <span>{file.metadata.format}</span>

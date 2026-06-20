@@ -43,7 +43,12 @@ export const civitaiModels = sqliteTable("civitaiModel", {
     .$onUpdateFn(() => new Date()),
   defaultWeight: real("defaultWeight").default(0.6), // Added the defaultWeight field
   status: text("status"),
+  statusMessage: text("statusMessage"),
   runpodJobId: text("runpodJobId"),
+  buildTriggerId: text("buildTriggerId"),
+  imageName: text("imageName"),
+  buildTriggeredAt: integer("buildTriggeredAt", { mode: "timestamp_ms" }),
+  deployedAt: integer("deployedAt", { mode: "timestamp_ms" }),
   userId: text("userId").references(() => users.id, { onDelete: "cascade" }),
 });
 

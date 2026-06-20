@@ -1,7 +1,15 @@
 import { DrizzleD1Database } from "drizzle-orm/d1";
 
 export interface ContextForHono {
-  Bindings: CloudflareBindings;
+  Bindings: CloudflareBindings & {
+    MODEL_IMAGE_REBUILD_PROVIDER?: string;
+    MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY?: string;
+    MODEL_IMAGE_REBUILD_GITHUB_TOKEN?: string;
+    MODEL_IMAGE_REBUILD_WEBHOOK_URL?: string;
+    MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN?: string;
+    MODEL_IMAGE_WEBHOOK_TOKEN?: string;
+    MODEL_IMAGE_RUNPOD_BUILD_POLLING?: string;
+  };
   Variables: {
     db: DrizzleD1Database<typeof import("@/schema")>;
     authUser: {

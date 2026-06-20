@@ -78,6 +78,20 @@
       "when": 1781798400000,
       "tag": "0010_user_scoped_models",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1781884800000,
+      "tag": "0011_model_image_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1781971200000,
+      "tag": "0012_model_install_accounts",
+      "breakpoints": true
     }
   ]
 }

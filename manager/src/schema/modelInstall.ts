@@ -18,6 +18,13 @@ export const civitaiModelInstalls = sqliteTable(
     defaultWeight: real("defaultWeight").default(0.6),
     status: text("status").default("READY"),
     runpodJobId: text("runpodJobId"),
+    civitaiFileId: integer("civitaiFileId"),
+    runpodPath: text("runpodPath"),
+    statusMessage: text("statusMessage"),
+    buildTriggerId: text("buildTriggerId"),
+    downloadCompletedAt: integer("downloadCompletedAt", { mode: "timestamp_ms" }),
+    buildTriggeredAt: integer("buildTriggeredAt", { mode: "timestamp_ms" }),
+    deployedAt: integer("deployedAt", { mode: "timestamp_ms" }),
     createdAt: integer("createdAt", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
     updatedAt: integer("updatedAt", { mode: "timestamp_ms" })
       .$defaultFn(() => new Date())

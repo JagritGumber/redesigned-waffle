@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   civitaiModels,
   civitaiModelVersions,
@@ -15,6 +15,8 @@ import * as schema from "@/schema";
 
 import { Model, ModelVersion } from "@/client/types/civitai";
 import db from "@/db";
+import runpodSdk from "runpod-sdk";
+import { triggerModelImageBuild } from "./modelImageBuildService";
 
 const CIVITAI_API_BASE_URL = "https://civitai.com/api/v1";
 
@@ -145,13 +147,19 @@ export async function registerOrUpdateCivitaiModel(
         .values({
           userId,
           civitaiModelId: savedCivitaiModel.id,
-          status: "READY",
+          status: triggerDownload ? "REGISTERING" : "READY",
+          statusMessage: triggerDownload
+            ? "Model metadata saved. Preparing download."
+            : "Model metadata saved.",
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [civitaiModelInstalls.userId, civitaiModelInstalls.civitaiModelId],
           set: {
-            status: "READY",
+            status: triggerDownload ? "REGISTERING" : "READY",
+            statusMessage: triggerDownload
+              ? "Model metadata saved. Preparing download."
+              : "Model metadata saved.",
             updatedAt: new Date(),
           },
         });
@@ -422,6 +430,243 @@ export async function registerOrUpdateCivitaiModel(
 
     finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : "FAILED";
     finalMessage = `Failed to process version/file/image data for model ${id}.`;
+  }
+
+  if (triggerDownload && selectedVersion && savedCivitaiModelId) {
+    const fileToDownload =
+      requestedFileId !== undefined
+        ? selectedVersion.files?.find((file) => file.id === requestedFileId)
+        : selectedVersion.files?.find((file) => file.primary) ?? selectedVersion.files?.[0];
+
+    if (!fileToDownload?.downloadUrl) {
+      const msg = fileToDownload
+        ? `File ${fileToDownload.id} does not have a download URL.`
+        : `No downloadable file found for version ${selectedVersion.id}.`;
+      errors.push(msg);
+      finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
+      finalMessage += ` ${msg}`;
+
+      if (userId) {
+        await db
+          .update(civitaiModelInstalls)
+          .set({
+            status: "DOWNLOAD_FAILED",
+            statusMessage: msg,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(civitaiModelInstalls.userId, userId),
+              eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+            ),
+          );
+      }
+    } else {
+      const fileRecord = await db.query.civitaiFiles.findFirst({
+        where: eq(civitaiFiles.id, fileToDownload.id),
+      });
+
+      if (!fileRecord) {
+        const msg = `Saved file record ${fileToDownload.id} was not found.`;
+        errors.push(msg);
+        finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
+        finalMessage += ` ${msg}`;
+
+        if (userId) {
+          await db
+            .update(civitaiModelInstalls)
+            .set({
+              status: "DOWNLOAD_FAILED",
+              statusMessage: msg,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(civitaiModelInstalls.userId, userId),
+                eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+              ),
+            );
+        }
+      } else if (
+        Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "github" ||
+        Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL
+      ) {
+        try {
+          const build = await triggerModelImageBuild({
+            civitaiModelId: savedCivitaiModelId,
+            civitaiFileId: fileRecord.id,
+            downloadUrl: fileToDownload.downloadUrl,
+            runpodPath: fileRecord.runpodPath,
+            runpodJobId: null,
+          });
+
+          if (userId) {
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: build.triggered ? "BUILD_QUEUED" : "READY",
+                buildTriggerId: build.buildTriggerId,
+                civitaiFileId: fileRecord.id,
+                runpodPath: fileRecord.runpodPath,
+                statusMessage: build.triggered
+                  ? "Docker image build queued. The model will be downloaded as a cacheable image layer."
+                  : build.message,
+                buildTriggeredAt: build.triggered ? new Date() : null,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(civitaiModelInstalls.userId, userId),
+                  eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                ),
+              );
+          }
+
+          finalMessage += " Docker image rebuild queued with a cacheable model migration.";
+        } catch (buildError: any) {
+          const msg = `Error queuing Docker image rebuild: ${buildError.message || "Unknown error"}`;
+          errors.push(msg);
+          finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
+          finalMessage += ` ${msg}`;
+
+          if (userId) {
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: "BUILD_FAILED",
+                civitaiFileId: fileRecord.id,
+                runpodPath: fileRecord.runpodPath,
+                statusMessage: msg,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(civitaiModelInstalls.userId, userId),
+                  eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                ),
+              );
+          }
+        }
+      } else if (
+        !Bun.env.RUNPOD_API_KEY ||
+        !Bun.env.RUNPOD_DOWNLOADER_ID ||
+        !Bun.env.RUNPOD_WEBHOOK_URL
+      ) {
+        const msg = "Missing RunPod downloader environment variables. Download was not started.";
+        errors.push(msg);
+        finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
+        finalMessage += ` ${msg}`;
+
+        if (userId) {
+          await db
+            .update(civitaiModelInstalls)
+            .set({
+              status: "DOWNLOAD_FAILED",
+              civitaiFileId: fileRecord.id,
+              runpodPath: fileRecord.runpodPath,
+              statusMessage: msg,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(civitaiModelInstalls.userId, userId),
+                eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+              ),
+            );
+        }
+      } else {
+        try {
+          const runpod = runpodSdk(Bun.env.RUNPOD_API_KEY);
+          const endpoint = runpod.endpoint(Bun.env.RUNPOD_DOWNLOADER_ID);
+          const runpodJob = await endpoint?.run({
+            input: {
+              action: "download",
+              save_path: fileRecord.runpodPath,
+              download_url: fileToDownload.downloadUrl,
+              model_id: savedCivitaiModelId,
+              civitai_file_id: fileToDownload.id,
+              db_file_id: fileRecord.id,
+              model_type: type,
+              file_type: fileToDownload.type,
+            },
+            webhook: `${Bun.env.RUNPOD_WEBHOOK_URL}/downloader`,
+          });
+
+          if (!runpodJob?.id) {
+            throw new Error("RunPod downloader did not return a job ID.");
+          }
+
+          runpodJobId = runpodJob.id;
+          downloadInitiatedPath = fileRecord.runpodPath;
+          if (type === "LORA") loraRunpodPath = downloadInitiatedPath;
+          if (type === "TextualInversion") embeddingRunpodPath = downloadInitiatedPath;
+
+          await db
+            .update(civitaiFiles)
+            .set({
+              runpodJobId,
+              downloadStatus: "PENDING",
+              downloadOutput: `RunPod job ${runpodJobId} initiated.`,
+              updatedAt: new Date(),
+            })
+            .where(eq(civitaiFiles.id, fileRecord.id));
+
+          if (userId) {
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: "DOWNLOADING",
+                runpodJobId,
+                civitaiFileId: fileRecord.id,
+                runpodPath: fileRecord.runpodPath,
+                statusMessage: "Model download is running on RunPod.",
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(civitaiModelInstalls.userId, userId),
+                  eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                ),
+              );
+          }
+
+          finalMessage += ` Download initiated for file ${fileToDownload.name}.`;
+        } catch (runpodError: any) {
+          const msg = `Error initiating RunPod download: ${runpodError.message || "Unknown error"}`;
+          errors.push(msg);
+          finalStatus = finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
+          finalMessage += ` ${msg}`;
+
+          await db
+            .update(civitaiFiles)
+            .set({
+              downloadStatus: "ERROR",
+              downloadOutput: msg,
+              runpodJobId: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(civitaiFiles.id, fileRecord.id));
+
+          if (userId) {
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: "DOWNLOAD_FAILED",
+                civitaiFileId: fileRecord.id,
+                runpodPath: fileRecord.runpodPath,
+                statusMessage: msg,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(civitaiModelInstalls.userId, userId),
+                  eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                ),
+              );
+          }
+        }
+      }
+    }
   }
 
   return {

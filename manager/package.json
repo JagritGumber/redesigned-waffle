@@ -2,11 +2,19 @@
   "name": "selfhost-studio-manager",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "bun test",
+    "verify:model-image-status": "bun scripts/verifyModelImageStatus.ts",
+    "verify:runpod-build-polling": "bun scripts/verifyRunPodBuildPolling.ts",
+    "verify:model-image-pipeline": "bun scripts/verifyModelImagePipelineContract.ts",
+    "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
+    "verify:account-scoped-models:db": "bun test tests/routers/v1/modelInstallAccountScope.test.ts",
+    "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",
+    "check:readiness": "bun scripts/checkSelfHostReadiness.ts",
     "dev": "bun --bun run --watch src/index.ts --env-file='./.env.development.local'",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts"
   },
   "dependencies": {
+    "@alloc/quick-lru": "^5.2.0",
     "@elysiajs/cors": "^1.3.3",
     "@elysiajs/cron": "^1.3.0",
     "@google/generative-ai": "^0.24.1",
@@ -18,6 +26,7 @@
     "axios": "^1.10.0",
     "drizzle-orm": "^0.44.2",
     "elysia": "^1.3.4",
+    "elysia-rate-limit": "^4.6.2",
     "runpod-sdk": "^1.1.1",
     "selenium-webdriver": "^4.45.0"
   },

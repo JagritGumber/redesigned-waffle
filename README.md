@@ -10,7 +10,10 @@ Use these parts for the stable main branch:
 - `manager`: primary backend API used by `solid`.
 - `generator`: RunPod image generation worker.
 
-The `backend` Cloudflare Worker is experimental and not the stable backend for the Solid app yet. The `downloader` worker is optional; current self-host installs can run with generator-only workflows.
+The `backend` Cloudflare Worker is experimental and not the stable backend for
+the Solid app yet. It includes the same model-image webhook plus a scheduled
+RunPod build poller for Cloudflare Cron Triggers. The `downloader` worker is
+optional; current self-host installs can run with generator-only workflows.
 
 ## Quick Start
 
@@ -36,6 +39,13 @@ RUNPOD_WEBHOOK_URL=http://localhost:8765/api/v1/webhooks/runpod
 ```
 
 If RunPod needs to reach your local machine, set `HOST_URL` and `RUNPOD_WEBHOOK_URL` to your tunnel URL.
+
+Check the manager configuration without printing secrets:
+
+```bash
+cd manager
+bun run check:readiness
+```
 
 2. Start the backend:
 
@@ -84,6 +94,54 @@ Generated jobs, prompt jobs, image metadata, post templates, and installed model
 ## Safety Defaults
 
 Marketplace browsing requests safe model listings by default. Backend model APIs reject restricted model downloads, and generated prompt/post metadata is constrained to safe-for-work image studio use cases.
+
+## Cacheable Model Installs
+
+For production, set `MODEL_IMAGE_REBUILD_PROVIDER=github` in `manager` with
+`MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY` and
+`MODEL_IMAGE_REBUILD_GITHUB_TOKEN`. Model install requests then trigger
+`.github/workflows/model-image-rebuild.yml` through `repository_dispatch`
+instead of downloading directly onto a RunPod volume. The workflow commits the
+model migration and creates a GitHub release; RunPod's GitHub integration then
+builds the Docker image on RunPod infrastructure and deploys it. Use
+`MODEL_IMAGE_REBUILD_WEBHOOK_URL` only when you have a custom builder service.
+
+The generator image uses `generator/model-migrations/*.json`; each migration is
+rendered as its own Docker layer so Docker cache reuses all previous model
+downloads and only downloads the newly added model. Configure the RunPod
+Serverless endpoint from the GitHub repository with `generator/Dockerfile` as
+the Dockerfile path; each release created by the workflow triggers RunPod's
+builder. The workflow reports the build trigger back through
+`/api/v1/webhooks/model-image`; final build/deploy status is visible in RunPod's
+Builds tab. Manager also polls RunPod's endpoint builds once per minute when
+`RUNPOD_API_KEY`, `RUNPOD_GENERATOR_ID`, and
+`MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are configured, so normal RunPod
+GitHub builds move through Pending, Building, Uploading, Testing, Completed, and
+Failed without a manual callback.
+
+If you disable polling or use a custom builder, post the final status to manager.
+The Solid UI polls this install status while it is active:
+
+```bash
+MANAGER_WEBHOOK_URL="$MANAGER_URL" \
+MANAGER_WEBHOOK_TOKEN="$MODEL_IMAGE_WEBHOOK_TOKEN" \
+python generator/scripts/report_model_image_status.py \
+  --build-trigger-id "..." \
+  --status COMPLETED \
+  --image "model-release-tag"
+```
+
+Use `"status":"FAILED"` with a `message` when a RunPod build fails.
+RunPod documents the GitHub builder statuses as Pending, Building, Uploading,
+Testing, Completed, and Failed. It also documents a 30 minute Docker build step
+timeout and an 80 GB image size limit, so split very large model installs into
+small migrations and keep the generator image under that cap.
+
+Before enabling this in production, run:
+
+```bash
+bun run verify:pipeline:full
+```
 
 ## Open Source
 

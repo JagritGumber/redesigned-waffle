@@ -41,6 +41,13 @@ function applyInstallState<T extends { id: number }>(
         install?.defaultWeight ?? ("defaultWeight" in model ? model.defaultWeight : 0.6),
       status: install?.status ?? ("status" in model ? model.status : null),
       runpodJobId: install?.runpodJobId ?? ("runpodJobId" in model ? model.runpodJobId : null),
+      civitaiFileId: install?.civitaiFileId ?? null,
+      runpodPath: install?.runpodPath ?? null,
+      statusMessage: install?.statusMessage ?? null,
+      buildTriggerId: install?.buildTriggerId ?? null,
+      downloadCompletedAt: install?.downloadCompletedAt ?? null,
+      buildTriggeredAt: install?.buildTriggeredAt ?? null,
+      deployedAt: install?.deployedAt ?? null,
     };
   });
 }
@@ -107,10 +114,24 @@ export const modelRouter = new Elysia({ prefix: "model" })
           return { error: result.message, details: result.errors };
         }
 
+        const [install] = await db
+          .select()
+          .from(civitaiModelInstalls)
+          .where(
+            and(
+              eq(civitaiModelInstalls.userId, userId),
+              eq(civitaiModelInstalls.civitaiModelId, result.dbModelId ?? result.id),
+            ),
+          )
+          .limit(1);
+
         set.status = 200;
         return {
           message: result.message,
           status: result.status,
+          installStatus: install?.status ?? null,
+          statusMessage: install?.statusMessage ?? null,
+          buildTriggerId: install?.buildTriggerId ?? null,
           runpodJobId: result.runpodJobId,
           civitaiId: result.id,
           dbModelId: result.dbModelId,
