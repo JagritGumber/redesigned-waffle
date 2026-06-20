@@ -1,7 +1,14 @@
 import { Show } from "solid-js";
 import { Badge } from "./ui/badge";
 
-const activeStatuses = new Set(["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"]);
+export const activeModelInstallStatuses = [
+  "REGISTERING",
+  "DOWNLOADING",
+  "BUILD_QUEUED",
+  "BUILDING",
+] as const;
+
+const activeStatuses = new Set<string>(activeModelInstallStatuses);
 const failedStatuses = new Set(["DOWNLOAD_FAILED", "BUILD_FAILED"]);
 
 export function isActiveModelInstall(status?: string | null) {

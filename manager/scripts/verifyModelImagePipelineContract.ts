@@ -103,17 +103,21 @@ try {
     resolve(import.meta.dir, "../../solid/src/hooks/useDownloadedModels.ts"),
     "utf-8",
   );
-  for (const status of ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"]) {
-    assert(
-      activePollingSource.includes(status),
-      `Solid downloaded-model polling should include active status ${status}.`,
-    );
-  }
-
   const statusComponentSource = readFileSync(
     resolve(import.meta.dir, "../../solid/src/components/model-install-status.tsx"),
     "utf-8",
   );
+  assert(
+    activePollingSource.includes("isActiveModelInstall"),
+    "Solid downloaded-model polling should use the shared active install helper.",
+  );
+  for (const status of ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"]) {
+    assert(
+      statusComponentSource.includes(status),
+      `Solid shared active install status list should include ${status}.`,
+    );
+  }
+
   assert(
     statusComponentSource.includes("showMessage"),
     "Solid status component should support visible progress messages.",

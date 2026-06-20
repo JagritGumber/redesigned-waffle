@@ -78,6 +78,11 @@ FAST_CHECKS = [
         ["bun", "run", "verify:account-scoped-models"],
         ROOT / "backend",
     ),
+    (
+        "solid model install status",
+        ["bun", "run", "verify:model-install-status"],
+        ROOT / "solid",
+    ),
 ]
 
 FULL_CHECKS = [

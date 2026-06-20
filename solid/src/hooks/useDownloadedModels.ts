@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/solid-query";
 import axios from "axios";
 import type { CivitaiModelWithRelations } from "~/backend/schema/models"; // Assuming this is the type returned by the backend
+import { isActiveModelInstall } from "~/components/model-install-status";
 
 // Define the expected structure of the successful response
 interface DownloadedModelsResponse {
@@ -31,9 +32,7 @@ const useDownloadedModels = () => {
     queryFn: getAllDownloadedModels,
     refetchInterval: (query) => {
       const models = query.state.data?.models ?? [];
-      const hasActiveInstall = models.some((model: any) =>
-        ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"].includes(model.status),
-      );
+      const hasActiveInstall = models.some((model: any) => isActiveModelInstall(model.status));
       return hasActiveInstall ? 5000 : false;
     },
   }));

@@ -7,6 +7,7 @@
     "start": "vite --port 3000",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "verify:model-install-status": "bun scripts/verifyModelInstallStatus.js",
     "serve": "vite preview",
     "test": "vitest run"
   },
