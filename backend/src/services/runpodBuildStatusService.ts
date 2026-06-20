@@ -132,14 +132,16 @@ export async function pollRunPodModelImageBuilds(
 
     const webhookState = resolveModelImageWebhookState({
       status: build.state,
+      image: build.imageName,
+      message: build.error,
       now: build.completedAt ? new Date(build.completedAt) : undefined,
     });
 
     await db
       .update(civitaiModelInstalls)
       .set({
-        status: webhookState.modelStatus,
-        statusMessage: build.error ?? null,
+        status: webhookState.installStatus,
+        statusMessage: webhookState.statusMessage,
         imageName: build.imageName ?? null,
         deployedAt: webhookState.deployedAt,
         updatedAt: new Date(),

@@ -2,6 +2,7 @@
   "name": "@semanix/backend",
   "scripts": {
     "verify:model-image-status": "bun scripts/verifyModelImageStatus.ts",
+    "verify:model-image-webhook": "bun test tests/modelImageWebhook.test.ts",
     "verify:runpod-build-polling": "bun scripts/verifyRunPodBuildPolling.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "migrations:generate": "bunx drizzle-kit generate",

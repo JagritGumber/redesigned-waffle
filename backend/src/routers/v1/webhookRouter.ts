@@ -47,14 +47,16 @@ const webhookRouter = new Hono<ContextForHono>()
 
       const webhookState = resolveModelImageWebhookState({
         status: payload.status,
+        image: payload.image,
+        message: payload.message,
       });
 
       const db = c.get("db");
       await db
         .update(civitaiModelInstalls)
         .set({
-          status: webhookState.modelStatus,
-          statusMessage: payload.message ?? null,
+          status: webhookState.installStatus,
+          statusMessage: webhookState.statusMessage,
           imageName: payload.image ?? null,
           deployedAt: webhookState.deployedAt,
           updatedAt: new Date(),
