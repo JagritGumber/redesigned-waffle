@@ -21,6 +21,14 @@ assert(
   "External checker should optionally wait for the dry-run workflow to complete successfully.",
 );
 assert(
+  checker.includes("--verify-release") &&
+    checker.includes("checkGithubRelease") &&
+    checker.includes("/releases/tags/") &&
+    checker.includes("checkRunPodReleaseBuild") &&
+    checker.includes("No visible RunPod build matched"),
+  "External checker should verify a real GitHub release and matching RunPod build by tag.",
+);
+assert(
   checker.includes("Values are not printed"),
   "External checker should make it clear that secret values are redacted.",
 );

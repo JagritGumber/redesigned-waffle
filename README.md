@@ -161,6 +161,14 @@ cd manager
 bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
+After a real model install creates a release such as `model-<buildTriggerId>`,
+verify the release and matching RunPod build record:
+
+```bash
+cd manager
+bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
+```
+
 ## Open Source
 
 Selfhost Studio is licensed under the MIT License. Do not commit real `.env`, database, log, R2, RunPod, or Cloudflare credential files.

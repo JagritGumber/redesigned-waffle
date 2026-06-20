@@ -9,6 +9,22 @@ const waitForDryRun = Bun.argv.includes("--wait");
 const DRY_RUN_WAIT_TIMEOUT_MS = 3 * 60 * 1000;
 const DRY_RUN_POLL_INTERVAL_MS = 5 * 1000;
 
+function argValue(name: string): string | null {
+  const exact = Bun.argv.find((value) => value.startsWith(`${name}=`));
+  if (exact) {
+    return exact.slice(name.length + 1).trim() || null;
+  }
+
+  const index = Bun.argv.indexOf(name);
+  if (index >= 0) {
+    return Bun.argv[index + 1]?.trim() || null;
+  }
+
+  return null;
+}
+
+const releaseTagToVerify = argValue("--verify-release");
+
 function hasValue(key: string) {
   return Boolean(Bun.env[key]?.trim());
 }
@@ -71,6 +87,38 @@ async function checkGithubWorkflow(): Promise<boolean> {
       : `Workflow state is ${workflow.state ?? "unknown"}.`,
   });
   return active;
+}
+
+async function checkGithubRelease(tag: string): Promise<boolean> {
+  const repository = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
+  const response = await fetch(
+    `https://api.github.com/repos/${repository}/releases/tags/${encodeURIComponent(tag)}`,
+    { headers: githubHeaders() },
+  );
+
+  if (!response.ok) {
+    printCheck({
+      name: "GitHub model release",
+      ok: false,
+      detail: `Release ${tag} was not readable (${response.status}).`,
+    });
+    return false;
+  }
+
+  const release = (await response.json()) as {
+    tag_name?: string;
+    html_url?: string;
+    target_commitish?: string;
+  };
+  const ok = release.tag_name === tag;
+  printCheck({
+    name: "GitHub model release",
+    ok,
+    detail: ok
+      ? `Found ${tag}: ${release.html_url ?? "release URL unavailable"}`
+      : `Expected ${tag}, got ${release.tag_name ?? "unknown"}.`,
+  });
+  return ok;
 }
 
 async function dispatchGithubDryRun(): Promise<boolean> {
@@ -255,9 +303,93 @@ async function checkRunPodEndpoint(): Promise<boolean> {
   return ok;
 }
 
+async function checkRunPodReleaseBuild(tag: string): Promise<boolean> {
+  const response = await fetch("https://api.runpod.io/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Bun.env.RUNPOD_API_KEY}`,
+    },
+    body: JSON.stringify({
+      query: `
+        query ExternalModelPipelineReleaseCheck {
+          myself {
+            endpoints {
+              id
+              builds {
+                id
+                state
+                imageName
+                commitMessage
+                error
+                completedAt
+              }
+            }
+          }
+        }
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    printCheck({
+      name: "RunPod release build",
+      ok: false,
+      detail: `GraphQL request failed (${response.status}).`,
+    });
+    return false;
+  }
+
+  const payload = (await response.json()) as {
+    data?: {
+      myself?: {
+        endpoints?: Array<{
+          id?: string;
+          builds?: Array<{
+            id?: string;
+            state?: string;
+            imageName?: string;
+            commitMessage?: string;
+            error?: string;
+            completedAt?: string;
+          }>;
+        }>;
+      };
+    };
+    errors?: Array<{ message?: string }>;
+  };
+
+  if (payload.errors?.length) {
+    printCheck({
+      name: "RunPod release build",
+      ok: false,
+      detail: payload.errors.map((error) => error.message).join("; "),
+    });
+    return false;
+  }
+
+  const endpoint = payload.data?.myself?.endpoints?.find(
+    (candidate) => candidate.id === Bun.env.RUNPOD_GENERATOR_ID,
+  );
+  const build = endpoint?.builds?.find((candidate) =>
+    [candidate.id, candidate.imageName].some((value) => value?.includes(tag)),
+  );
+  const ok = Boolean(build);
+  printCheck({
+    name: "RunPod release build",
+    ok,
+    detail: ok
+      ? `${tag} build state is ${build?.state ?? "unknown"}${
+          build?.completedAt ? `; completed at ${build.completedAt}` : ""
+        }${build?.error ? `; error: ${build.error}` : ""}.`
+      : `No visible RunPod build matched ${tag} on RUNPOD_GENERATOR_ID.`,
+  });
+  return ok;
+}
+
 console.log("External model pipeline check");
 console.log(
-  "Values are not printed. Network calls are read-only unless --dispatch-dry-run is passed; add --wait to wait for the dry-run workflow result.\n",
+  "Values are not printed. Network calls are read-only unless --dispatch-dry-run is passed; add --wait to wait for the dry-run workflow result. Use --verify-release <tag> to check a real model release and RunPod build.\n",
 );
 
 let ok = requireEnv([
@@ -276,6 +408,11 @@ if (ok && dispatchDryRun) {
   ok = (await dispatchGithubDryRun()) && ok;
 }
 
+if (ok && releaseTagToVerify) {
+  ok = (await checkGithubRelease(releaseTagToVerify)) && ok;
+  ok = (await checkRunPodReleaseBuild(releaseTagToVerify)) && ok;
+}
+
 if (!ok) {
   console.error("\nExternal model pipeline check failed.");
   process.exit(1);
@@ -286,5 +423,7 @@ console.log(
     ? waitForDryRun
       ? "\nExternal model pipeline dry-run workflow passed."
       : "\nExternal model pipeline dry-run dispatch passed."
+    : releaseTagToVerify
+      ? "\nExternal model pipeline release check passed."
     : "\nExternal model pipeline read-only checks passed.",
 );

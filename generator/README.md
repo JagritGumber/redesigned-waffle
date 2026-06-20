@@ -76,6 +76,14 @@ cd ../manager
 bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
+After a real model install creates a release such as `model-<buildTriggerId>`,
+verify the release and matching RunPod build record:
+
+```bash
+cd ../manager
+bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
+```
+
 RunPod GitHub integration builds and deploys when the workflow creates a
 release. Track final build status in the RunPod Builds tab. Manager polls
 RunPod's endpoint builds once per minute when `RUNPOD_API_KEY`,
