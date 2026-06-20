@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import urllib.parse
 from pathlib import Path
 
 
@@ -14,6 +15,7 @@ def repo_root() -> Path:
 
 MIGRATIONS = repo_root() / "generator" / "model-migrations"
 ALLOWED_PATH_PREFIXES = ("/defaults/", "/runpod-volume/")
+SECRET_QUERY_KEYS = {"token", "access_token", "api_key", "apikey", "key"}
 
 
 def slug(value: str) -> str:
@@ -27,6 +29,20 @@ def validate_path(path: str) -> None:
         )
     if "/../" in path or path.endswith("/.."):
         raise SystemExit(f"Migration path must not contain parent traversal: {path}")
+
+
+def public_download_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.username or parsed.password:
+        raise SystemExit("Migration URL must not contain embedded credentials.")
+
+    query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    sanitized_query = [
+        (key, value) for key, value in query if key.lower() not in SECRET_QUERY_KEYS
+    ]
+    return urllib.parse.urlunparse(
+        parsed._replace(query=urllib.parse.urlencode(sanitized_query, doseq=True))
+    )
 
 
 def next_migration_index() -> int:
@@ -62,7 +78,7 @@ def main() -> None:
 
     payload = {
         "id": args.id,
-        "url": args.url,
+        "url": public_download_url(args.url),
         "path": args.path,
     }
     if args.sha256:

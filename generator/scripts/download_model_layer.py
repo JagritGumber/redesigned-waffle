@@ -27,6 +27,10 @@ def with_civitai_token(url: str) -> str:
         return url
 
     parsed = urllib.parse.urlparse(url)
+    host = parsed.hostname or ""
+    if host != "civitai.com" and not host.endswith(".civitai.com"):
+        return url
+
     query = urllib.parse.parse_qs(parsed.query)
     query["token"] = [token]
     return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query, doseq=True)))
