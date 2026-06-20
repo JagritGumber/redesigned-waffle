@@ -39,6 +39,8 @@ RUNPOD_WEBHOOK_URL=http://localhost:8765/api/v1/webhooks/runpod
 ```
 
 If RunPod needs to reach your local machine, set `HOST_URL` and `RUNPOD_WEBHOOK_URL` to your tunnel URL.
+The public callback base is healthy when `GET <HOST_URL>/api/v1/health`
+returns `{"status":"ok"}`.
 
 Check the manager configuration without printing secrets:
 
@@ -156,6 +158,9 @@ without printing secrets:
 cd manager
 bun run check:external-pipeline
 ```
+
+This checks `HOST_URL/api/v1/health`, the GitHub workflow, and the RunPod
+generator endpoint before any optional dry-run dispatch.
 
 To prove GitHub `repository_dispatch` reaches the workflow without creating a
 migration commit, GitHub release, Docker build, RunPod hook, or manager callback,

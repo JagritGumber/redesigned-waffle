@@ -29,6 +29,10 @@ function hasValue(key: string) {
   return Boolean(Bun.env[key]?.trim());
 }
 
+function joinUrl(base: string, path: string) {
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
 function printCheck(check: Check) {
   const marker = check.ok ? "ok" : "failed";
   console.log(`${marker.padEnd(7)} ${check.name.padEnd(34)} ${check.detail}`);
@@ -87,6 +91,60 @@ async function checkGithubWorkflow(): Promise<boolean> {
       : `Workflow state is ${workflow.state ?? "unknown"}.`,
   });
   return active;
+}
+
+async function checkManagerHealth(): Promise<boolean> {
+  const hostUrl = Bun.env.HOST_URL?.trim();
+  if (!hostUrl) {
+    printCheck({
+      name: "Manager callback URL",
+      ok: false,
+      detail: "HOST_URL is missing.",
+    });
+    return false;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch(joinUrl(hostUrl, "/api/v1/health"), {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      printCheck({
+        name: "Manager callback URL",
+        ok: false,
+        detail: `Health check returned ${response.status}.`,
+      });
+      return false;
+    }
+
+    const payload = (await response.json()) as { status?: string; service?: string };
+    const ok = payload.status === "ok";
+    printCheck({
+      name: "Manager callback URL",
+      ok,
+      detail: ok
+        ? `Public health endpoint is reachable for ${payload.service ?? "manager"}.`
+        : `Health response status is ${payload.status ?? "missing"}.`,
+    });
+    return ok;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    printCheck({
+      name: "Manager callback URL",
+      ok: false,
+      detail: `Health check failed: ${message}.`,
+    });
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function checkGithubRelease(tag: string): Promise<boolean> {
@@ -393,6 +451,7 @@ console.log(
 );
 
 let ok = requireEnv([
+  "HOST_URL",
   "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
   "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
   "RUNPOD_API_KEY",
@@ -400,6 +459,7 @@ let ok = requireEnv([
 ]);
 
 if (ok) {
+  ok = (await checkManagerHealth()) && ok;
   ok = (await checkGithubWorkflow()) && ok;
   ok = (await checkRunPodEndpoint()) && ok;
 }

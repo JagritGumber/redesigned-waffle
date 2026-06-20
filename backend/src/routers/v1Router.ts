@@ -9,6 +9,13 @@ import templatesRouter from "./v1/templatesRouter";
 import authRouter from "./v1/authRouter";
 
 const v1Router = new Hono<ContextForHono>()
+  .get("/health", (c) => {
+    return c.json({
+      service: "worker",
+      status: "ok",
+      timestamp: new Date().toISOString(),
+    });
+  })
   .get("/hi", (c) => {
     return c.text("Hello!");
   })

@@ -33,6 +33,13 @@ assert(
   "External checker should make it clear that secret values are redacted.",
 );
 assert(
+  checker.includes("HOST_URL") &&
+    checker.includes("checkManagerHealth") &&
+    checker.includes("/api/v1/health") &&
+    checker.includes("Manager callback URL"),
+  "External checker should validate that the public manager callback base is reachable.",
+);
+assert(
   checker.includes("https://api.github.com/repos") &&
     checker.includes("/actions/workflows/model-image-rebuild.yml") &&
     checker.includes("/dispatches"),

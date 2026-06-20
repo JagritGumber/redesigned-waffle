@@ -71,6 +71,10 @@ cd ../manager
 bun run check:external-pipeline
 ```
 
+This confirms `HOST_URL/api/v1/health` is reachable from the internet, the
+GitHub workflow can be read, and the RunPod generator endpoint is visible to the
+configured API key.
+
 To confirm `repository_dispatch` reaches the workflow without creating a
 migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
 run the opt-in dry-run and wait for the GitHub Actions result:

@@ -8,6 +8,11 @@ import { webhookRouter } from "./v1/webhookRouter";
 import { authRouter } from "./v1/authRouter";
 
 export const v1Router = new Elysia({ name: "v1.router", prefix: "/v1" })
+  .get("/health", () => ({
+    service: "manager",
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  }))
   .use(authRouter)
   .use(generatorRouter)
   .use(modelRouter)
