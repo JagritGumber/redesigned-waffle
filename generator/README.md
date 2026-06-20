@@ -20,6 +20,10 @@ The flow is:
    GitHub integration builds `generator/Dockerfile` on RunPod infrastructure,
    stores the image in RunPod's registry, and deploys the endpoint.
 
+GitHub Actions is only the release trigger. It must not run `docker build`, use
+Buildx, log in to Docker Hub, or push images; RunPod's GitHub builder owns the
+expensive Docker build and can reuse Docker cache layers across releases.
+
 The migration rendering step is:
 
 ```bash

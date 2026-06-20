@@ -34,6 +34,8 @@ FORBIDDEN_SNIPPETS = {
     "GitHub-hosted Docker Buildx": "docker/setup-buildx-action",
     "GitHub Docker Hub login": "docker/login-action",
     "GitHub Docker build push": "docker/build-push-action",
+    "GitHub shell Docker build": "docker build",
+    "GitHub shell Docker push": "docker push",
     "DockerHub secret dependency": "DOCKERHUB_",
     "direct RunPod template image update": "update_runpod_template.py",
 }

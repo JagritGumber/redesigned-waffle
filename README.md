@@ -106,6 +106,12 @@ model migration and creates a GitHub release; RunPod's GitHub integration then
 builds the Docker image on RunPod infrastructure and deploys it. Use
 `MODEL_IMAGE_REBUILD_WEBHOOK_URL` only when you have a custom builder service.
 
+GitHub Actions does not build or push Docker images in this setup. It only
+validates the migration, commits `generator/model-migrations/*.json`, renders
+`generator/Dockerfile`, and creates the `model-<buildTriggerId>` release that
+RunPod watches. Do not add Buildx, `docker build`, Docker Hub login, or image
+push steps unless you intentionally want to pay for external CI image builds.
+
 The generator image uses `generator/model-migrations/*.json`; each migration is
 rendered as its own Docker layer so Docker cache reuses all previous model
 downloads and only downloads the newly added model. Configure the RunPod
