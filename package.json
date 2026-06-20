@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "check:external-pipeline": "bun --cwd manager run check:external-pipeline",
     "verify:pipeline": "python generator/scripts/verify_local_pipeline.py",
     "verify:pipeline:full": "python generator/scripts/verify_local_pipeline.py --full"
   },

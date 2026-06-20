@@ -8,6 +8,11 @@ WORKFLOW = ROOT / ".github" / "workflows" / "model-image-rebuild.yml"
 REQUIRED_SNIPPETS = {
     "repository_dispatch trigger": "repository_dispatch:",
     "manual workflow dispatch": "workflow_dispatch:",
+    "dry-run input": "dryRun:",
+    "dry-run payload resolver": "DRY_RUN=",
+    "dry-run validation step": "Validate dry-run payload",
+    "dry-run side-effect guard": "env.DRY_RUN != 'true'",
+    "dry-run skip message": "Skipping migration commit, release, RunPod hook, and manager callback",
     "model image event type": "model-image-rebuild",
     "migration helper": "python generator/scripts/add_model_migration.py",
     "Dockerfile renderer": "python generator/scripts/render_model_dockerfile.py",

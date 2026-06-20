@@ -59,6 +59,23 @@ keys.
 Use `bun run verify:pipeline:full` before a release to include manager/Solid
 builds, Worker dry-run deploy, and whitespace checks.
 
+After real GitHub and RunPod credentials are configured, verify external access
+without printing secrets:
+
+```bash
+cd ../manager
+bun run check:external-pipeline
+```
+
+To confirm `repository_dispatch` reaches the workflow without creating a
+migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
+run:
+
+```bash
+cd ../manager
+bun run check:external-pipeline -- --dispatch-dry-run
+```
+
 RunPod GitHub integration builds and deploys when the workflow creates a
 release. Track final build status in the RunPod Builds tab. Manager polls
 RunPod's endpoint builds once per minute when `RUNPOD_API_KEY`,

@@ -143,6 +143,23 @@ Before enabling this in production, run:
 bun run verify:pipeline:full
 ```
 
+After setting real GitHub and RunPod credentials, verify the external wiring
+without printing secrets:
+
+```bash
+cd manager
+bun run check:external-pipeline
+```
+
+To prove GitHub `repository_dispatch` reaches the workflow without creating a
+migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
+run the opt-in smoke dispatch:
+
+```bash
+cd manager
+bun run check:external-pipeline -- --dispatch-dry-run
+```
+
 ## Open Source
 
 Selfhost Studio is licensed under the MIT License. Do not commit real `.env`, database, log, R2, RunPod, or Cloudflare credential files.

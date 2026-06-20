@@ -41,6 +41,11 @@ FAST_CHECKS = [
         ROOT / "manager",
     ),
     (
+        "manager external model pipeline checker",
+        ["bun", "run", "verify:external-model-pipeline"],
+        ROOT / "manager",
+    ),
+    (
         "manager account-scoped models",
         ["bun", "run", "verify:account-scoped-models"],
         ROOT / "manager",

@@ -6,10 +6,12 @@
     "verify:model-image-status": "bun scripts/verifyModelImageStatus.ts",
     "verify:runpod-build-polling": "bun scripts/verifyRunPodBuildPolling.ts",
     "verify:model-image-pipeline": "bun scripts/verifyModelImagePipelineContract.ts",
+    "verify:external-model-pipeline": "bun scripts/verifyExternalModelPipelineCheck.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "verify:account-scoped-models:db": "bun test tests/routers/v1/modelInstallAccountScope.test.ts",
     "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",
     "check:readiness": "bun scripts/checkSelfHostReadiness.ts",
+    "check:external-pipeline": "bun scripts/checkExternalModelPipeline.ts",
     "dev": "bun --bun run --watch src/index.ts --env-file='./.env.development.local'",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts"
   },
