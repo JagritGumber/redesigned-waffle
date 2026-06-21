@@ -34,8 +34,7 @@
     "R2_BUCKET_NAME": "your-r2-bucket-name",
     "MODEL_IMAGE_REBUILD_PROVIDER": "github",
     "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY": "owner/repo",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_URL": "",
-    "MODEL_IMAGE_WEBHOOK_TOKEN": ""
+    "MODEL_IMAGE_REBUILD_WEBHOOK_URL": ""
   },
   "d1_databases": [
     {

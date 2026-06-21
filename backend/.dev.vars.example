@@ -1,9 +1,18 @@
 # The Cloudflare Worker backend is experimental. The stable self-host backend for Solid is ../manager.
+# Copy this file to backend/.dev.vars and fill regenerated local values there.
+# Do not commit backend/.dev.vars.
+
+# Secrets: regenerate these and keep them only in .dev.vars locally or Wrangler secrets in production.
 AUTH_SECRET=
+RUNPOD_API_KEY=
+MODEL_IMAGE_REBUILD_GITHUB_TOKEN=
+MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN=
+MODEL_IMAGE_WEBHOOK_TOKEN=
+
+# Non-secret Worker vars and binding-related names. These may also live in wrangler.jsonc.
 RUNPOD_GENERATOR_ID=
 RUNPOD_DOWNLOADER_ID=
 RUNPOD_WEBHOOK_URL=
-RUNPOD_API_KEY=
 MODEL_IMAGE_RUNPOD_BUILD_POLLING=true
 R2_PUBLIC_BUCKET_URL=
 R2_BUCKET_NAME=
@@ -11,7 +20,4 @@ R2_BUCKET_NAME=
 # Prefer this for self-hosting: model installs create Docker image rebuilds with cacheable model layers.
 MODEL_IMAGE_REBUILD_PROVIDER=github
 MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY=
-MODEL_IMAGE_REBUILD_GITHUB_TOKEN=
 MODEL_IMAGE_REBUILD_WEBHOOK_URL=
-MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN=
-MODEL_IMAGE_WEBHOOK_TOKEN=

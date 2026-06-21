@@ -35,6 +35,8 @@ dist-ssr
 !**/.env.example
 sqlite.db
 .dev.vars
+.dev.vars.*
+!**/.dev.vars.example
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
