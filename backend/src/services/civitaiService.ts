@@ -56,6 +56,29 @@ async function findReusableReadyModelImageInstall(
   return install;
 }
 
+async function markAccountInstallFailed(
+  db: DrizzleD1Database<typeof schema>,
+  userId: string | undefined,
+  civitaiModelId: number | undefined,
+  message: string,
+) {
+  if (!userId || !civitaiModelId) return;
+
+  await db
+    .update(civitaiModelInstalls)
+    .set({
+      status: "DOWNLOAD_FAILED",
+      statusMessage: message,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(civitaiModelInstalls.userId, userId),
+        eq(civitaiModelInstalls.civitaiModelId, civitaiModelId),
+      ),
+    );
+}
+
 /**
  * Fetches model details from Civitai API.
  * @param modelId The Civitai model ID.
@@ -192,11 +215,18 @@ export async function registerOrUpdateCivitaiModel(
           userId,
           civitaiModelId: savedCivitaiModelId,
           defaultWeight: 0.6,
-          status: "READY",
+          status: triggerDownload ? "REGISTERING" : "READY",
+          statusMessage: triggerDownload
+            ? "Model metadata saved. Preparing install."
+            : "Model metadata saved.",
         })
         .onConflictDoUpdate({
           target: [civitaiModelInstalls.userId, civitaiModelInstalls.civitaiModelId],
           set: {
+            status: triggerDownload ? "REGISTERING" : "READY",
+            statusMessage: triggerDownload
+              ? "Model metadata saved. Preparing install."
+              : "Model metadata saved.",
             updatedAt: new Date(),
           },
         });
@@ -227,6 +257,7 @@ export async function registerOrUpdateCivitaiModel(
 
       finalStatus = "PARTIAL_SUCCESS";
       finalMessage += ` ${msg}`;
+      await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
       return {
         status: finalStatus,
         message: finalMessage,
@@ -508,6 +539,7 @@ export async function registerOrUpdateCivitaiModel(
         finalStatus =
           finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
         finalMessage += ` ${msg}`;
+        await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
       } else if (!fileToDownload.downloadUrl) {
         const msg = `Requested file ID ${requestedFileId} has no download URL. Download skipped.`;
         console.warn(msg);
@@ -515,6 +547,7 @@ export async function registerOrUpdateCivitaiModel(
         finalStatus =
           finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
         finalMessage += ` ${msg}`;
+        await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
         fileToDownload = undefined;
       } else {
         console.log(
@@ -530,6 +563,7 @@ export async function registerOrUpdateCivitaiModel(
         finalStatus =
           finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
         finalMessage += ` ${msg}`;
+        await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
       } else if (!fileToDownload.downloadUrl) {
         const msg = `Primary file ID ${fileToDownload.id} has no download URL. Download skipped.`;
         console.warn(msg);
@@ -537,6 +571,7 @@ export async function registerOrUpdateCivitaiModel(
         finalStatus =
           finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
         finalMessage += ` ${msg}`;
+        await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
         fileToDownload = undefined;
       } else {
         console.log(
@@ -558,6 +593,7 @@ export async function registerOrUpdateCivitaiModel(
         finalStatus =
           finalStatus === "SUCCESS" ? "PARTIAL_SUCCESS" : finalStatus;
         finalMessage += ` ${msg}`;
+        await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
       } else if (isModelImageRebuildConfigured(env)) {
         try {
           const reusableInstall = await findReusableReadyModelImageInstall(
