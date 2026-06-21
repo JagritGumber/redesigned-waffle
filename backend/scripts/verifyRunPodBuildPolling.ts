@@ -1,4 +1,5 @@
 import {
+  buildMatchesInstall,
   buildMatchesModel,
   pollRunPodModelImageBuilds,
   RUNPOD_BUILDS_QUERY,
@@ -26,6 +27,13 @@ assert(
 assert(
   buildMatchesModel({ id: "model-build-456" }, "build-456"),
   "Build matcher should match model release tags inside build id.",
+);
+assert(
+  buildMatchesInstall(
+    { commitMessage: "Add model migration civitai-42-777" },
+    { buildTriggerId: "build-789", civitaiModelId: 42, civitaiFileId: 777 },
+  ),
+  "Build matcher should match the migration commit message when imageName lacks the release tag.",
 );
 assert(
   !buildMatchesModel({ imageName: "registry.runpod.io/example:other" }, "build-123"),

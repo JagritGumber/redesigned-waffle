@@ -5,6 +5,7 @@
     "verify:health": "bun test tests/health.test.ts",
     "verify:model-image-webhook": "bun test tests/modelImageWebhook.test.ts",
     "verify:runpod-build-polling": "bun scripts/verifyRunPodBuildPolling.ts",
+    "verify:model-image-pipeline": "bun scripts/verifyModelImagePipelineContract.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "verify:model-install-lifecycle": "bun test tests/civitaiModelInstallLifecycle.test.ts",
     "verify:generation-model-readiness": "bun test tests/generatorModelReadiness.test.ts",

@@ -54,9 +54,28 @@ export const RUNPOD_BUILDS_QUERY = `
   }
 `;
 
+export function buildMatchesInstall(
+  build: RunPodGitBuild,
+  install: {
+    buildTriggerId: string;
+    civitaiModelId?: number | null;
+    civitaiFileId?: number | null;
+  },
+): boolean {
+  const expectedTag = `model-${install.buildTriggerId}`;
+  const migrationId =
+    install.civitaiModelId && install.civitaiFileId
+      ? `civitai-${install.civitaiModelId}-${install.civitaiFileId}`
+      : null;
+
+  return (
+    [build.id, build.imageName].some((value) => value?.includes(expectedTag)) ||
+    Boolean(migrationId && build.commitMessage?.includes(`Add model migration ${migrationId}`))
+  );
+}
+
 export function buildMatchesModel(build: RunPodGitBuild, buildTriggerId: string): boolean {
-  const expectedTag = `model-${buildTriggerId}`;
-  return [build.id, build.imageName].some((value) => value?.includes(expectedTag));
+  return buildMatchesInstall(build, { buildTriggerId });
 }
 
 async function fetchRunPodBuilds(env: RunPodBuildPollingEnv): Promise<RunPodGitBuild[]> {
@@ -123,7 +142,11 @@ export async function pollRunPodModelImageBuilds(
     }
 
     const build = builds.find((candidate) =>
-      buildMatchesModel(candidate, install.buildTriggerId as string),
+      buildMatchesInstall(candidate, {
+        buildTriggerId: install.buildTriggerId as string,
+        civitaiModelId: install.civitaiModelId,
+        civitaiFileId: install.civitaiFileId,
+      }),
     );
 
     if (!build?.state) {

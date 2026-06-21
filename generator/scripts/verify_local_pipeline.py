@@ -86,6 +86,11 @@ FAST_CHECKS = [
         ROOT / "backend",
     ),
     (
+        "worker model image pipeline contract",
+        ["bun", "run", "verify:model-image-pipeline"],
+        ROOT / "backend",
+    ),
+    (
         "worker account-scoped models",
         ["bun", "run", "verify:account-scoped-models"],
         ROOT / "backend",

@@ -36,9 +36,9 @@ export async function triggerModelImageBuild(
     downloadUrl: input.downloadUrl,
     runpodPath: input.runpodPath,
     modelType: input.modelType,
-    cacheKey: `${input.civitaiModelId}-${input.civitaiFileId}`,
+    cacheKey: `civitai-${input.civitaiModelId}-${input.civitaiFileId}`,
     migration: {
-      id: `${input.civitaiModelId}-${input.civitaiFileId}`,
+      id: `civitai-${input.civitaiModelId}-${input.civitaiFileId}`,
       url: input.downloadUrl,
       path: input.runpodPath,
     },
