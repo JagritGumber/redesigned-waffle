@@ -10,6 +10,7 @@
     "verify:model-image-pipeline": "bun scripts/verifyModelImagePipelineContract.ts",
     "verify:external-model-pipeline": "bun scripts/verifyExternalModelPipelineCheck.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
+    "verify:model-install-lifecycle": "bun test tests/services/civitaiModelInstallLifecycle.test.ts",
     "verify:account-scoped-models:db": "bun test tests/routers/v1/modelInstallAccountScope.test.ts",
     "verify:account-scoped-models:api": "bun test tests/routers/v1/modelRouterAccountScope.test.ts",
     "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",

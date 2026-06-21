@@ -53,6 +53,11 @@ FAST_CHECKS = [
         ROOT / "manager",
     ),
     (
+        "manager model install lifecycle",
+        ["bun", "run", "verify:model-install-lifecycle"],
+        ROOT / "manager",
+    ),
+    (
         "manager account-scoped models db",
         ["bun", "run", "verify:account-scoped-models:db"],
         ROOT / "manager",
