@@ -263,6 +263,22 @@ describe("Worker registerOrUpdateCivitaiModel model image lifecycle", () => {
       })
       .where(eq(schema.civitaiModelInstalls.userId, "worker-user-a"));
 
+    const userARepeatResult = await registerOrUpdateCivitaiModel(
+      db as any,
+      env,
+      safeModelData,
+      {
+        userId: "worker-user-a",
+        versionId: 9401,
+        fileId: 9501,
+        triggerDownload: true,
+      },
+    );
+
+    expect(userARepeatResult.status).toBe("SUCCESS");
+    expect(userARepeatResult.message).toContain("Existing Docker image reused");
+    expect(triggeredBuilds).toHaveLength(1);
+
     const userBResult = await registerOrUpdateCivitaiModel(
       db as any,
       env,
@@ -289,6 +305,15 @@ describe("Worker registerOrUpdateCivitaiModel model image lifecycle", () => {
     expect(userBInstall.civitaiFileId).toBe(9501);
     expect(userBInstall.imageName).toBe("registry.runpod.io/example:model-worker-build-ready");
     expect(userBInstall.deployedAt).toEqual(deployedAt);
+
+    const [userARepeatInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.userId, "worker-user-a"));
+
+    expect(userARepeatInstall.status).toBe("READY");
+    expect(userARepeatInstall.imageName).toBe("registry.runpod.io/example:model-worker-build-ready");
+    expect(userARepeatInstall.deployedAt).toEqual(deployedAt);
   });
 
   it("does not leave an account install READY when the requested file is invalid", async () => {

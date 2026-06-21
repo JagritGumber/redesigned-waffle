@@ -251,6 +251,20 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
       })
       .where(eq(schema.civitaiModelInstalls.userId, "user-a"));
 
+    const userARepeatResult = await registerOrUpdateCivitaiModel(
+      safeModelData,
+      {
+        userId: "user-a",
+        versionId: 9101,
+        fileId: 9201,
+        triggerDownload: true,
+      },
+    );
+
+    expect(userARepeatResult.status).toBe("SUCCESS");
+    expect(userARepeatResult.message).toContain("Existing Docker image reused");
+    expect(triggeredBuilds).toHaveLength(1);
+
     const userBResult = await registerOrUpdateCivitaiModel(
       safeModelData,
       {
@@ -275,5 +289,14 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
     expect(userBInstall.civitaiFileId).toBe(9201);
     expect(userBInstall.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
     expect(userBInstall.deployedAt).toEqual(deployedAt);
+
+    const [userARepeatInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.userId, "user-a"));
+
+    expect(userARepeatInstall.status).toBe("READY");
+    expect(userARepeatInstall.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
+    expect(userARepeatInstall.deployedAt).toEqual(deployedAt);
   });
 });

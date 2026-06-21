@@ -162,6 +162,7 @@ export async function registerOrUpdateCivitaiModel(
   let downloadInitiatedPath: string | undefined = undefined;
   let loraRunpodPath: string | undefined = undefined;
   let embeddingRunpodPath: string | undefined = undefined;
+  let previousUserReadyInstall: typeof civitaiModelInstalls.$inferSelect | undefined = undefined;
 
   try {
     const [savedCreator] = await db
@@ -209,6 +210,20 @@ export async function registerOrUpdateCivitaiModel(
     savedCivitaiModelId = savedCivitaiModel.id;
 
     if (userId) {
+      const [existingInstall] = await db
+        .select()
+        .from(civitaiModelInstalls)
+        .where(
+          and(
+            eq(civitaiModelInstalls.userId, userId),
+            eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+            eq(civitaiModelInstalls.status, "READY"),
+            sql`${civitaiModelInstalls.imageName} IS NOT NULL`,
+          ),
+        )
+        .limit(1);
+      previousUserReadyInstall = existingInstall;
+
       await db
         .insert(civitaiModelInstalls)
         .values({
@@ -596,11 +611,15 @@ export async function registerOrUpdateCivitaiModel(
         await markAccountInstallFailed(db, userId, savedCivitaiModelId, msg);
       } else if (isModelImageRebuildConfigured(env)) {
         try {
-          const reusableInstall = await findReusableReadyModelImageInstall(
-            db,
-            savedCivitaiModelId!,
-            fileToDownload.id,
-          );
+          const reusableInstall =
+            previousUserReadyInstall?.civitaiFileId === fileToDownload.id &&
+            previousUserReadyInstall.imageName
+              ? previousUserReadyInstall
+              : await findReusableReadyModelImageInstall(
+                  db,
+                  savedCivitaiModelId!,
+                  fileToDownload.id,
+                );
 
           if (reusableInstall?.imageName) {
             downloadInitiatedPath = fileRecord.runpodPath;
