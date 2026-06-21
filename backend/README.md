@@ -17,6 +17,33 @@ bun run dev
 
 open http://localhost:3000
 
+## Cloudflare Bindings
+
+Create one D1 database and one R2 bucket for the current Worker code path:
+
+```sh
+wrangler d1 create selfhost-studio-db
+wrangler r2 bucket create selfhost-studio-images
+```
+
+Put the D1 `database_id` and R2 `bucket_name` in `wrangler.jsonc`. These are
+resource identifiers, not API secrets. The Worker expects these binding names:
+
+```jsonc
+"d1_databases": [{ "binding": "DB", "database_id": "...", "database_name": "..." }],
+"r2_buckets": [{ "binding": "R2", "bucket_name": "..." }]
+```
+
+Apply D1 migrations after creating the database:
+
+```sh
+wrangler d1 migrations apply selfhost-studio-db
+```
+
+If your Cloudflare account has a second R2 bucket, keep it in `wrangler.jsonc`
+only if code uses it. Add it with a different binding name, for example
+`R2_BACKUPS`; do not add R2 access keys to `wrangler.jsonc`.
+
 ## Model Image Rebuilds
 
 The Worker supports the same cacheable model-image install flow as `manager`.
