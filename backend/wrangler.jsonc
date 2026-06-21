@@ -33,8 +33,7 @@
     "R2_PUBLIC_BUCKET_URL": "https://your-public-r2-bucket.example.com",
     "R2_BUCKET_NAME": "your-r2-bucket-name",
     "MODEL_IMAGE_REBUILD_PROVIDER": "github",
-    "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY": "owner/repo",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_URL": ""
+    "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY": "owner/repo"
   },
   "d1_databases": [
     {
