@@ -29,6 +29,7 @@ FAST_CHECKS = [
         ],
         ROOT,
     ),
+    ("manager health route", ["bun", "run", "verify:health"], ROOT / "manager"),
     ("manager model image status", ["bun", "run", "verify:model-image-status"], ROOT / "manager"),
     ("manager model image webhook", ["bun", "run", "verify:model-image-webhook"], ROOT / "manager"),
     (
@@ -66,6 +67,7 @@ FAST_CHECKS = [
         ["bun", "run", "verify:self-host-readiness"],
         ROOT / "manager",
     ),
+    ("worker health route", ["bun", "run", "verify:health"], ROOT / "backend"),
     ("worker model image status", ["bun", "run", "verify:model-image-status"], ROOT / "backend"),
     ("worker model image webhook", ["bun", "run", "verify:model-image-webhook"], ROOT / "backend"),
     (
