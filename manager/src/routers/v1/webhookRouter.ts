@@ -99,6 +99,7 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
         .set({
           status: webhookState.installStatus,
           statusMessage: webhookState.statusMessage,
+          imageName: image ?? null,
           deployedAt: webhookState.deployedAt,
           updatedAt: new Date(),
         })

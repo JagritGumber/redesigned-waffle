@@ -20,6 +20,7 @@ db.run(sql`
     runpodPath TEXT,
     statusMessage TEXT,
     buildTriggerId TEXT,
+    imageName TEXT,
     downloadCompletedAt INTEGER,
     buildTriggeredAt INTEGER,
     deployedAt INTEGER,

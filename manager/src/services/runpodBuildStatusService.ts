@@ -157,6 +157,7 @@ export async function pollRunPodModelImageBuilds() {
       .set({
         status: webhookState.installStatus,
         statusMessage: webhookState.statusMessage,
+        imageName: build.imageName ?? null,
         deployedAt: webhookState.deployedAt,
         updatedAt: new Date(),
       })

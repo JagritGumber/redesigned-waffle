@@ -20,6 +20,7 @@ db.run(sql`
     runpodPath TEXT,
     statusMessage TEXT,
     buildTriggerId TEXT,
+    imageName TEXT,
     downloadCompletedAt INTEGER,
     buildTriggeredAt INTEGER,
     deployedAt INTEGER,
@@ -137,6 +138,7 @@ describe("POST /webhooks/model-image", () => {
     expect(install.statusMessage).toBe(
       "Docker image registry.runpod.io/example:model-build-ready is ready for RunPod.",
     );
+    expect(install.imageName).toBe("registry.runpod.io/example:model-build-ready");
     expect(install.deployedAt).toBeInstanceOf(Date);
   });
 

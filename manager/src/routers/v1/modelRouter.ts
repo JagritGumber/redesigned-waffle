@@ -45,6 +45,7 @@ function applyInstallState<T extends { id: number }>(
       runpodPath: install?.runpodPath ?? null,
       statusMessage: install?.statusMessage ?? null,
       buildTriggerId: install?.buildTriggerId ?? null,
+      imageName: install?.imageName ?? null,
       downloadCompletedAt: install?.downloadCompletedAt ?? null,
       buildTriggeredAt: install?.buildTriggeredAt ?? null,
       deployedAt: install?.deployedAt ?? null,

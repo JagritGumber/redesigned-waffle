@@ -49,6 +49,7 @@ db.run(sql`
     runpodPath TEXT,
     statusMessage TEXT,
     buildTriggerId TEXT,
+    imageName TEXT,
     downloadCompletedAt INTEGER,
     buildTriggeredAt INTEGER,
     deployedAt INTEGER,
@@ -109,6 +110,7 @@ async function seedModelInstalls() {
       status: "BUILDING",
       statusMessage: "RunPod image build is still running.",
       buildTriggerId: "build-a",
+      imageName: "registry.runpod.io/example:model-build-a",
       defaultWeight: 0.35,
     },
     {
@@ -118,6 +120,7 @@ async function seedModelInstalls() {
       status: "READY",
       statusMessage: "Ready for generation.",
       buildTriggerId: "build-b",
+      imageName: "registry.runpod.io/example:model-build-b",
       defaultWeight: 0.75,
     },
   ]);
@@ -143,6 +146,7 @@ describe("model router account-scoped install state", () => {
     expect(userA.model.status).toBe("BUILDING");
     expect(userA.model.statusMessage).toBe("RunPod image build is still running.");
     expect(userA.model.buildTriggerId).toBe("build-a");
+    expect(userA.model.imageName).toBe("registry.runpod.io/example:model-build-a");
     expect(userA.model.defaultWeight).toBe(0.35);
 
     const userBResponse = await app.handle(
@@ -156,6 +160,7 @@ describe("model router account-scoped install state", () => {
     expect(userB.model.status).toBe("READY");
     expect(userB.model.statusMessage).toBe("Ready for generation.");
     expect(userB.model.buildTriggerId).toBe("build-b");
+    expect(userB.model.imageName).toBe("registry.runpod.io/example:model-build-b");
     expect(userB.model.defaultWeight).toBe(0.75);
   });
 

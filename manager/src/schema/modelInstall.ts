@@ -22,6 +22,7 @@ export const civitaiModelInstalls = sqliteTable(
     runpodPath: text("runpodPath"),
     statusMessage: text("statusMessage"),
     buildTriggerId: text("buildTriggerId"),
+    imageName: text("imageName"),
     downloadCompletedAt: integer("downloadCompletedAt", { mode: "timestamp_ms" }),
     buildTriggeredAt: integer("buildTriggeredAt", { mode: "timestamp_ms" }),
     deployedAt: integer("deployedAt", { mode: "timestamp_ms" }),
