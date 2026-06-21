@@ -120,10 +120,23 @@ function RouteComponent() {
       setSeed(newSeed);
     }
     const payload = buildPayload();
-    await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate-image`,
-      payload,
-    );
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/generator/generate-image`,
+        payload,
+        { withCredentials: true },
+      );
+      toast.success("Image generation job started.");
+    } catch (err: any) {
+      const responseData = err?.response?.data;
+      const blockedModels = Array.isArray(responseData?.models) ? responseData.models : [];
+      const modelStatus = blockedModels
+        .map((model: any) => model.statusMessage ?? model.installStatus)
+        .filter(Boolean)
+        .join(" ");
+
+      toast.error(modelStatus || responseData?.message || err.message || "Failed to start image generation.");
+    }
   };
 
   const handleBatchGenerate = () => {};

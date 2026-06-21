@@ -15,6 +15,7 @@ import type { DOMElement } from "solid-js/jsx-runtime";
 import { onLongPress } from "solidjs-use";
 import { useNavigate } from "@tanstack/solid-router";
 import { ModelInstallStatus } from "./model-install-status";
+import { toast } from "solid-sonner";
 
 export interface ModelCardProps {
   model: CivitaiModelWithRelations | Model;
@@ -48,6 +49,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
   const navigate = useNavigate();
   const installStatus = () => (model as any).status as string | null | undefined;
   const installMessage = () => (model as any).statusMessage as string | null | undefined;
+  const isReadyForGeneration = () => !selectable || installStatus() === "READY";
 
   const isSelected = () => {
     if (ModelTypes.Checkpoint === model.type) {
@@ -61,6 +63,11 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
 
   const selectableProps = {
     onClick() {
+      if (!isReadyForGeneration()) {
+        toast.error(installMessage() ?? "Model is not ready for generation yet.");
+        return;
+      }
+
       if (ModelTypes.Checkpoint === model.type) {
         setCheckpoint(model.id, currentModelVersion()!.id);
       } else if (ModelTypes.LORA === model.type) {
@@ -79,6 +86,11 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
     type: "negative" | "positive",
   ) => {
     e.stopPropagation();
+    if (!isReadyForGeneration()) {
+      toast.error(installMessage() ?? "Model is not ready for generation yet.");
+      return;
+    }
+
     setTti(model.id, currentModelVersion()!.id, type);
   };
 
@@ -99,6 +111,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
       class="w-full aspect-[2/3] border border-border rounded-md bg-card contain-paint box-border"
       classList={{
         "opacity-80": selectable && !isSelected(),
+        "cursor-not-allowed grayscale": selectable && !isReadyForGeneration(),
         "border-accent-foreground border-[3px] opacity-100": isSelected(),
       }}
       onClick={() => {
@@ -148,7 +161,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
               class="flex-grow size-6"
               size={"icon"}
               onClick={(e) => handleTTIPress(e, "negative")}
-              disabled={selectedTTI()?.type === "negative"}
+              disabled={selectedTTI()?.type === "negative" || !isReadyForGeneration()}
             >
               <CaretDown weight="bold" />
             </Button>
@@ -156,7 +169,7 @@ export const ModelCard = ({ model, selectable = false }: ModelCardProps) => {
               class="flex-grow size-6"
               size={"icon"}
               onClick={(e) => handleTTIPress(e, "positive")}
-              disabled={selectedTTI()?.type === "positive"}
+              disabled={selectedTTI()?.type === "positive" || !isReadyForGeneration()}
             >
               <CaretUp weight="bold" />
             </Button>

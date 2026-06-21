@@ -11,6 +11,7 @@ const downloadedHook = readFileSync("src/hooks/useDownloadedModels.ts", "utf-8")
 const installedHook = readFileSync("src/hooks/useInstalledModel.ts", "utf-8");
 const modelCard = readFileSync("src/components/model-card.tsx", "utf-8");
 const detailRoute = readFileSync("src/routes/models.$id.$vId.tsx", "utf-8");
+const generationRoute = readFileSync("src/routes/tabs/two.tsx", "utf-8");
 
 for (const status of ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"]) {
   assert(
@@ -51,8 +52,11 @@ assert(
 assert(
   modelCard.includes("ModelInstallStatus") &&
     modelCard.includes("statusMessage") &&
-    modelCard.includes("showMessage"),
-  "Model cards should surface install status messages.",
+    modelCard.includes("showMessage") &&
+    modelCard.includes("isReadyForGeneration") &&
+    modelCard.includes("cursor-not-allowed") &&
+    modelCard.includes("Model is not ready for generation yet."),
+  "Model cards should surface install status messages and block selecting non-ready generation models.",
 );
 assert(
   detailRoute.includes("ModelInstallStatus") &&
@@ -60,6 +64,13 @@ assert(
     detailRoute.includes("installToastMessage") &&
     detailRoute.includes("Docker image build may take a while"),
   "Model detail page should surface install status and long-running build messaging.",
+);
+assert(
+  generationRoute.includes("withCredentials: true") &&
+    generationRoute.includes("responseData?.models") &&
+    generationRoute.includes("Image generation job started.") &&
+    generationRoute.includes("Failed to start image generation."),
+  "Generation route should send credentials and surface model readiness failures from the backend.",
 );
 
 console.log("Solid model install status verification passed.");
