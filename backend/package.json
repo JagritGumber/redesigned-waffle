@@ -7,6 +7,7 @@
     "verify:runpod-build-polling": "bun scripts/verifyRunPodBuildPolling.ts",
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "verify:model-install-lifecycle": "bun test tests/civitaiModelInstallLifecycle.test.ts",
+    "verify:generation-model-readiness": "bun test tests/generatorModelReadiness.test.ts",
     "migrations:generate": "bunx drizzle-kit generate",
     "migrations:apply": "bun wrangler d1 migrations apply long-leaf-2cbd-db",
     "dev": "wrangler dev",

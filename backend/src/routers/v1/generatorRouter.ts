@@ -74,7 +74,11 @@ const generatorRouter = new Hono<ContextForHono>()
     ];
     const uniqueRequestedModelIds = [...new Set(requestedModelIds)];
     const installedModels = await db
-      .select({ id: civitaiModelInstalls.civitaiModelId })
+      .select({
+        id: civitaiModelInstalls.civitaiModelId,
+        status: civitaiModelInstalls.status,
+        statusMessage: civitaiModelInstalls.statusMessage,
+      })
       .from(civitaiModelInstalls)
       .where(
         and(
@@ -95,6 +99,22 @@ const generatorRouter = new Hono<ContextForHono>()
           modelIds: missingModelIds,
         },
         403,
+      );
+    }
+
+    const notReadyModels = installedModels.filter((model) => model.status !== "READY");
+    if (notReadyModels.length > 0) {
+      return c.json(
+        {
+          status: "error",
+          message: "One or more selected models are still being installed for this account.",
+          models: notReadyModels.map((model) => ({
+            modelId: model.id,
+            installStatus: model.status,
+            statusMessage: model.statusMessage,
+          })),
+        },
+        409,
       );
     }
 

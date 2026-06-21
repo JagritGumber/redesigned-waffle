@@ -58,6 +58,11 @@ FAST_CHECKS = [
         ROOT / "manager",
     ),
     (
+        "manager generation model readiness",
+        ["bun", "run", "verify:generation-model-readiness"],
+        ROOT / "manager",
+    ),
+    (
         "manager account-scoped models db",
         ["bun", "run", "verify:account-scoped-models:db"],
         ROOT / "manager",
@@ -88,6 +93,11 @@ FAST_CHECKS = [
     (
         "worker model install lifecycle",
         ["bun", "run", "verify:model-install-lifecycle"],
+        ROOT / "backend",
+    ),
+    (
+        "worker generation model readiness",
+        ["bun", "run", "verify:generation-model-readiness"],
         ROOT / "backend",
     ),
     (

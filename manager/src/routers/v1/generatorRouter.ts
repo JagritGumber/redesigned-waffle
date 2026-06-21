@@ -73,7 +73,11 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
       ];
       const uniqueRequestedModelIds = [...new Set(requestedModelIds)];
       const installedModels = await db
-        .select({ civitaiModelId: civitaiModelInstalls.civitaiModelId })
+        .select({
+          civitaiModelId: civitaiModelInstalls.civitaiModelId,
+          status: civitaiModelInstalls.status,
+          statusMessage: civitaiModelInstalls.statusMessage,
+        })
         .from(civitaiModelInstalls)
         .where(
           and(
@@ -92,6 +96,20 @@ export const generatorRouter = new Elysia({ prefix: "/generator" })
           status: "error",
           message: "One or more selected models are not installed for this account.",
           modelIds: missingModelIds,
+        };
+      }
+
+      const notReadyModels = installedModels.filter((model) => model.status !== "READY");
+      if (notReadyModels.length > 0) {
+        set.status = 409;
+        return {
+          status: "error",
+          message: "One or more selected models are still being installed for this account.",
+          models: notReadyModels.map((model) => ({
+            modelId: model.civitaiModelId,
+            installStatus: model.status,
+            statusMessage: model.statusMessage,
+          })),
         };
       }
 
