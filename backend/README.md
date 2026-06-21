@@ -51,6 +51,11 @@ Keep committed `wrangler.jsonc` limited to non-secret IDs, URLs, bucket names,
 and feature flags. Do not put API keys, bearer tokens, OAuth secrets, or webhook
 tokens in `wrangler.jsonc`.
 
+Treat `backend/.dev.vars.example` as the source of variable names only. The real
+local file is `backend/.dev.vars`, and it must stay uncommitted. For production,
+Wrangler stores sensitive values separately from `wrangler.jsonc` through
+`wrangler secret put`.
+
 For local development, use Wrangler's local secret file:
 
 ```sh

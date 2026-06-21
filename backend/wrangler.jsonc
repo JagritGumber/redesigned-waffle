@@ -26,6 +26,9 @@
    * https://developers.cloudflare.com/workers/runtime-apis/bindings/
    */
   "vars": {
+    // Non-secret deployment configuration only. Put API keys, auth secrets,
+    // GitHub tokens, and webhook bearer tokens in .dev.vars locally or
+    // `wrangler secret put` for deployed Workers.
     "RUNPOD_GENERATOR_ID": "your-runpod-generator-endpoint-id",
     "RUNPOD_DOWNLOADER_ID": "your-runpod-downloader-endpoint-id",
     "RUNPOD_WEBHOOK_URL": "https://your-worker.example.com/api/v1/webhooks/runpod",

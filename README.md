@@ -38,6 +38,18 @@ FRONTEND_URL=http://localhost:3000
 RUNPOD_WEBHOOK_URL=http://localhost:8765/api/v1/webhooks/runpod
 ```
 
+Keep real values only in ignored local env files or provider secret stores. For
+the stable manager backend, local secrets belong in
+`manager/.env.development.local`; `manager/.env.example` only documents variable
+names. For the experimental Worker backend, local secrets belong in
+`backend/.dev.vars`; deployed Worker secrets must be set with
+`wrangler secret put`.
+
+Do not commit RunPod API keys, R2/S3 access keys, OAuth secrets, auth secrets,
+GitHub tokens, or webhook bearer tokens. Non-secret resource identifiers can be
+committed when needed: D1 database IDs, R2 bucket names, public bucket URLs,
+RunPod endpoint IDs, repository names, and feature flags.
+
 If RunPod needs to reach your local machine, set `HOST_URL` and `RUNPOD_WEBHOOK_URL` to your tunnel URL.
 The public callback base is healthy when `GET <HOST_URL>/api/v1/health`
 returns `{"status":"ok"}`.
@@ -182,4 +194,6 @@ bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
 
 ## Open Source
 
-Selfhost Studio is licensed under the MIT License. Do not commit real `.env`, database, log, R2, RunPod, or Cloudflare credential files.
+Selfhost Studio is licensed under the MIT License. Do not commit real `.env`,
+`.dev.vars`, database, log, R2, RunPod, GitHub token, or Cloudflare credential
+files.
