@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/solid-query";
 import axios from "axios";
 import type { CivitaiModelWithRelations } from "~/backend/schema/models";
+import { isActiveModelInstall } from "~/components/model-install-status";
 
 const getModels = async (
   type: string,
@@ -25,6 +26,11 @@ const useGenerationModels = (type: string) => {
   return useQuery<{ models: CivitaiModelWithRelations[] }, Error>(() => ({
     queryKey: ["models", type.toLowerCase().replace(/ /g, "-")],
     queryFn: async () => await getModels(type), // Call the fetch function
+    refetchInterval: (query) => {
+      const models = query.state.data?.models ?? [];
+      const hasActiveInstall = models.some((model: any) => isActiveModelInstall(model.status));
+      return hasActiveInstall ? 5000 : false;
+    },
   }));
 };
 

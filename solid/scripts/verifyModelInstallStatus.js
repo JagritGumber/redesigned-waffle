@@ -9,6 +9,7 @@ function assert(condition, message) {
 const statusComponent = readFileSync("src/components/model-install-status.tsx", "utf-8");
 const downloadedHook = readFileSync("src/hooks/useDownloadedModels.ts", "utf-8");
 const installedHook = readFileSync("src/hooks/useInstalledModel.ts", "utf-8");
+const generationModelsHook = readFileSync("src/hooks/useGenerationModels.ts", "utf-8");
 const modelCard = readFileSync("src/components/model-card.tsx", "utf-8");
 const detailRoute = readFileSync("src/routes/models.$id.$vId.tsx", "utf-8");
 const generationRoute = readFileSync("src/routes/tabs/two.tsx", "utf-8");
@@ -48,6 +49,13 @@ assert(
     installedHook.includes("5000") &&
     installedHook.includes("withCredentials: true"),
   "Installed model detail query should poll while that install is active.",
+);
+assert(
+  generationModelsHook.includes("isActiveModelInstall") &&
+    generationModelsHook.includes("refetchInterval") &&
+    generationModelsHook.includes("5000") &&
+    generationModelsHook.includes("withCredentials: true"),
+  "Generation model lists should poll while any selectable account install is active.",
 );
 assert(
   modelCard.includes("ModelInstallStatus") &&
