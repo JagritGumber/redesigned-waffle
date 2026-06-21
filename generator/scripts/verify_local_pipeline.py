@@ -86,6 +86,11 @@ FAST_CHECKS = [
         ROOT / "backend",
     ),
     (
+        "worker model install lifecycle",
+        ["bun", "run", "verify:model-install-lifecycle"],
+        ROOT / "backend",
+    ),
+    (
         "solid model install status",
         ["bun", "run", "verify:model-install-status"],
         ROOT / "solid",
