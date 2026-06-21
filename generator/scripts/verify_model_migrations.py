@@ -88,6 +88,25 @@ def main() -> None:
             fail("Dockerfile migration layers must use the Civitai BuildKit secret.")
         if "/model-migrations/0001-verify-model-1.json" not in dockerfile:
             fail("Rendered Dockerfile did not include the new migration layer.")
+        if "COPY generator/model-migrations/ /model-migrations/" in dockerfile:
+            fail("Dockerfile must not bulk-copy all model migrations before model layers.")
+        if (
+            "COPY generator/model-migrations/0001-verify-model-1.json "
+            "/model-migrations/0001-verify-model-1.json"
+            not in dockerfile
+        ):
+            fail("Rendered Dockerfile should copy each migration manifest in its own cacheable layer.")
+
+        manifest_copy = dockerfile.index(
+            "COPY generator/model-migrations/0001-verify-model-1.json "
+            "/model-migrations/0001-verify-model-1.json"
+        )
+        manifest_run = dockerfile.index(
+            "python /usr/local/bin/download_model_layer.py --manifest "
+            "/model-migrations/0001-verify-model-1.json"
+        )
+        if manifest_copy > manifest_run:
+            fail("Each migration manifest must be copied before its download layer.")
 
         new_manifest = migrations / "0001-verify-model-1.json"
         if not new_manifest.exists():

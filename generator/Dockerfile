@@ -7,11 +7,11 @@ FROM python:3.10.14-slim as download
 RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 COPY generator/scripts/download_model_layer.py /usr/local/bin/download_model_layer.py
-COPY generator/model-migrations/ /model-migrations/
 
 # Model migrations are rendered as one RUN layer per model. Keep this block generated
 # with: python generator/scripts/render_model_dockerfile.py
 # BEGIN MODEL MIGRATION LAYERS
+COPY generator/model-migrations/0000-base.json /model-migrations/0000-base.json
 RUN --mount=type=secret,id=civitai_api_token python /usr/local/bin/download_model_layer.py --manifest /model-migrations/0000-base.json
 # END MODEL MIGRATION LAYERS
 

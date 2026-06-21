@@ -127,8 +127,8 @@ RunPod watches. Do not add Buildx, `docker build`, Docker Hub login, or image
 push steps unless you intentionally want to pay for external CI image builds.
 
 The generator image uses `generator/model-migrations/*.json`; each migration is
-rendered as its own Docker layer so Docker cache reuses all previous model
-downloads and only downloads the newly added model. Configure the RunPod
+rendered as its own `COPY` plus `RUN` Docker layer pair so Docker cache reuses
+all previous model downloads and only downloads the newly added model. Configure the RunPod
 Serverless endpoint from the GitHub repository with `generator/Dockerfile` as
 the Dockerfile path; each release created by the workflow triggers RunPod's
 builder. The workflow reports the build trigger back through

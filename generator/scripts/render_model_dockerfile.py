@@ -25,6 +25,9 @@ def main() -> None:
     for migration in migrations:
         manifest_path = f"/model-migrations/{migration.name}"
         lines.append(
+            f"COPY generator/model-migrations/{migration.name} {manifest_path}"
+        )
+        lines.append(
             "RUN --mount=type=secret,id=civitai_api_token "
             f"python /usr/local/bin/download_model_layer.py --manifest {manifest_path}"
         )

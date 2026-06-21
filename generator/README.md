@@ -34,12 +34,12 @@ python generator/scripts/add_model_migration.py \
 python generator/scripts/render_model_dockerfile.py
 ```
 
-Each migration renders as a separate Docker `RUN` layer. Older model layers stay
-cached, so adding one model only downloads that new model during the image build.
-The Dockerfile accepts an optional BuildKit secret named `civitai_api_token`, but
-public Civitai download URLs work without it. If your RunPod GitHub builder does
-not expose build secrets, keep model install URLs public or use a custom builder
-hook.
+Each migration renders as its own Docker `COPY` plus `RUN` layer pair. Older
+model layers stay cached, so adding one model only downloads that new model
+during the image build. The Dockerfile accepts an optional BuildKit secret named
+`civitai_api_token`, but public Civitai download URLs work without it. If your
+RunPod GitHub builder does not expose build secrets, keep model install URLs
+public or use a custom builder hook.
 
 Before relying on the workflow, run the local verifier:
 
