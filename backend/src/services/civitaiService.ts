@@ -35,6 +35,27 @@ interface CivitaiServiceEnv {
 
 const CIVITAI_API_BASE_URL = "https://civitai.com/api/v1";
 
+async function findReusableReadyModelImageInstall(
+  db: DrizzleD1Database<typeof schema>,
+  civitaiModelId: number,
+  civitaiFileId: number,
+) {
+  const [install] = await db
+    .select()
+    .from(civitaiModelInstalls)
+    .where(
+      and(
+        eq(civitaiModelInstalls.civitaiModelId, civitaiModelId),
+        eq(civitaiModelInstalls.civitaiFileId, civitaiFileId),
+        eq(civitaiModelInstalls.status, "READY"),
+        sql`${civitaiModelInstalls.imageName} IS NOT NULL`,
+      ),
+    )
+    .limit(1);
+
+  return install;
+}
+
 /**
  * Fetches model details from Civitai API.
  * @param modelId The Civitai model ID.
@@ -539,53 +560,86 @@ export async function registerOrUpdateCivitaiModel(
         finalMessage += ` ${msg}`;
       } else if (isModelImageRebuildConfigured(env)) {
         try {
-          const buildTriggerId =
-            typeof crypto !== "undefined" && "randomUUID" in crypto
-              ? crypto.randomUUID()
-              : `${savedCivitaiModelId}-${fileToDownload.id}-${Date.now()}`;
+          const reusableInstall = await findReusableReadyModelImageInstall(
+            db,
+            savedCivitaiModelId!,
+            fileToDownload.id,
+          );
 
-          await triggerModelImageBuild(env, {
-            buildTriggerId,
-            civitaiModelId: savedCivitaiModelId!,
-            civitaiFileId: fileToDownload.id,
-            downloadUrl: fileToDownload.downloadUrl!,
-            runpodPath: fileRecord.runpodPath,
-            modelType: type,
-          });
+          if (reusableInstall?.imageName) {
+            downloadInitiatedPath = fileRecord.runpodPath;
+            if (type === "LORA") loraRunpodPath = downloadInitiatedPath;
+            if (type === "TextualInversion")
+              embeddingRunpodPath = downloadInitiatedPath;
 
-          downloadInitiatedPath = fileRecord.runpodPath;
-          if (type === "LORA") loraRunpodPath = downloadInitiatedPath;
-          if (type === "TextualInversion")
-            embeddingRunpodPath = downloadInitiatedPath;
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: "READY",
+                statusMessage: `Docker image ${reusableInstall.imageName} is already ready for RunPod.`,
+                buildTriggerId: reusableInstall.buildTriggerId,
+                civitaiFileId: fileToDownload.id,
+                runpodPath: fileRecord.runpodPath,
+                imageName: reusableInstall.imageName,
+                deployedAt: reusableInstall.deployedAt,
+                buildTriggeredAt: reusableInstall.buildTriggeredAt,
+                runpodJobId: null,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${civitaiModelInstalls.userId} = ${userId} AND ${civitaiModelInstalls.civitaiModelId} = ${savedCivitaiModelId!}`,
+              );
 
-          await db
-            .update(civitaiModelInstalls)
-            .set({
-              status: "BUILD_QUEUED",
-              statusMessage:
-                "Model image rebuild queued. The model will be ready after the Docker image deploys.",
+            finalMessage += ` Existing Docker image reused for file ${fileToDownload.name}.`;
+          } else {
+            const buildTriggerId =
+              typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `${savedCivitaiModelId}-${fileToDownload.id}-${Date.now()}`;
+
+            await triggerModelImageBuild(env, {
               buildTriggerId,
+              civitaiModelId: savedCivitaiModelId!,
               civitaiFileId: fileToDownload.id,
+              downloadUrl: fileToDownload.downloadUrl!,
               runpodPath: fileRecord.runpodPath,
-              buildTriggeredAt: new Date(),
-              runpodJobId: null,
-              updatedAt: new Date(),
-            })
-            .where(
-              sql`${civitaiModelInstalls.userId} = ${userId} AND ${civitaiModelInstalls.civitaiModelId} = ${savedCivitaiModelId!}`,
-            );
+              modelType: type,
+            });
 
-          await db
-            .update(civitaiFiles)
-            .set({
-              downloadStatus: "PENDING",
-              downloadOutput: `Model image rebuild ${buildTriggerId} queued.`,
-              runpodJobId: null,
-              updatedAt: new Date(),
-            })
-            .where(eq(civitaiFiles.id, fileRecord.id));
+            downloadInitiatedPath = fileRecord.runpodPath;
+            if (type === "LORA") loraRunpodPath = downloadInitiatedPath;
+            if (type === "TextualInversion")
+              embeddingRunpodPath = downloadInitiatedPath;
 
-          finalMessage += ` Model image rebuild queued for file ${fileToDownload.name}.`;
+            await db
+              .update(civitaiModelInstalls)
+              .set({
+                status: "BUILD_QUEUED",
+                statusMessage:
+                  "Model image rebuild queued. The model will be ready after the Docker image deploys.",
+                buildTriggerId,
+                civitaiFileId: fileToDownload.id,
+                runpodPath: fileRecord.runpodPath,
+                buildTriggeredAt: new Date(),
+                runpodJobId: null,
+                updatedAt: new Date(),
+              })
+              .where(
+                sql`${civitaiModelInstalls.userId} = ${userId} AND ${civitaiModelInstalls.civitaiModelId} = ${savedCivitaiModelId!}`,
+              );
+
+            await db
+              .update(civitaiFiles)
+              .set({
+                downloadStatus: "PENDING",
+                downloadOutput: `Model image rebuild ${buildTriggerId} queued.`,
+                runpodJobId: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(civitaiFiles.id, fileRecord.id));
+
+            finalMessage += ` Model image rebuild queued for file ${fileToDownload.name}.`;
+          }
         } catch (modelImageError: any) {
           const msg = `Error queueing model image rebuild for file ${
             fileToDownload.id

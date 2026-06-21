@@ -149,60 +149,62 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
   });
 
   it("creates an account-scoped install and queues the cacheable Docker model build", async () => {
-    const result = await registerOrUpdateCivitaiModel(
-      {
-        id: 9001,
-        name: "Safe Model",
-        description: "A safe model for testing.",
-        type: "Checkpoint",
-        nsfw: false,
-        creator: {
-          username: "safe-creator",
-          image: "https://example.com/avatar.png",
+    const safeModelData = {
+      id: 9001,
+      name: "Safe Model",
+      description: "A safe model for testing.",
+      type: "Checkpoint",
+      nsfw: false,
+      creator: {
+        username: "safe-creator",
+        image: "https://example.com/avatar.png",
+      },
+      tags: ["safe", "test"],
+      modelVersions: [
+        {
+          id: 9101,
+          index: 0,
+          name: "v1",
+          baseModel: "SD 1.5",
+          baseModelType: "Standard",
+          publishedAt: "2026-01-01T00:00:00.000Z",
+          availability: "Public",
+          nsfwLevel: 1,
+          description: "Version description.",
+          trainedWords: [],
+          supportsGeneration: true,
+          downloadUrl: "https://civitai.com/api/download/models/9101",
+          files: [
+            {
+              id: 9201,
+              name: "safe-model.safetensors",
+              type: "Model",
+              sizeKB: 1024,
+              primary: true,
+              pickleScanResult: "Success",
+              pickleScanMessage: "Safe",
+              virusScanResult: "Success",
+              virusScanMessage: "Safe",
+              scannedAt: "2026-01-01T00:00:00.000Z",
+              downloadUrl: "https://civitai.com/api/download/models/9201",
+            },
+          ],
+          images: [
+            {
+              url: "https://example.com/image.png",
+              nsfwLevel: 1,
+              width: 512,
+              height: 512,
+              hash: "safe-image-hash",
+              hasMeta: false,
+            },
+          ],
         },
-        tags: ["safe", "test"],
-        modelVersions: [
-          {
-            id: 9101,
-            index: 0,
-            name: "v1",
-            baseModel: "SD 1.5",
-            baseModelType: "Standard",
-            publishedAt: "2026-01-01T00:00:00.000Z",
-            availability: "Public",
-            nsfwLevel: 1,
-            description: "Version description.",
-            trainedWords: [],
-            supportsGeneration: true,
-            downloadUrl: "https://civitai.com/api/download/models/9101",
-            files: [
-              {
-                id: 9201,
-                name: "safe-model.safetensors",
-                type: "Model",
-                sizeKB: 1024,
-                primary: true,
-                pickleScanResult: "Success",
-                pickleScanMessage: "Safe",
-                virusScanResult: "Success",
-                virusScanMessage: "Safe",
-                scannedAt: "2026-01-01T00:00:00.000Z",
-                downloadUrl: "https://civitai.com/api/download/models/9201",
-              },
-            ],
-            images: [
-              {
-                url: "https://example.com/image.png",
-                nsfwLevel: 1,
-                width: 512,
-                height: 512,
-                hash: "safe-image-hash",
-                hasMeta: false,
-              },
-            ],
-          },
-        ],
-      } as any,
+      ],
+    } as any;
+
+    const result = await registerOrUpdateCivitaiModel(
+      safeModelData,
       {
         userId: "user-a",
         versionId: 9101,
@@ -237,5 +239,41 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
     expect(install.civitaiFileId).toBe(9201);
     expect(install.runpodPath).toBe(triggeredBuilds[0].runpodPath);
     expect(install.buildTriggeredAt).toBeInstanceOf(Date);
+
+    const deployedAt = new Date("2026-06-22T00:00:00.000Z");
+    await db
+      .update(schema.civitaiModelInstalls)
+      .set({
+        status: "READY",
+        statusMessage: "Ready for RunPod.",
+        imageName: "registry.runpod.io/example:model-build-user-a-model-9001",
+        deployedAt,
+      })
+      .where(eq(schema.civitaiModelInstalls.userId, "user-a"));
+
+    const userBResult = await registerOrUpdateCivitaiModel(
+      safeModelData,
+      {
+        userId: "user-b",
+        versionId: 9101,
+        fileId: 9201,
+        triggerDownload: true,
+      },
+    );
+
+    expect(userBResult.status).toBe("SUCCESS");
+    expect(userBResult.message).toContain("Existing Docker image reused");
+    expect(triggeredBuilds).toHaveLength(1);
+
+    const [userBInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.userId, "user-b"));
+
+    expect(userBInstall.status).toBe("READY");
+    expect(userBInstall.buildTriggerId).toBe("build-user-a-model-9001");
+    expect(userBInstall.civitaiFileId).toBe(9201);
+    expect(userBInstall.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
+    expect(userBInstall.deployedAt).toEqual(deployedAt);
   });
 });
