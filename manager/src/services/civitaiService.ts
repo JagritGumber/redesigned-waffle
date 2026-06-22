@@ -37,6 +37,23 @@ async function findReusableReadyModelImageInstall(civitaiModelId: number, civita
   return install;
 }
 
+async function findReusableActiveModelImageInstall(civitaiModelId: number, civitaiFileId: number) {
+  const [install] = await db
+    .select()
+    .from(civitaiModelInstalls)
+    .where(
+      and(
+        eq(civitaiModelInstalls.civitaiModelId, civitaiModelId),
+        eq(civitaiModelInstalls.civitaiFileId, civitaiFileId),
+        sql`${civitaiModelInstalls.status} IN ('BUILD_QUEUED', 'BUILDING')`,
+        sql`${civitaiModelInstalls.buildTriggerId} IS NOT NULL`,
+      ),
+    )
+    .limit(1);
+
+  return install;
+}
+
 /**
  * Fetches model details from Civitai API.
  * @param modelId The Civitai model ID.
@@ -558,37 +575,70 @@ export async function registerOrUpdateCivitaiModel(
 
             finalMessage += " Existing Docker image reused for this account.";
           } else {
-            const build = await triggerModelImageBuild({
-              civitaiModelId: savedCivitaiModelId,
-              civitaiFileId: fileRecord.id,
-              downloadUrl: fileToDownload.downloadUrl,
-              runpodPath: fileRecord.runpodPath,
-              runpodJobId: null,
-            });
+            const reusableActiveInstall = await findReusableActiveModelImageInstall(
+              savedCivitaiModelId,
+              fileRecord.id,
+            );
 
-            if (userId) {
-              await db
-                .update(civitaiModelInstalls)
-                .set({
-                  status: build.triggered ? "BUILD_QUEUED" : "READY",
-                  buildTriggerId: build.buildTriggerId,
-                  civitaiFileId: fileRecord.id,
-                  runpodPath: fileRecord.runpodPath,
-                  statusMessage: build.triggered
-                    ? "Docker image build queued. The model will be downloaded as a cacheable image layer."
-                    : build.message,
-                  buildTriggeredAt: build.triggered ? new Date() : null,
-                  updatedAt: new Date(),
-                })
-                .where(
-                  and(
-                    eq(civitaiModelInstalls.userId, userId),
-                    eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
-                  ),
-                );
+            if (reusableActiveInstall?.buildTriggerId) {
+              if (userId) {
+                await db
+                  .update(civitaiModelInstalls)
+                  .set({
+                    status: reusableActiveInstall.status,
+                    buildTriggerId: reusableActiveInstall.buildTriggerId,
+                    civitaiFileId: fileRecord.id,
+                    runpodPath: fileRecord.runpodPath,
+                    imageName: reusableActiveInstall.imageName,
+                    deployedAt: reusableActiveInstall.deployedAt,
+                    statusMessage:
+                      reusableActiveInstall.statusMessage ??
+                      "A Docker image build is already running for this model file.",
+                    buildTriggeredAt: reusableActiveInstall.buildTriggeredAt,
+                    updatedAt: new Date(),
+                  })
+                  .where(
+                    and(
+                      eq(civitaiModelInstalls.userId, userId),
+                      eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                    ),
+                  );
+              }
+
+              finalMessage += " Existing Docker image build reused for this account.";
+            } else {
+              const build = await triggerModelImageBuild({
+                civitaiModelId: savedCivitaiModelId,
+                civitaiFileId: fileRecord.id,
+                downloadUrl: fileToDownload.downloadUrl,
+                runpodPath: fileRecord.runpodPath,
+                runpodJobId: null,
+              });
+
+              if (userId) {
+                await db
+                  .update(civitaiModelInstalls)
+                  .set({
+                    status: build.triggered ? "BUILD_QUEUED" : "READY",
+                    buildTriggerId: build.buildTriggerId,
+                    civitaiFileId: fileRecord.id,
+                    runpodPath: fileRecord.runpodPath,
+                    statusMessage: build.triggered
+                      ? "Docker image build queued. The model will be downloaded as a cacheable image layer."
+                      : build.message,
+                    buildTriggeredAt: build.triggered ? new Date() : null,
+                    updatedAt: new Date(),
+                  })
+                  .where(
+                    and(
+                      eq(civitaiModelInstalls.userId, userId),
+                      eq(civitaiModelInstalls.civitaiModelId, savedCivitaiModelId),
+                    ),
+                  );
+              }
+
+              finalMessage += " Docker image rebuild queued with a cacheable model migration.";
             }
-
-            finalMessage += " Docker image rebuild queued with a cacheable model migration.";
           }
         } catch (buildError: any) {
           const msg = `Error queuing Docker image rebuild: ${buildError.message || "Unknown error"}`;

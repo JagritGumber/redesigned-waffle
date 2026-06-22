@@ -240,6 +240,30 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
     expect(install.runpodPath).toBe(triggeredBuilds[0].runpodPath);
     expect(install.buildTriggeredAt).toBeInstanceOf(Date);
 
+    const userQueuedResult = await registerOrUpdateCivitaiModel(
+      safeModelData,
+      {
+        userId: "user-queued",
+        versionId: 9101,
+        fileId: 9201,
+        triggerDownload: true,
+      },
+    );
+
+    expect(userQueuedResult.status).toBe("SUCCESS");
+    expect(userQueuedResult.message).toContain("Existing Docker image build reused");
+    expect(triggeredBuilds).toHaveLength(1);
+
+    const [queuedInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.userId, "user-queued"));
+
+    expect(queuedInstall.status).toBe("BUILD_QUEUED");
+    expect(queuedInstall.buildTriggerId).toBe("build-user-a-model-9001");
+    expect(queuedInstall.civitaiFileId).toBe(9201);
+    expect(queuedInstall.runpodPath).toBe(triggeredBuilds[0].runpodPath);
+
     const deployedAt = new Date("2026-06-22T00:00:00.000Z");
     await db
       .update(schema.civitaiModelInstalls)

@@ -31,6 +31,14 @@ Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY = "owner/repo";
 Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = "test-token";
 
 try {
+  const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
+  assert(
+    civitaiService.includes("findReusableActiveModelImageInstall") &&
+      civitaiService.includes("IN ('BUILD_QUEUED', 'BUILDING')") &&
+      civitaiService.includes("Existing Docker image build reused"),
+    "Manager model installs should reuse active Docker image builds instead of dispatching duplicates.",
+  );
+
   const result = await triggerModelImageBuild({
     civitaiModelId: 42,
     civitaiFileId: 777,
