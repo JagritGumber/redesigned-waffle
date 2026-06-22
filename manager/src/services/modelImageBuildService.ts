@@ -49,6 +49,12 @@ export async function triggerModelImageBuild(
   };
 
   if (Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "github") {
+    if (Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA !== "true") {
+      throw new Error(
+        "MODEL_IMAGE_REBUILD_PROVIDER=github writes model migration metadata to GitHub. Set MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true only for private repos or non-sensitive installs.",
+      );
+    }
+
     if (!Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY || !Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN) {
       throw new Error(
         "MODEL_IMAGE_REBUILD_PROVIDER=github requires MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY and MODEL_IMAGE_REBUILD_GITHUB_TOKEN.",

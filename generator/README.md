@@ -13,16 +13,22 @@ of repeatedly downloading them onto a RunPod volume.
 The flow is:
 
 1. Manager receives a model install request.
-2. If `MODEL_IMAGE_REBUILD_PROVIDER=github` is configured, manager dispatches
-   `.github/workflows/model-image-rebuild.yml` with `migration.id`,
-   `migration.url`, and `migration.path`.
-3. The workflow commits a migration and creates a GitHub release. RunPod's
-   GitHub integration builds `generator/Dockerfile` on RunPod infrastructure,
-   stores the image in RunPod's registry, and deploys the endpoint.
+2. With `MODEL_IMAGE_REBUILD_PROVIDER=webhook`, manager sends a private builder
+   webhook with `migration.id`, `migration.url`, and `migration.path`.
+3. The private builder adds the migration, renders `generator/Dockerfile`,
+   builds on RunPod infrastructure, stores the image in RunPod's registry, and
+   deploys the endpoint.
 
-GitHub Actions is only the release trigger. It must not run `docker build`, use
-Buildx, log in to Docker Hub, or push images; RunPod's GitHub builder owns the
-expensive Docker build and can reuse Docker cache layers across releases.
+Do not use the GitHub provider for sensitive model installs in a public repo.
+`MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
+creates release tags in GitHub. It requires
+`MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true` and should be used only for
+private repositories or non-sensitive installs.
+
+If the optional GitHub provider is explicitly enabled, GitHub Actions is only
+the release trigger. It must not run `docker build`, use Buildx, log in to
+Docker Hub, or push images; RunPod's GitHub builder owns the expensive Docker
+build and can reuse Docker cache layers across releases.
 
 The migration rendering step is:
 
@@ -37,9 +43,9 @@ python generator/scripts/render_model_dockerfile.py
 Each migration renders as its own Docker `COPY` plus `RUN` layer pair. Older
 model layers stay cached, so adding one model only downloads that new model
 during the image build. The Dockerfile accepts an optional BuildKit secret named
-`civitai_api_token`, but public Civitai download URLs work without it. If your
-RunPod GitHub builder does not expose build secrets, keep model install URLs
-public or use a custom builder hook.
+`civitai_api_token`, but public Civitai download URLs work without it. Use a
+private builder when model URLs or model identities should not appear in public
+Git history or releases.
 
 Before relying on the workflow, run the local verifier:
 
@@ -63,8 +69,8 @@ keys.
 Use `bun run verify:pipeline:full` before a release to include manager/Solid
 builds, Worker dry-run deploy, and whitespace checks.
 
-After real GitHub and RunPod credentials are configured, verify external access
-without printing secrets:
+If the optional GitHub provider is enabled for a private repo, verify external
+access without printing secrets:
 
 ```bash
 cd ../manager
@@ -84,16 +90,16 @@ cd ../manager
 bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
-After a real model install creates a release such as `model-<buildTriggerId>`,
-verify the release and matching RunPod build record:
+If the optional GitHub provider creates a release such as
+`model-<buildTriggerId>`, verify the release and matching RunPod build record:
 
 ```bash
 cd ../manager
 bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
 ```
 
-RunPod GitHub integration builds and deploys when the workflow creates a
-release. Track final build status in the RunPod Builds tab. Manager polls
+The private builder or optional RunPod GitHub integration builds and deploys the
+new image. Track final build status in the RunPod Builds tab. Manager polls
 RunPod's endpoint builds once per minute when `RUNPOD_API_KEY`,
 `RUNPOD_GENERATOR_ID`, and `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are
 configured, so the app can automatically move installs through active states and
@@ -119,7 +125,7 @@ RunPod also documents a 30 minute Docker build step timeout and an 80 GB image
 size limit for this integration, so model installs should be kept as small,
 incremental migrations.
 
-Required GitHub repository secrets:
+Optional GitHub provider repository secrets:
 
 - `MANAGER_WEBHOOK_URL`, public manager base URL for build status callbacks
 - `MANAGER_WEBHOOK_TOKEN`, must match manager `MODEL_IMAGE_WEBHOOK_TOKEN` when configured

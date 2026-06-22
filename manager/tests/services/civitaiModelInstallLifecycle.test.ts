@@ -136,7 +136,7 @@ mock.module("@/services/modelImageBuildService", () => ({
     return {
       triggered: true,
       buildTriggerId: "build-user-a-model-9001",
-      message: "GitHub model image rebuild queued.",
+      message: "Private model image rebuild queued.",
     };
   },
 }));
@@ -145,7 +145,8 @@ const { registerOrUpdateCivitaiModel } = await import("@/services/civitaiService
 
 describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
   beforeAll(() => {
-    Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "github";
+    Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "webhook";
+    Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL = "https://builder.example.com/model-image-build";
   });
 
   it("creates an account-scoped install and queues the cacheable Docker model build", async () => {

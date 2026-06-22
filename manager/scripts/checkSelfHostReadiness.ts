@@ -47,7 +47,13 @@ const checks: Check[] = [
     name: "MODEL_IMAGE_REBUILD_PROVIDER",
     ok: usesGithubProvider || usesCustomWebhook,
     detail:
-      "Use github for repository_dispatch or set MODEL_IMAGE_REBUILD_WEBHOOK_URL for a custom builder.",
+      "Use webhook with MODEL_IMAGE_REBUILD_WEBHOOK_URL for private installs; github is optional and metadata-revealing.",
+  },
+  {
+    name: "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
+    ok: !usesGithubProvider || Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA === "true",
+    detail:
+      "Required when MODEL_IMAGE_REBUILD_PROVIDER=github because GitHub commits/releases reveal model metadata.",
   },
   {
     name: "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",

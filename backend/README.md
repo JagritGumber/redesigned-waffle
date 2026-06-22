@@ -88,7 +88,6 @@ For deployed Workers, use Wrangler secrets:
 ```sh
 wrangler secret put AUTH_SECRET
 wrangler secret put RUNPOD_API_KEY
-wrangler secret put MODEL_IMAGE_REBUILD_GITHUB_TOKEN
 wrangler secret put MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN
 wrangler secret put MODEL_IMAGE_WEBHOOK_TOKEN
 ```
@@ -96,17 +95,24 @@ wrangler secret put MODEL_IMAGE_WEBHOOK_TOKEN
 Use normal Wrangler vars only for non-secret values:
 
 ```sh
-MODEL_IMAGE_REBUILD_PROVIDER=github
-MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY=owner/repo
+MODEL_IMAGE_REBUILD_PROVIDER=webhook
+MODEL_IMAGE_REBUILD_WEBHOOK_URL=https://your-private-builder.example.com/model-image-build
+MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false
 RUNPOD_GENERATOR_ID=runpod-serverless-endpoint-id
 MODEL_IMAGE_RUNPOD_BUILD_POLLING=true
 ```
 
-Model install requests dispatch `.github/workflows/model-image-rebuild.yml`.
-The workflow adds one immutable file in `generator/model-migrations/` and
-creates a GitHub release. RunPod's GitHub integration builds
-`generator/Dockerfile` on RunPod infrastructure, reusing Docker cache layers for
-previous model migrations.
+Model install requests should call your private builder webhook. The builder
+adds one immutable file in `generator/model-migrations/`, builds
+`generator/Dockerfile` on RunPod infrastructure, and reuses Docker cache layers
+for previous model migrations.
+
+Do not use `MODEL_IMAGE_REBUILD_PROVIDER=github` for sensitive model installs
+in a public repo. The GitHub provider commits model migration metadata and
+creates model release tags in GitHub, so anyone with repo access can infer which
+models were installed. It requires
+`MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true` and should be used only for
+private repositories or non-sensitive installs.
 
 The Worker includes a scheduled handler. With this Wrangler trigger:
 
@@ -131,8 +137,9 @@ Test Failed. If polling is disabled or you use a custom builder, call
 
 ## External Pipeline Check
 
-After deploying the Worker and setting real GitHub and RunPod credentials,
-verify the external wiring without printing secrets:
+After deploying the Worker and setting real GitHub and RunPod credentials for
+the optional GitHub provider, verify that external wiring without printing
+secrets:
 
 ```sh
 bun run check:external-pipeline
@@ -147,8 +154,9 @@ release, Docker build, RunPod hook, or Worker callback, run:
 bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
-After a real model install creates a release such as `model-<buildTriggerId>`,
-verify the GitHub release and matching RunPod build record:
+If the optional GitHub provider creates a release such as
+`model-<buildTriggerId>`, verify the GitHub release and matching RunPod build
+record:
 
 ```sh
 bun run check:external-pipeline -- --verify-release model-<buildTriggerId>

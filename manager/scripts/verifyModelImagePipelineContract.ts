@@ -12,8 +12,11 @@ function assert(condition: boolean, message: string) {
 
 const originalFetch = globalThis.fetch;
 const originalProvider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
+const originalAllowGithubMetadata = Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA;
 const originalRepository = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
 const originalToken = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
+const originalWebhookUrl = Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL;
+const originalWebhookToken = Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN;
 
 let dispatchedUrl = "";
 let dispatchedHeaders: HeadersInit | undefined;
@@ -27,12 +30,19 @@ globalThis.fetch = (async (url, init) => {
 }) as typeof fetch;
 
 Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "github";
+Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA = "true";
 Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY = "owner/repo";
 Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = "test-token";
 
 try {
   const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
   const modelRouter = readFileSync("src/routers/v1/modelRouter.ts", "utf-8");
+  const buildService = readFileSync("src/services/modelImageBuildService.ts", "utf-8");
+  assert(
+    buildService.includes("MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA") &&
+      buildService.includes("writes model migration metadata to GitHub"),
+    "Manager GitHub model rebuild provider should require explicit metadata exposure opt-in.",
+  );
   assert(
     civitaiService.includes("findReusableActiveModelImageInstall") &&
       civitaiService.includes("IN ('BUILD_QUEUED', 'BUILDING')") &&
@@ -101,6 +111,36 @@ try {
     "Migration path should be the RunPod model path.",
   );
 
+  Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "webhook";
+  delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
+  delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
+  Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL = "https://builder.example.com/model-image-build";
+  Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN = "builder-token";
+
+  dispatchedUrl = "";
+  dispatchedHeaders = undefined;
+  dispatchedBody = undefined;
+  const webhookResult = await triggerModelImageBuild({
+    civitaiModelId: 43,
+    civitaiFileId: 778,
+    downloadUrl: "https://civitai.com/api/download/models/778",
+    runpodPath: "/runpod-volume/workspace/models/private-model.safetensors",
+    runpodJobId: "download-job-2",
+  });
+  assert(webhookResult.triggered, "Private webhook provider should trigger a model image build.");
+  assert(
+    dispatchedUrl === "https://builder.example.com/model-image-build",
+    "Private webhook provider should dispatch to MODEL_IMAGE_REBUILD_WEBHOOK_URL.",
+  );
+  assert(
+    new Headers(dispatchedHeaders).get("Authorization") === "Bearer builder-token",
+    "Private webhook provider should send the configured builder token.",
+  );
+  assert(
+    dispatchedBody.migration.id === "civitai-43-778",
+    "Private webhook payload should include the cacheable model migration.",
+  );
+
   assert(
     buildMatchesInstall(
       { imageName: `registry.runpod.io/selfhost:model-${result.buildTriggerId}` },
@@ -162,9 +202,18 @@ try {
   if (originalProvider === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
   else Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = originalProvider;
 
+  if (originalAllowGithubMetadata === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA;
+  else Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA = originalAllowGithubMetadata;
+
   if (originalRepository === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
   else Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY = originalRepository;
 
   if (originalToken === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
   else Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = originalToken;
+
+  if (originalWebhookUrl === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL;
+  else Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL = originalWebhookUrl;
+
+  if (originalWebhookToken === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN;
+  else Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN = originalWebhookToken;
 }

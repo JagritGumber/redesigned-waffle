@@ -253,6 +253,7 @@ describe("Worker POST /webhooks/model-image", () => {
         },
         {
           MODEL_IMAGE_REBUILD_PROVIDER: "github",
+          MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "true",
           MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "owner/repo",
           MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "test-token",
         },

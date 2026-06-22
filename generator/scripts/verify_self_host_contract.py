@@ -25,6 +25,7 @@ REQUIRED_MANAGER_KEYS = [
     "MODEL_IMAGE_RUNPOD_BUILD_POLLING",
     "RUNPOD_WEBHOOK_URL",
     "MODEL_IMAGE_REBUILD_PROVIDER",
+    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
     "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
     "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
     "MODEL_IMAGE_REBUILD_WEBHOOK_URL",
@@ -48,6 +49,7 @@ REQUIRED_WORKER_KEYS = [
     "RUNPOD_WEBHOOK_URL",
     "MODEL_IMAGE_RUNPOD_BUILD_POLLING",
     "MODEL_IMAGE_REBUILD_PROVIDER",
+    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
     "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
     "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
     "MODEL_IMAGE_WEBHOOK_TOKEN",
@@ -63,11 +65,10 @@ REQUIRED_WORKFLOW_SECRETS = [
 REQUIRED_DOC_SNIPPETS = [
     "Stable Self-Host Stack",
     "Cacheable Model Installs",
-    "MODEL_IMAGE_REBUILD_PROVIDER=github",
-    "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-    "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
-    "RunPod GitHub integration",
-    "GitHub release",
+    "MODEL_IMAGE_REBUILD_PROVIDER=webhook",
+    "MODEL_IMAGE_REBUILD_WEBHOOK_URL",
+    "private builder",
+    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true",
     "RunPod Builds tab",
     "polls RunPod's endpoint builds once per minute",
     "Cloudflare Cron Triggers",
@@ -103,6 +104,7 @@ REQUIRED_WORKER_DOC_SNIPPETS = [
     "--verify-release model-<buildTriggerId>",
     "without printing secrets",
     "public Worker health endpoint",
+    "private builder webhook",
     "RunPod generator endpoint",
 ]
 
@@ -188,8 +190,14 @@ def main() -> None:
     if missing_worker_docs:
         fail("worker docs are missing required snippets: " + ", ".join(missing_worker_docs))
 
-    if "MODEL_IMAGE_REBUILD_PROVIDER=github" not in manager_env:
-        fail("manager/.env.example should default model image rebuilds to GitHub provider.")
+    if "MODEL_IMAGE_REBUILD_PROVIDER=webhook" not in manager_env:
+        fail("manager/.env.example should default model image rebuilds to the private webhook provider.")
+    if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in manager_env:
+        fail("manager/.env.example should disable GitHub metadata exposure by default.")
+    if "MODEL_IMAGE_REBUILD_PROVIDER=webhook" not in worker_env:
+        fail("backend/.dev.vars.example should default model image rebuilds to the private webhook provider.")
+    if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in worker_env:
+        fail("backend/.dev.vars.example should disable GitHub metadata exposure by default.")
 
     print("Self-host configuration contract verification passed.")
 

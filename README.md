@@ -115,32 +115,38 @@ Marketplace browsing requests safe model listings by default. Backend model APIs
 
 ## Cacheable Model Installs
 
-For production, set `MODEL_IMAGE_REBUILD_PROVIDER=github` in `manager` with
-`MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY` and
-`MODEL_IMAGE_REBUILD_GITHUB_TOKEN`. Model install requests then trigger
-`.github/workflows/model-image-rebuild.yml` through `repository_dispatch`
-instead of downloading directly onto a RunPod volume. The workflow commits the
-model migration and creates a GitHub release; RunPod's GitHub integration then
-builds the Docker image on RunPod infrastructure and deploys it. Use
-`MODEL_IMAGE_REBUILD_WEBHOOK_URL` only when you have a custom builder service.
+For production, set `MODEL_IMAGE_REBUILD_PROVIDER=webhook` in `manager` with
+`MODEL_IMAGE_REBUILD_WEBHOOK_URL` and `MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN`.
+Model install requests then send the model migration payload to your private
+builder service instead of downloading directly onto a RunPod volume. Keep that
+builder private because the payload includes the model download URL, target
+path, and migration ID.
 
-GitHub Actions does not build or push Docker images in this setup. It only
-validates the migration, commits `generator/model-migrations/*.json`, renders
-`generator/Dockerfile`, and creates the `model-<buildTriggerId>` release that
-RunPod watches. Do not add Buildx, `docker build`, Docker Hub login, or image
-push steps unless you intentionally want to pay for external CI image builds.
+Do not use the GitHub provider for sensitive model installs in a public repo.
+`MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
+creates release tags in GitHub. That can reveal which models were installed to
+anyone who can see the repository history or releases. The GitHub provider now
+requires `MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true`; set it only for
+private repositories or non-sensitive model installs.
+
+GitHub Actions does not build or push Docker images in this setup. When the
+optional GitHub provider is explicitly enabled, it only validates the migration,
+commits `generator/model-migrations/*.json`, renders `generator/Dockerfile`,
+and creates the `model-<buildTriggerId>` release that RunPod watches. Do not add
+Buildx, `docker build`, Docker Hub login, or image push steps unless you
+intentionally want to pay for external CI image builds.
 
 The generator image uses `generator/model-migrations/*.json`; each migration is
 rendered as its own `COPY` plus `RUN` Docker layer pair so Docker cache reuses
 all previous model downloads and only downloads the newly added model. Configure the RunPod
 Serverless endpoint from the GitHub repository with `generator/Dockerfile` as
-the Dockerfile path; each release created by the workflow triggers RunPod's
-builder. The workflow reports the build trigger back through
+the Dockerfile path. A private builder should add one migration layer, trigger
+the RunPod image build, and report build status through
 `/api/v1/webhooks/model-image`; final build/deploy status is visible in RunPod's
 Builds tab. Manager also polls RunPod's endpoint builds once per minute when
 `RUNPOD_API_KEY`, `RUNPOD_GENERATOR_ID`, and
 `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are configured, so normal RunPod
-GitHub builds move through Pending, Building, Uploading, Testing, Completed, and
+RunPod builds move through Pending, Building, Uploading, Testing, Completed, and
 Failed without a manual callback.
 
 If you disable polling or use a custom builder, post the final status to manager.
@@ -167,8 +173,8 @@ Before enabling this in production, run:
 bun run verify:pipeline:full
 ```
 
-After setting real GitHub and RunPod credentials, verify the external wiring
-without printing secrets:
+If you intentionally use the optional GitHub provider in a private repo, verify
+the external wiring without printing secrets:
 
 ```bash
 cd manager
@@ -188,8 +194,8 @@ cd manager
 bun run check:external-pipeline -- --dispatch-dry-run --wait
 ```
 
-After a real model install creates a release such as `model-<buildTriggerId>`,
-verify the release and matching RunPod build record:
+If the optional GitHub provider creates a release such as
+`model-<buildTriggerId>`, verify the release and matching RunPod build record:
 
 ```bash
 cd manager

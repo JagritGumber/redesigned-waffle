@@ -3,6 +3,7 @@ import { DrizzleD1Database } from "drizzle-orm/d1";
 export interface ContextForHono {
   Bindings: CloudflareBindings & {
     MODEL_IMAGE_REBUILD_PROVIDER?: string;
+    MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA?: string;
     MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY?: string;
     MODEL_IMAGE_REBUILD_GITHUB_TOKEN?: string;
     MODEL_IMAGE_REBUILD_WEBHOOK_URL?: string;

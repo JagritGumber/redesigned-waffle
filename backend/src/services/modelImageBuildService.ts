@@ -2,6 +2,7 @@ import { ModelTypes } from "@/types/models";
 
 export type ModelImageBuildEnv = {
   MODEL_IMAGE_REBUILD_PROVIDER?: string;
+  MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA?: string;
   MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY?: string;
   MODEL_IMAGE_REBUILD_GITHUB_TOKEN?: string;
   MODEL_IMAGE_REBUILD_WEBHOOK_URL?: string;
@@ -45,6 +46,12 @@ export async function triggerModelImageBuild(
   };
 
   if (env.MODEL_IMAGE_REBUILD_PROVIDER === "github") {
+    if (env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA !== "true") {
+      throw new Error(
+        "MODEL_IMAGE_REBUILD_PROVIDER=github writes model migration metadata to GitHub. Set MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true only for private repos or non-sensitive installs."
+      );
+    }
+
     const repository = env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
     const token = env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
 
