@@ -65,6 +65,27 @@ def generate_image_a1111(inference_request):
         raise  # Re-raise the exception after logging
 
 
+def generate_prompt(inference_request):
+    """
+    Build a deterministic safe-for-work prompt from user-provided seed tags.
+    This keeps the self-host pipeline functional without an external LLM.
+    """
+    raw_prompt = (inference_request or {}).get("prompt", "")
+    tokens = [
+        token.strip()
+        for token in raw_prompt.split(",")
+        if token.strip() and token.strip().lower() != "undefined"
+    ]
+    additions = [
+        "safe-for-work",
+        "studio lighting",
+        "clean composition",
+        "high detail",
+    ]
+    generated = ", ".join(dict.fromkeys([*tokens, *additions]))
+    return {"generated_prompt": generated}
+
+
 # ---------------------------------------------------------------------------- #
 #                                RunPod Handler                                #
 # ---------------------------------------------------------------------------- #
@@ -78,6 +99,8 @@ def handler(event):
 
     if job_type == "generate_image":
         result = generate_image_a1111(request_data)
+    elif job_type == "generate_prompt":
+        result = generate_prompt(request_data)
     else:
         raise ValueError(f"Unknown job_type: {job_type}")
 

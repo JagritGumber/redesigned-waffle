@@ -9,6 +9,7 @@
     "verify:account-scoped-models": "bun scripts/verifyAccountScopedModels.ts",
     "verify:model-install-lifecycle": "bun test tests/civitaiModelInstallLifecycle.test.ts",
     "verify:generation-model-readiness": "bun test tests/generatorModelReadiness.test.ts",
+    "verify:generator-prompt-workflow": "bun test tests/generatorPromptWorkflow.test.ts",
     "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",
     "check:readiness": "bun scripts/checkSelfHostReadiness.ts",
     "migrations:generate": "bunx drizzle-kit generate",

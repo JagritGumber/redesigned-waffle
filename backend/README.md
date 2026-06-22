@@ -53,7 +53,9 @@ tokens in `wrangler.jsonc`.
 
 For Solid compatibility, image generation is available at
 `/api/v1/generator/generate-image`. The older Worker-only
-`/api/v1/generator/generate` route remains as an alias.
+`/api/v1/generator/generate` route remains as an alias. Prompt generation uses
+the same Solid-compatible routes as `manager`: `/api/v1/generator/generate-prompt`
+and `/api/v1/generator/prompt-status/:id`.
 
 Treat `backend/.dev.vars.example` as the source of variable names only. The real
 local file is `backend/.dev.vars`, and it must stay uncommitted. For production,

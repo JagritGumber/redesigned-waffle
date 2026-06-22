@@ -131,6 +131,9 @@ Required GitHub repository secrets:
 ## Usage
 
 The `input` object accepts any valid parameter for the Automatic1111 `/sdapi/v1/txt2img` endpoint. Refer to the [Automatic1111 API Documentation](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API) for a full list of available parameters (like `seed`, `sampler_name`, `batch_size`, `styles`, `override_settings`, etc.).
+The worker also accepts `job_type: "generate_prompt"` and returns a deterministic
+safe-for-work prompt expansion as `generated_prompt`, so self-host installs do
+not require a separate LLM service for the Solid prompt helper.
 
 ### Example Request
 

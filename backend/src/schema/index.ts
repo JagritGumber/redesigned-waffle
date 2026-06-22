@@ -55,6 +55,10 @@ export {
   generatorJobs,
 } from "./generatorJob";
 export type { InsertGeneratorJob, SelectGeneratorJob } from "./generatorJob";
+export {
+  generatorPrompts,
+} from "./generatorPrompt";
+export type { InsertGeneratorPrompt, SelectGeneratorPrompt } from "./generatorPrompt";
 
 export {
   postTemplates,

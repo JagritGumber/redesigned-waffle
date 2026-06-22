@@ -92,6 +92,13 @@
       "when": 1781971200000,
       "tag": "0012_model_install_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1782057600000,
+      "tag": "0013_generator_prompts",
+      "breakpoints": true
     }
   ]
 }

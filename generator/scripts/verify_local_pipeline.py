@@ -26,6 +26,7 @@ FAST_CHECKS = [
             "generator/scripts/verify_model_image_workflow.py",
             "generator/scripts/verify_self_host_contract.py",
             "generator/scripts/verify_local_pipeline.py",
+            "generator/src/handler.py",
         ],
         ROOT,
     ),
@@ -108,6 +109,11 @@ FAST_CHECKS = [
     (
         "worker generation model readiness",
         ["bun", "run", "verify:generation-model-readiness"],
+        ROOT / "backend",
+    ),
+    (
+        "worker generator prompt workflow",
+        ["bun", "run", "verify:generator-prompt-workflow"],
         ROOT / "backend",
     ),
     (

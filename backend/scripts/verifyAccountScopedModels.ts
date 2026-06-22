@@ -72,6 +72,10 @@ for (const snippet of [
   "const userId = getRequiredUserId(c)",
   ".post(\"/generate-image\"",
   ".post(\"/generate\"",
+  ".post(\"/generate-prompt\"",
+  ".get(\"/prompt-status/:id\"",
+  "generatorPrompts",
+  "eq(prompts.userId, userId)",
   "uniqueRequestedModelIds",
   "eq(civitaiModelInstalls.userId, userId)",
   "inArray(civitaiModelInstalls.civitaiModelId, uniqueRequestedModelIds)",
@@ -107,10 +111,13 @@ assert(
 );
 assert(
   webhookRouter.includes("update(civitaiModelInstalls)") &&
+    webhookRouter.includes("generatorPrompts") &&
+    webhookRouter.includes("generate_prompt") &&
+    webhookRouter.includes("generated_prompt") &&
     webhookRouter.includes("buildTriggerId") &&
     webhookRouter.includes("eq(civitaiModelInstalls.runpodJobId, runpodJobId)") &&
     webhookRouter.includes("eq(civitaiModelInstalls.userId, input.user_id)"),
-  "Worker webhooks should update per-user install rows.",
+  "Worker webhooks should update per-user install rows and prompt jobs.",
 );
 assert(
   webhookRouter.includes("DELETE ALL webhook") &&

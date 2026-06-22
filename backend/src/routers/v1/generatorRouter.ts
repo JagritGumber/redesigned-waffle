@@ -1,7 +1,13 @@
 import { Hono } from "hono";
 
 import { and, eq, inArray } from "drizzle-orm";
-import { civitaiModelInstalls, generatorJobs, InsertGeneratorJob } from "@/schema";
+import {
+  civitaiModelInstalls,
+  generatorJobs,
+  generatorPrompts,
+  InsertGeneratorJob,
+  InsertGeneratorPrompt,
+} from "@/schema";
 
 import runpodSdk from "runpod-sdk";
 import { ContextForHono } from "@/types/context";
@@ -11,6 +17,8 @@ import { Value } from "@sinclair/typebox/value";
 import {
   GenerateRequestPayload,
   GenerateRequestPayloadType,
+  GeneratePromptRequestPayload,
+  GeneratePromptRequestPayloadType,
 } from "@/validators/generation";
 
 async function handleGenerateImage(c: any) {
@@ -371,6 +379,123 @@ const generatorRouter = new Hono<ContextForHono>()
   .use("*", verifyAuth())
   .post("/generate-image", handleGenerateImage)
   .post("/generate", handleGenerateImage)
+  .post("/generate-prompt", async (c) => {
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
+    }
+
+    const { RUNPOD_API_KEY, RUNPOD_GENERATOR_ID, RUNPOD_WEBHOOK_URL } = c.env;
+    const db = c.get("db");
+
+    if (!RUNPOD_API_KEY || !RUNPOD_GENERATOR_ID || !RUNPOD_WEBHOOK_URL || !db) {
+      console.error(
+        "Server configuration error: Missing required environment variables or database binding."
+      );
+      return c.json(
+        { status: "error", message: "Server configuration error: Required resources not available." },
+        500,
+      );
+    }
+
+    let clientInput: GeneratePromptRequestPayloadType;
+    try {
+      clientInput = await c.req.json();
+      Value.Assert(GeneratePromptRequestPayload, clientInput);
+    } catch (e: any) {
+      return c.json(
+        {
+          status: "error",
+          message: "Invalid JSON body.",
+          e: JSON.stringify(e),
+        },
+        400,
+      );
+    }
+
+    const newDbJobId = crypto.randomUUID();
+    const initialJobRecord: InsertGeneratorPrompt = {
+      id: newDbJobId,
+      userId,
+      status: "PENDING",
+      inputPayload: clientInput,
+    };
+
+    try {
+      await db.insert(generatorPrompts).values(initialJobRecord);
+    } catch (dbInsertError: any) {
+      console.error(
+        `Failed to insert initial DB prompt record ${newDbJobId}: ${dbInsertError.message}`,
+        dbInsertError,
+      );
+      return c.json({ status: "error", message: "Internal error recording prompt request." }, 500);
+    }
+
+    try {
+      const runpod = runpodSdk(RUNPOD_API_KEY);
+      const endpoint = runpod.endpoint(RUNPOD_GENERATOR_ID);
+      const triggeredJob = await endpoint!.run({
+        input: {
+          job_type: "generate_prompt",
+          data: {
+            prompt: clientInput.prompt,
+          },
+        },
+        webhook: `${RUNPOD_WEBHOOK_URL}/generator`,
+      });
+
+      if (!triggeredJob?.id) {
+        const message = `RunPod endpoint.run did not return a job ID for DB prompt ${newDbJobId}.`;
+        await db
+          .update(generatorPrompts)
+          .set({
+            status: "FAILED",
+            errorMessage: message,
+            errorDetails: triggeredJob ?? null,
+          })
+          .where(eq(generatorPrompts.id, newDbJobId));
+        return c.json({ status: "error", message: "Failed to trigger RunPod prompt job." }, 500);
+      }
+
+      await db
+        .update(generatorPrompts)
+        .set({
+          runpodJobId: triggeredJob.id,
+          status: "RUNNING",
+        })
+        .where(eq(generatorPrompts.id, newDbJobId));
+
+      return c.json(
+        {
+          status: "accepted",
+          message: "Prompt generation job initiated.",
+          db_job_id: newDbJobId,
+          runpod_job_id: triggeredJob.id,
+        },
+        202,
+      );
+    } catch (error: any) {
+      await db
+        .update(generatorPrompts)
+        .set({
+          status: "FAILED",
+          errorMessage: `API Handler error during RunPod prompt triggering: ${error.message}`,
+          errorDetails: {
+            stack: error.stack,
+            message: error.message,
+          },
+        })
+        .where(eq(generatorPrompts.id, newDbJobId));
+
+      return c.json(
+        {
+          status: "error",
+          message: "Internal server error while initiating prompt job.",
+        },
+        500,
+      );
+    }
+  })
   .get("/images", async (c) => {
     const db = c.get("db");
     const userId = getRequiredUserId(c);
@@ -500,6 +625,55 @@ const generatorRouter = new Hono<ContextForHono>()
           error: e instanceof Error ? e?.message : JSON.stringify(e),
         },
         500
+      );
+    }
+  })
+  .get("/prompt-status/:id", async (c) => {
+    const db = c.get("db");
+    const userId = getRequiredUserId(c);
+    if (!userId) {
+      return c.json({ status: "error", message: "Authentication required." }, 401);
+    }
+
+    if (!db) {
+      return c.json(
+        { status: "error", message: "Server configuration error: Database not available." },
+        500,
+      );
+    }
+
+    try {
+      const id = c.req.param("id");
+      const job = await db.query.generatorPrompts.findFirst({
+        where: (prompts, { and, eq }) => and(eq(prompts.id, id), eq(prompts.userId, userId)),
+      });
+
+      if (!job) {
+        return c.json({ status: "error", message: "Prompt generation job not found." }, 404);
+      }
+
+      return c.json({
+        status: "success",
+        message: "Successfully fetched prompt generation job status.",
+        job: {
+          id: job.id,
+          status: job.status,
+          outputPayload: job.outputPayload,
+          errorMessage: job.errorMessage,
+          errorDetails: job.errorDetails,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          completedAt: job.completedAt,
+        },
+      });
+    } catch (error: any) {
+      return c.json(
+        {
+          status: "error",
+          message: "Internal server error while fetching prompt generation job status.",
+          error: error.message,
+        },
+        500,
       );
     }
   });

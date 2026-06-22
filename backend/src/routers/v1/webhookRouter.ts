@@ -6,7 +6,9 @@ import {
   civitaiModelInstalls,
   civitaiModels,
   generatorJobs,
+  generatorPrompts,
   InsertGeneratorJob,
+  InsertGeneratorPrompt,
 } from "@/schema"; // Import civitaiModels
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
@@ -15,9 +17,14 @@ import { resolveModelImageWebhookState } from "@/services/modelImageStatusServic
 type RunPodWebhookPayload = {
   id: string; // RunPod Job ID
   status: string; // RunPod job status (COMPLETED, FAILED, RUNNING, etc.)
+  input?: {
+    job_type?: "generate_image" | "generate_prompt";
+  };
   output?: {
     images: string[]; // Base64 images with no prefix, need to add data:image/png;base64, prefix
     info: string; // actually a json of @type InfoParsedResult
+    generated_prompt?: string;
+    message?: string;
   };
   error?: any; // Error details provided by RunPod if the job failed before your handler returned
   // Add other fields from RunPod's webhook payload if needed (e.g., executionTime)
@@ -312,32 +319,37 @@ const webhookRouter = new Hono<ContextForHono>()
         status: runpodJobStatus, // This is the RunPod job status from the image
         output,
         error,
+        input,
       } = payload;
+      const jobType = input?.job_type ?? "generate_image";
 
       // Log the *actual* RunPod status received
       console.log(
-        `Received RunPod webhook for generator job ${runpodJobId}. RunPod Status: ${runpodJobStatus}`
+        `Received RunPod webhook for generator job ${runpodJobId}. Type: ${jobType}, RunPod Status: ${runpodJobStatus}`
       );
       // console.debug("Webhook payload:", JSON.stringify(payload)); // Keep for detailed debugging if needed
 
       // Find the corresponding job record in your database using the RunPod Job ID
-      const dbJob = await db.query.generatorJobs.findFirst({
-        where: (jobs, { eq }) => eq(jobs.runpodJobId, runpodJobId),
-      });
+      const dbJob =
+        jobType === "generate_prompt"
+          ? await db.query.generatorPrompts.findFirst({
+              where: (prompts, { eq }) => eq(prompts.runpodJobId, runpodJobId),
+            })
+          : await db.query.generatorJobs.findFirst({
+              where: (jobs, { eq }) => eq(jobs.runpodJobId, runpodJobId),
+            });
 
       if (!dbJob) {
         console.warn(
-          `Received webhook for unknown RunPod job ID ${runpodJobId}. Ignoring.`
+          `Received webhook for unknown RunPod job ID ${runpodJobId} for job_type ${jobType}. Ignoring.`
         );
         // Return 200 OK anyway, so RunPod doesn't keep retrying a webhook for a job we don't track
         return c.text("OK", 200);
       }
 
-      const updateData: Partial<InsertGeneratorJob> = {
+      const updateData: Partial<InsertGeneratorJob | InsertGeneratorPrompt> = {
         updatedAt: new Date(), // Always update timestamp on webhook
         // Initialize result/error fields to null unless populated below
-        generationInfo: null,
-        imageKey: null,
         errorMessage: null,
         errorDetails: null,
         completedAt: null, // Only set for COMPLETED
@@ -349,14 +361,29 @@ const webhookRouter = new Hono<ContextForHono>()
         updateData.status = "COMPLETED";
         updateData.completedAt = new Date(); // Record completion time
 
-        // --- Start processing successful output (parse info and upload images) ---
-        try {
+        if (jobType === "generate_prompt") {
+          if (output?.generated_prompt) {
+            (updateData as Partial<InsertGeneratorPrompt>).outputPayload = {
+              generated_prompt: output.generated_prompt,
+            };
+          } else {
+            updateData.status = "FAILED";
+            updateData.completedAt = null;
+            updateData.errorMessage =
+              "RunPod reported COMPLETED status but no generated prompt was found in output.";
+            updateData.errorDetails = output || "No output details";
+          }
+        } else {
+          (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+          (updateData as Partial<InsertGeneratorJob>).imageKey = null;
+
+          try {
           // 1. Parse Info (should be stringified JSON in output.info)
           let parsedInfo: InfoParsedResult | null = null;
           if (output?.info && typeof output.info === "string") {
             try {
               parsedInfo = JSON.parse(output.info);
-              updateData.generationInfo = parsedInfo; // Store parsed info object
+              (updateData as Partial<InsertGeneratorJob>).generationInfo = parsedInfo; // Store parsed info object
             } catch (parseError) {
               console.error(
                 `Failed to parse info string for job ${dbJob.id} (RunPod ${runpodJobId}):`,
@@ -434,9 +461,8 @@ const webhookRouter = new Hono<ContextForHono>()
                 }).`;
                 updateData.errorDetails =
                   uploadError.message || JSON.stringify(uploadError);
-                updateData.generationInfo = parsedInfo; // Keep info if parsed? Or discard? Discarding is cleaner for FAILED.
-                updateData.generationInfo = null;
-                updateData.imageKey = null; // Don't store partial URLs
+                (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+                (updateData as Partial<InsertGeneratorJob>).imageKey = null; // Don't store partial URLs
                 // Stop processing further images for this job
                 break;
               }
@@ -444,7 +470,7 @@ const webhookRouter = new Hono<ContextForHono>()
 
             // If we went through the loop and the status is still COMPLETED, all images succeeded (or were skipped if invalid data)
             if (updateData.status === "COMPLETED") {
-              updateData.imageKey = uploadedImageUrls[0]; // Store the collected URLs
+              (updateData as Partial<InsertGeneratorJob>).imageKey = uploadedImageUrls[0]; // Store the collected URLs
               console.log(
                 `Finished processing images for DB job ${dbJob.id} (RunPod ${runpodJobId}). Stored ${uploadedImageUrls.length} URLs.`
               );
@@ -461,9 +487,9 @@ const webhookRouter = new Hono<ContextForHono>()
               "RunPod reported COMPLETED status but no images were found in output.";
             updateData.errorDetails = output || "No output details";
             // Keep parsed info if available? Let's discard for FAILED state consistency.
-            updateData.generationInfo = null;
+            (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
           }
-        } catch (processingError: any) {
+          } catch (processingError: any) {
           // Catch critical errors during the COMPLETED state processing block (e.g., R2 config missing)
           console.error(
             `Critical processing error for job ${dbJob.id} (RunPod ${runpodJobId}) during COMPLETED state handling:`,
@@ -474,8 +500,9 @@ const webhookRouter = new Hono<ContextForHono>()
           updateData.errorMessage = `Internal webhook processing error during COMPLETED state: ${processingError.message}`;
           updateData.errorDetails =
             processingError.message || JSON.stringify(processingError);
-          updateData.generationInfo = null;
-          updateData.imageKey = null;
+          (updateData as Partial<InsertGeneratorJob>).generationInfo = null;
+          (updateData as Partial<InsertGeneratorJob>).imageKey = null;
+          }
         }
         // --- End processing successful output ---
       } else if (runpodJobStatus === "FAILED") {
@@ -522,10 +549,17 @@ const webhookRouter = new Hono<ContextForHono>()
 
       // Update the database record with the determined status and results/errors
       try {
-        await db
-          .update(generatorJobs)
-          .set(updateData)
-          .where(eq(generatorJobs.id, dbJob.id));
+        if (jobType === "generate_prompt") {
+          await db
+            .update(generatorPrompts)
+            .set(updateData as Partial<InsertGeneratorPrompt>)
+            .where(eq(generatorPrompts.id, dbJob.id));
+        } else {
+          await db
+            .update(generatorJobs)
+            .set(updateData as Partial<InsertGeneratorJob>)
+            .where(eq(generatorJobs.id, dbJob.id));
+        }
         console.log(
           `DB job record ${dbJob.id} updated from webhook (Final Status: ${updateData.status}).`
         );
