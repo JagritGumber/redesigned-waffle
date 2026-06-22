@@ -26,7 +26,13 @@ export const useDownloadModel = (
         installStatus?: string | null;
         statusMessage?: string | null;
         buildTriggerId?: string | null;
+        civitaiFileId?: number | null;
         runpodJobId?: string;
+        imageName?: string | null;
+        runpodPath?: string | null;
+        downloadCompletedAt?: string | number | Date | null;
+        buildTriggeredAt?: string | number | Date | null;
+        deployedAt?: string | number | Date | null;
       }>(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/model`,
         {

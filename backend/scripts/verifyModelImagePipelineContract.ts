@@ -1,5 +1,6 @@
 import { triggerModelImageBuild } from "../src/services/modelImageBuildService";
 import { buildMatchesInstall } from "../src/services/runpodBuildStatusService";
+import { readFileSync } from "node:fs";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -21,6 +22,31 @@ globalThis.fetch = (async (url, init) => {
 }) as typeof fetch;
 
 try {
+  const modelRouter = readFileSync("src/routers/v1/modelRouter.ts", "utf-8");
+  const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
+
+  for (const field of [
+    "installStatus",
+    "statusMessage",
+    "buildTriggerId",
+    "civitaiFileId",
+    "imageName",
+    "runpodPath",
+    "downloadCompletedAt",
+    "buildTriggeredAt",
+    "deployedAt",
+  ]) {
+    assert(
+      modelRouter.includes(`${field}: result.${field}`),
+      `Worker model install response should expose ${field}.`,
+    );
+    assert(
+      civitaiService.includes(`${field}: accountInstall?.${field}`) ||
+        (field === "installStatus" && civitaiService.includes("installStatus: accountInstall?.status")),
+      `Worker Civitai service should return account install ${field}.`,
+    );
+  }
+
   const result = await triggerModelImageBuild(
     {
       MODEL_IMAGE_REBUILD_PROVIDER: "github",

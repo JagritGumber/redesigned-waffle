@@ -10,6 +10,7 @@ const statusComponent = readFileSync("src/components/model-install-status.tsx", 
 const downloadedHook = readFileSync("src/hooks/useDownloadedModels.ts", "utf-8");
 const installedHook = readFileSync("src/hooks/useInstalledModel.ts", "utf-8");
 const generationModelsHook = readFileSync("src/hooks/useGenerationModels.ts", "utf-8");
+const downloadHook = readFileSync("src/hooks/useDownloadModel.ts", "utf-8");
 const modelCard = readFileSync("src/components/model-card.tsx", "utf-8");
 const modelList = readFileSync("src/components/model-list.tsx", "utf-8");
 const detailRoute = readFileSync("src/routes/models.$id.$vId.tsx", "utf-8");
@@ -48,6 +49,15 @@ assert(
     downloadedHook.includes("5000") &&
     downloadedHook.includes("withCredentials: true"),
   "Downloaded models list should poll while any account install is active.",
+);
+assert(
+  downloadHook.includes("installStatus?: string | null") &&
+    downloadHook.includes("statusMessage?: string | null") &&
+    downloadHook.includes("buildTriggerId?: string | null") &&
+    downloadHook.includes("civitaiFileId?: number | null") &&
+    downloadHook.includes("imageName?: string | null") &&
+    downloadHook.includes("runpodPath?: string | null"),
+  "Download mutation should type the immediate model install lifecycle response.",
 );
 assert(
   installedHook.includes("isActiveModelInstall") &&

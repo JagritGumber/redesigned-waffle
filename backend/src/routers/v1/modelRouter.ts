@@ -168,6 +168,15 @@ const modelRouter = new Hono<ContextForHono>()
             runpodJobId: result.runpodJobId,
             civitaiId: result.id,
             dbModelId: result.dbModelId,
+            installStatus: result.installStatus,
+            statusMessage: result.statusMessage,
+            buildTriggerId: result.buildTriggerId,
+            civitaiFileId: result.civitaiFileId,
+            imageName: result.imageName,
+            runpodPath: result.runpodPath,
+            downloadCompletedAt: result.downloadCompletedAt,
+            buildTriggeredAt: result.buildTriggeredAt,
+            deployedAt: result.deployedAt,
             errors: result.errors, // Include any non-critical errors
           },
           result.status === "PARTIAL_SUCCESS" ? 200 : 200
