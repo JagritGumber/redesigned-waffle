@@ -120,9 +120,18 @@ assert(
   "Worker webhooks should update per-user install rows and prompt jobs.",
 );
 assert(
+  webhookRouter.includes("Model install status set to DELETED") &&
+    webhookRouter.includes("Model install status set to DELETE_FAILED") &&
+    !webhookRouter.includes("db.query.civitaiModels.findFirst") &&
+    !webhookRouter.includes("Model status set to DELETED") &&
+    !webhookRouter.includes("Model status set to DELETE_FAILED"),
+  "Worker single-delete webhook should update install rows without depending on global model metadata.",
+);
+assert(
   webhookRouter.includes("DELETE ALL webhook") &&
     webhookRouter.includes(".where(eq(civitaiModelInstalls.userId, input.user_id))") &&
-    !webhookRouter.includes("await db.delete(civitaiModelInstalls);"),
+    !webhookRouter.includes("await db.delete(civitaiModelInstalls);") &&
+    !webhookRouter.includes("Error updating all models status to DELETED"),
   "Worker deleteAll webhook must not delete all account install rows globally.",
 );
 

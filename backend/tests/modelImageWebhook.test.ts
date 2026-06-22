@@ -6,9 +6,34 @@ import { Hono } from "hono";
 import webhookRouter from "@/routers/v1/webhookRouter";
 import { civitaiModelInstalls } from "@/schema/modelInstall";
 import { civitaiFiles } from "@/schema/modelFiles";
+import { civitaiModels } from "@/schema/models";
 
 const client = new Database(":memory:");
 const db = drizzle(client);
+
+db.run(sql`
+  CREATE TABLE civitaiModel (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    type TEXT NOT NULL,
+    nsfw INTEGER NOT NULL,
+    tags TEXT NOT NULL,
+    mode TEXT,
+    creatorId INTEGER NOT NULL,
+    createdAt INTEGER,
+    updatedAt INTEGER,
+    defaultWeight REAL DEFAULT 0.6,
+    status TEXT,
+    statusMessage TEXT,
+    runpodJobId TEXT,
+    buildTriggerId TEXT,
+    imageName TEXT,
+    buildTriggeredAt INTEGER,
+    deployedAt INTEGER,
+    userId TEXT
+  )
+`);
 
 db.run(sql`
   CREATE TABLE civitaiModelInstall (
@@ -258,5 +283,118 @@ describe("Worker POST /webhooks/model-image", () => {
     expect(install.buildTriggerId).toBeTruthy();
     expect(install.downloadCompletedAt).toBeInstanceOf(Date);
     expect(install.buildTriggeredAt).toBeInstanceOf(Date);
+  });
+
+  it("marks only the account install deleted when a legacy delete callback completes", async () => {
+    await db.insert(civitaiModels).values({
+      id: 601,
+      name: "Worker shared delete test model",
+      description: "Shared global metadata.",
+      type: "Checkpoint",
+      nsfw: false,
+      tags: ["safe"],
+      creatorId: 1,
+      status: null,
+    });
+    await db.insert(civitaiModelInstalls).values([
+      {
+        id: "worker-delete-install-a",
+        userId: "worker-delete-user-a",
+        civitaiModelId: 601,
+        status: "READY",
+        runpodJobId: "worker-delete-job-a",
+      },
+      {
+        id: "worker-delete-install-b",
+        userId: "worker-delete-user-b",
+        civitaiModelId: 601,
+        status: "READY",
+        runpodJobId: "worker-delete-job-b",
+      },
+    ]);
+
+    const response = await postDownloaderWebhook({
+      id: "worker-delete-job-a",
+      status: "COMPLETED",
+      output: { status: "COMPLETED" },
+      input: {
+        action: "delete",
+        model_id: 601,
+        user_id: "worker-delete-user-a",
+      },
+    });
+
+    expect(response.status).toBe(200);
+
+    const [userAInstall] = await db
+      .select()
+      .from(civitaiModelInstalls)
+      .where(eq(civitaiModelInstalls.id, "worker-delete-install-a"));
+    const [userBInstall] = await db
+      .select()
+      .from(civitaiModelInstalls)
+      .where(eq(civitaiModelInstalls.id, "worker-delete-install-b"));
+    const [model] = await db
+      .select()
+      .from(civitaiModels)
+      .where(eq(civitaiModels.id, 601));
+
+    expect(userAInstall.status).toBe("DELETED");
+    expect(userAInstall.runpodJobId).toBeNull();
+    expect(userBInstall.status).toBe("READY");
+    expect(model.status).toBeNull();
+  });
+
+  it("deleteAll callback removes only the Worker account installs", async () => {
+    await db.insert(civitaiModels).values({
+      id: 602,
+      name: "Worker shared delete all test model",
+      description: "Shared global metadata.",
+      type: "Checkpoint",
+      nsfw: false,
+      tags: ["safe"],
+      creatorId: 1,
+      status: null,
+    });
+    await db.insert(civitaiModelInstalls).values([
+      {
+        id: "worker-delete-all-install-a",
+        userId: "worker-delete-all-user-a",
+        civitaiModelId: 602,
+        status: "READY",
+      },
+      {
+        id: "worker-delete-all-install-b",
+        userId: "worker-delete-all-user-b",
+        civitaiModelId: 602,
+        status: "READY",
+      },
+    ]);
+
+    const response = await postDownloaderWebhook({
+      id: "worker-delete-all-job-a",
+      status: "COMPLETED",
+      output: { status: "COMPLETED", storage_used: 0 },
+      input: {
+        action: "deleteAll",
+        user_id: "worker-delete-all-user-a",
+      },
+    });
+
+    expect(response.status).toBe(200);
+
+    const remainingInstalls = await db.select().from(civitaiModelInstalls);
+    const [model] = await db
+      .select()
+      .from(civitaiModels)
+      .where(eq(civitaiModels.id, 602));
+
+    expect(
+      remainingInstalls.some((install) => install.id === "worker-delete-all-install-a"),
+    ).toBe(false);
+    expect(
+      remainingInstalls.some((install) => install.id === "worker-delete-all-install-b"),
+    ).toBe(true);
+    expect(model.status).toBeNull();
   });
 });

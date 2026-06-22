@@ -4,12 +4,11 @@ import { and, eq } from "drizzle-orm";
 import {
   civitaiFiles,
   civitaiModelInstalls,
-  civitaiModels,
   generatorJobs,
   generatorPrompts,
   InsertGeneratorJob,
   InsertGeneratorPrompt,
-} from "@/schema"; // Import civitaiModels
+} from "@/schema";
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
 import { resolveModelImageWebhookState } from "@/services/modelImageStatusService";
@@ -238,7 +237,6 @@ const webhookRouter = new Hono<ContextForHono>()
       // SINGLE DELETE WEBHOOK LOGIC (action: 'delete')
       else if (input.action === "delete") {
         const modelId = input.model_id; // Get the model_id passed in the input
-        const savePath = input.save_path; // Get save_path from input
         const userId = input.user_id;
 
         if (modelId === undefined) {
@@ -250,30 +248,17 @@ const webhookRouter = new Hono<ContextForHono>()
           return c.text("Error: model_id missing in payload", 400); // Use 400 for bad request payload
         }
 
-        // Find the model record using the ID passed in the input
-        const modelRecord = await db.query.civitaiModels.findFirst({
-          where: (models, { eq }) => eq(models.id, modelId),
-        });
-
-        if (!modelRecord) {
-          console.warn(
-            `Could not find civitaiModel with ID ${modelId} for delete action (RunPod Job ID ${runpodJobId}). Model might have been deleted manually.`
-          );
-          // Model already deleted in DB, nothing to update. Return OK.
-          return c.text("OK", 200);
-        }
-
         // Update the model status based on the RunPod job result
         let newStatus: "COMPLETED" | "ERROR" | "DELETE_FAILED" | "DELETED"; // Define possible statuses
         let consoleMessage: string;
 
         if (actionStatus === "COMPLETED") {
           newStatus = "DELETED"; // Mark as DELETED in DB
-          consoleMessage = `File deletion COMPLETED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model status set to DELETED.`;
+          consoleMessage = `File deletion COMPLETED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model install status set to DELETED.`;
         } else {
           // actionStatus is "ERROR" or "FAILED" etc.
           newStatus = "DELETE_FAILED"; // Mark as DELETE_FAILED
-          consoleMessage = `File deletion FAILED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model status set to DELETE_FAILED. Error: ${
+          consoleMessage = `File deletion FAILED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model install status set to DELETE_FAILED. Error: ${
             output?.message || payload.error || "Unknown error"
           }`;
           console.error(consoleMessage);
@@ -341,7 +326,7 @@ const webhookRouter = new Hono<ContextForHono>()
             }
           } catch (dbError) {
             console.error(
-              `Error updating all models status to DELETED in webhook after deleteAll (RunPod job ID ${runpodJobId}):`,
+              `Error deleting account model installs in webhook after deleteAll (RunPod job ID ${runpodJobId}):`,
               dbError
             );
           }
