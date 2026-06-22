@@ -128,3 +128,28 @@ the Worker polls RunPod endpoint builds once per minute and updates model status
 from Pending, Building, Uploading, Testing, Completed, Failed, Cancelled, or
 Test Failed. If polling is disabled or you use a custom builder, call
 `/api/v1/webhooks/model-image` to mark the model ready or failed.
+
+## External Pipeline Check
+
+After deploying the Worker and setting real GitHub and RunPod credentials,
+verify the external wiring without printing secrets:
+
+```sh
+bun run check:external-pipeline
+```
+
+The default check is read-only. It verifies the public Worker health endpoint,
+the GitHub model-image workflow, and the RunPod generator endpoint. To prove
+`repository_dispatch` reaches GitHub without creating a migration commit,
+release, Docker build, RunPod hook, or Worker callback, run:
+
+```sh
+bun run check:external-pipeline -- --dispatch-dry-run --wait
+```
+
+After a real model install creates a release such as `model-<buildTriggerId>`,
+verify the GitHub release and matching RunPod build record:
+
+```sh
+bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
+```

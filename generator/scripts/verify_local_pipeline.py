@@ -92,6 +92,11 @@ FAST_CHECKS = [
         ROOT / "backend",
     ),
     (
+        "worker external model pipeline checker",
+        ["bun", "run", "verify:external-model-pipeline"],
+        ROOT / "backend",
+    ),
+    (
         "worker account-scoped models",
         ["bun", "run", "verify:account-scoped-models"],
         ROOT / "backend",

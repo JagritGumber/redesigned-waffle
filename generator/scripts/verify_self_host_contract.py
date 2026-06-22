@@ -9,6 +9,7 @@ FILES = {
     "solid env example": ROOT / "solid" / ".env.example",
     "worker env example": ROOT / "backend" / ".dev.vars.example",
     "worker package": ROOT / "backend" / "package.json",
+    "worker readme": ROOT / "backend" / "README.md",
     "workflow": ROOT / ".github" / "workflows" / "model-image-rebuild.yml",
     "readme": ROOT / "README.md",
     "operator pipeline": ROOT / "docs" / "operator-model-pipeline.md",
@@ -94,6 +95,16 @@ REQUIRED_OPERATOR_PIPELINE_SNIPPETS = [
     "Global model metadata must not be used as the source of truth",
 ]
 
+REQUIRED_WORKER_DOC_SNIPPETS = [
+    "External Pipeline Check",
+    "bun run check:external-pipeline",
+    "--dispatch-dry-run --wait",
+    "--verify-release model-<buildTriggerId>",
+    "without printing secrets",
+    "public Worker health endpoint",
+    "RunPod generator endpoint",
+]
+
 FORBIDDEN_OPERATOR_PIPELINE_SNIPPETS = [
     "`QUEUED`",
     "`DOWNLOADED`",
@@ -124,6 +135,7 @@ def main() -> None:
     solid_env = read("solid env example")
     worker_env = read("worker env example")
     worker_package = read("worker package")
+    worker_readme = read("worker readme")
     workflow = read("workflow")
     operator_pipeline = read("operator pipeline")
     docs = read("readme") + "\n" + read("generator readme")
@@ -132,7 +144,12 @@ def main() -> None:
     assert_keys("solid/.env.example", solid_env, REQUIRED_SOLID_KEYS)
     assert_keys("backend/.dev.vars.example", worker_env, REQUIRED_WORKER_KEYS)
 
-    for snippet in ["check:readiness", "verify:self-host-readiness"]:
+    for snippet in [
+        "check:readiness",
+        "verify:self-host-readiness",
+        "check:external-pipeline",
+        "verify:external-model-pipeline",
+    ]:
         if snippet not in worker_package:
             fail(f"backend/package.json is missing script: {snippet}")
 
@@ -163,6 +180,12 @@ def main() -> None:
             "operator pipeline docs mention unsupported status snippets: "
             + ", ".join(forbidden_operator_docs)
         )
+
+    missing_worker_docs = [
+        snippet for snippet in REQUIRED_WORKER_DOC_SNIPPETS if snippet not in worker_readme
+    ]
+    if missing_worker_docs:
+        fail("worker docs are missing required snippets: " + ", ".join(missing_worker_docs))
 
     if "MODEL_IMAGE_REBUILD_PROVIDER=github" not in manager_env:
         fail("manager/.env.example should default model image rebuilds to GitHub provider.")
