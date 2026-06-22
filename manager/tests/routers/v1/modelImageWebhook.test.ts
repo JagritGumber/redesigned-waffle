@@ -29,6 +29,24 @@ db.run(sql`
   )
 `);
 
+db.run(sql`
+  CREATE TABLE civitaiModel (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    type TEXT NOT NULL,
+    nsfw INTEGER NOT NULL,
+    tags TEXT NOT NULL,
+    mode TEXT,
+    creatorId INTEGER NOT NULL,
+    createdAt INTEGER,
+    updatedAt INTEGER,
+    defaultWeight REAL DEFAULT 0.6,
+    status TEXT,
+    runpodJobId TEXT
+  )
+`);
+
 mock.module("@/db", () => ({ default: db }));
 mock.module("@/s3", () => ({ default: { write: async () => undefined } }));
 mock.module("@/utils/updateStorageInfo", () => ({
@@ -60,6 +78,18 @@ async function postModelImageWebhook(body: unknown, token = "test-webhook-token"
     new Request("http://localhost/webhooks/model-image", {
       method: "POST",
       headers,
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+async function postDownloaderWebhook(body: unknown) {
+  return createApp().handle(
+    new Request("http://localhost/webhooks/runpod/downloader", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
     }),
   );
@@ -158,5 +188,114 @@ describe("POST /webhooks/model-image", () => {
     expect(install.status).toBe("BUILD_FAILED");
     expect(install.statusMessage).toBe("RunPod build failed during testing.");
     expect(install.deployedAt).toBeNull();
+  });
+
+  it("marks only the account install deleted when a legacy delete callback completes", async () => {
+    await db.insert(schema.civitaiModels).values({
+      id: 201,
+      name: "Shared delete test model",
+      description: "Shared global metadata.",
+      type: "Checkpoint",
+      nsfw: false,
+      tags: ["safe"],
+      creatorId: 1,
+      status: null,
+    });
+    await db.insert(schema.civitaiModelInstalls).values([
+      {
+        id: "delete-install-a",
+        userId: "delete-user-a",
+        civitaiModelId: 201,
+        status: "READY",
+        runpodJobId: "delete-job-a",
+      },
+      {
+        id: "delete-install-b",
+        userId: "delete-user-b",
+        civitaiModelId: 201,
+        status: "READY",
+        runpodJobId: "delete-job-b",
+      },
+    ]);
+
+    const response = await postDownloaderWebhook({
+      id: "delete-job-a",
+      status: "COMPLETED",
+      output: { status: "COMPLETED" },
+      input: {
+        action: "delete",
+        model_id: 201,
+        user_id: "delete-user-a",
+      },
+    });
+
+    expect(response.status).toBe(200);
+
+    const [userAInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.id, "delete-install-a"));
+    const [userBInstall] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.id, "delete-install-b"));
+    const [model] = await db
+      .select()
+      .from(schema.civitaiModels)
+      .where(eq(schema.civitaiModels.id, 201));
+
+    expect(userAInstall.status).toBe("DELETED");
+    expect(userAInstall.runpodJobId).toBeNull();
+    expect(userBInstall.status).toBe("READY");
+    expect(model.status).toBeNull();
+  });
+
+  it("deleteAll callback removes only the account installs", async () => {
+    await db.insert(schema.civitaiModels).values({
+      id: 202,
+      name: "Shared delete all test model",
+      description: "Shared global metadata.",
+      type: "Checkpoint",
+      nsfw: false,
+      tags: ["safe"],
+      creatorId: 1,
+      status: null,
+    });
+    await db.insert(schema.civitaiModelInstalls).values([
+      {
+        id: "delete-all-install-a",
+        userId: "delete-all-user-a",
+        civitaiModelId: 202,
+        status: "READY",
+      },
+      {
+        id: "delete-all-install-b",
+        userId: "delete-all-user-b",
+        civitaiModelId: 202,
+        status: "READY",
+      },
+    ]);
+
+    const response = await postDownloaderWebhook({
+      id: "delete-all-job-a",
+      status: "COMPLETED",
+      output: { status: "COMPLETED", storage_used: 0 },
+      input: {
+        action: "deleteAll",
+        user_id: "delete-all-user-a",
+      },
+    });
+
+    expect(response.status).toBe(200);
+
+    const remainingInstalls = await db.select().from(schema.civitaiModelInstalls);
+    const [model] = await db
+      .select()
+      .from(schema.civitaiModels)
+      .where(eq(schema.civitaiModels.id, 202));
+
+    expect(remainingInstalls.some((install) => install.id === "delete-all-install-a")).toBe(false);
+    expect(remainingInstalls.some((install) => install.id === "delete-all-install-b")).toBe(true);
+    expect(model.status).toBeNull();
   });
 });

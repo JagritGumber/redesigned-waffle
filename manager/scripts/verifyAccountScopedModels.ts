@@ -13,6 +13,7 @@ function source(path: string) {
 
 const modelRouter = source("src/routers/v1/modelRouter.ts");
 const generatorRouter = source("src/routers/v1/generatorRouter.ts");
+const webhookRouter = source("src/routers/v1/webhookRouter.ts");
 const modelInstallSchema = source("src/schema/modelInstall.ts");
 const generatorJobSchema = source("src/schema/generatorJob.ts");
 const authRouter = source("src/routers/v1/authRouter.ts");
@@ -59,6 +60,18 @@ assert(
   !modelRouter.includes("await db.update(civitaiModels).set({\n          status:") &&
     !modelRouter.includes("await db.delete(civitaiModels)"),
   "Model router should not update/delete global model rows for per-account install actions.",
+);
+assert(
+  webhookRouter.includes("user_id: t.Optional(t.String())") &&
+    webhookRouter.includes(".delete(civitaiModelInstalls)") &&
+    webhookRouter.includes("eq(civitaiModelInstalls.userId, input.user_id)") &&
+    webhookRouter.includes("eq(civitaiModelInstalls.userId, userId!)"),
+  "Legacy downloader delete callbacks should update/delete account install rows only.",
+);
+assert(
+  !webhookRouter.includes("await db.update(civitaiModels).set({\n                status: \"DELETED\"") &&
+    !webhookRouter.includes("All models in DB marked as DELETED"),
+  "Legacy downloader delete callbacks should not mark global Civitai model rows as deleted.",
 );
 
 assert(

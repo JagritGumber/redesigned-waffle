@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   civitaiFiles,
   civitaiModelInstalls,
@@ -37,6 +37,7 @@ const DownloaderWebhookPayloadSchema = t.Object({
     action: t.Union([t.Literal("delete"), t.Literal("download"), t.Literal("deleteAll")]),
     save_path: t.Optional(t.String()),
     model_id: t.Optional(t.Number()),
+    user_id: t.Optional(t.String()),
     civitai_file_id: t.Optional(t.Number()),
     db_file_id: t.Optional(t.Number()),
   }),
@@ -229,22 +230,17 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
           }
         } else if (input.action === "delete") {
           const modelId = input.model_id;
-          const savePath = input.save_path;
+          const userId = input.user_id;
 
           if (modelId === undefined) {
             set.status = 400;
             return "Error: model_id missing in payload";
           }
 
-          const modelRecord = await db.query.civitaiModels.findFirst({
-            where: (models, { eq }) => eq(models.id, modelId),
-          });
-
-          if (!modelRecord) {
+          if (!userId && !runpodJobId) {
             console.warn(
-              `Could not find civitaiModel with ID ${modelId} for delete action (RunPod Job ID ${runpodJobId}). Model might have been deleted manually.`
+              `Delete webhook for model ${modelId} did not include user_id or RunPod job id; skipped install status update.`
             );
-            set.status = 200;
             return "OK";
           }
 
@@ -253,34 +249,48 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
 
           if (actionStatus === "COMPLETED") {
             newStatus = "DELETED";
-            consoleMessage = `File deletion COMPLETED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model status set to DELETED.`;
+            consoleMessage = `File deletion COMPLETED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model install status set to DELETED.`;
           } else {
             newStatus = "DELETE_FAILED";
-            consoleMessage = `File deletion FAILED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model status set to DELETE_FAILED. Error: ${
+            consoleMessage = `File deletion FAILED for RunPod job ID ${runpodJobId} (Model ID ${modelId}). Model install status set to DELETE_FAILED. Error: ${
               output?.message || payload.error || "Unknown error"
             }`;
             console.error(consoleMessage);
           }
 
           await db
-            .update(civitaiModels)
+            .update(civitaiModelInstalls)
             .set({
               status: newStatus,
               runpodJobId: null,
               updatedAt: new Date(),
             })
-            .where(eq(civitaiModels.id, modelId));
+            .where(
+              runpodJobId
+                ? eq(civitaiModelInstalls.runpodJobId, runpodJobId)
+                : and(
+                    eq(civitaiModelInstalls.userId, userId!),
+                    eq(civitaiModelInstalls.civitaiModelId, modelId),
+                  ),
+            );
 
           console.log(consoleMessage);
         } else if (input.action === "deleteAll") {
           if (actionStatus === "COMPLETED") {
             try {
-              await db.update(civitaiModels).set({
-                status: "DELETED",
-                updatedAt: new Date(),
-              });
+              if (!input.user_id) {
+                console.warn(
+                  `DELETE ALL webhook for RunPod job ${runpodJobId} did not include user_id; skipped install deletion.`
+                );
+                set.status = 200;
+                return "OK";
+              }
+
+              await db
+                .delete(civitaiModelInstalls)
+                .where(eq(civitaiModelInstalls.userId, input.user_id));
               console.log(
-                `DELETE ALL COMPLETED (RunPod job ID ${runpodJobId}). All models in DB marked as DELETED.`
+                `DELETE ALL COMPLETED (RunPod job ID ${runpodJobId}). Account installs removed.`
               );
 
               const storageUpdateResult = await updateStorageInfo(
@@ -296,7 +306,7 @@ export const webhookRouter = new Elysia({ prefix: "/webhooks" })
               }
             } catch (dbError) {
               console.error(
-                `Error updating all models status to DELETED in webhook after deleteAll (RunPod job ID ${runpodJobId}):`,
+                `Error deleting account model installs in webhook after deleteAll (RunPod job ID ${runpodJobId}):`,
                 dbError
               );
             }
