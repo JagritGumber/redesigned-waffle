@@ -145,8 +145,8 @@ const { registerOrUpdateCivitaiModel } = await import("@/services/civitaiService
 
 describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
   beforeAll(() => {
-    Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "webhook";
-    Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL = "https://builder.example.com/model-image-build";
+    Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "mirror";
+    Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = "D:/private/redesigned-waffle-deploy";
   });
 
   it("creates an account-scoped install and queues the cacheable Docker model build", async () => {

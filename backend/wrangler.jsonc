@@ -35,8 +35,7 @@
     "MODEL_IMAGE_RUNPOD_BUILD_POLLING": "true",
     "R2_PUBLIC_BUCKET_URL": "https://your-public-r2-bucket.example.com",
     "R2_BUCKET_NAME": "your-r2-bucket-name",
-    "MODEL_IMAGE_REBUILD_PROVIDER": "webhook",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_URL": "https://your-private-builder.example.com/model-image-build",
+    "MODEL_IMAGE_REBUILD_PROVIDER": "",
     "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA": "false",
     "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY": ""
   },

@@ -115,12 +115,12 @@ Marketplace browsing requests safe model listings by default. Backend model APIs
 
 ## Cacheable Model Installs
 
-For production, set `MODEL_IMAGE_REBUILD_PROVIDER=webhook` in `manager` with
-`MODEL_IMAGE_REBUILD_WEBHOOK_URL` and `MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN`.
-Model install requests then send the model migration payload to your private
-builder service instead of downloading directly onto a RunPod volume. Keep that
-builder private because the payload includes the model download URL, target
-path, and migration ID.
+For production, set `MODEL_IMAGE_REBUILD_PROVIDER=mirror` in `manager` with
+`MODEL_IMAGE_REBUILD_MIRROR_PATH` pointing at a private deploy mirror clone.
+Model install requests add a migration file inside that private mirror, render
+`generator/Dockerfile`, commit the change, and push the mirror branch that
+RunPod watches. The public repo stays free of model names, URLs, and migration
+history.
 
 Do not use the GitHub provider for sensitive model installs in a public repo.
 `MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
@@ -139,18 +139,18 @@ intentionally want to pay for external CI image builds.
 The generator image uses `generator/model-migrations/*.json`; each migration is
 rendered as its own `COPY` plus `RUN` Docker layer pair so Docker cache reuses
 all previous model downloads and only downloads the newly added model. Configure the RunPod
-Serverless endpoint from the GitHub repository with `generator/Dockerfile` as
-the Dockerfile path. A private builder should add one migration layer, trigger
-the RunPod image build, and report build status through
-`/api/v1/webhooks/model-image`; final build/deploy status is visible in RunPod's
+Serverless endpoint from the private deploy mirror with `generator/Dockerfile`
+as the Dockerfile path. RunPod builds after the mirror push; final build/deploy
+status is visible in RunPod's
 Builds tab. Manager also polls RunPod's endpoint builds once per minute when
 `RUNPOD_API_KEY`, `RUNPOD_GENERATOR_ID`, and
 `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are configured, so normal RunPod
-RunPod builds move through Pending, Building, Uploading, Testing, Completed, and
+builds move through Pending, Building, Uploading, Testing, Completed, and
 Failed without a manual callback.
 
-If you disable polling or use a custom builder, post the final status to manager.
-The Solid UI polls this install status while it is active:
+If you disable polling, post the final status to manager at
+`/api/v1/webhooks/model-image`. The Solid UI polls this install status while it
+is active:
 
 ```bash
 MANAGER_WEBHOOK_URL="$MANAGER_URL" \

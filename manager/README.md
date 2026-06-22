@@ -42,11 +42,12 @@ At minimum configure:
 
 Secret values include `RUNPOD_API_KEY`, `R2_ACCESS_KEY_ID`,
 `R2_SECRET_ACCESS_KEY`, `MODEL_IMAGE_REBUILD_GITHUB_TOKEN`,
-`MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN`, `MODEL_IMAGE_WEBHOOK_TOKEN`, OAuth client
+`MODEL_IMAGE_WEBHOOK_TOKEN`, OAuth client
 secrets, Civitai tokens, and Gemini/OpenAI-style API keys. Resource names and
 public URLs such as `RUNPOD_GENERATOR_ID`, `RUNPOD_DOWNLOADER_ID`,
-`MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY`, `R2_BUCKET_NAME`, and
-`R2_PUBLIC_BUCKET_URL` are configuration values, not bearer credentials.
+`MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY`, `MODEL_IMAGE_REBUILD_MIRROR_PATH`,
+`R2_BUCKET_NAME`, and `R2_PUBLIC_BUCKET_URL` are configuration values, not
+bearer credentials.
 
 ## Database
 

@@ -27,9 +27,9 @@ function printCheck(check: Check) {
   console.log(`${marker.padEnd(7)} ${check.name.padEnd(40)} ${check.detail}`);
 }
 
-const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "webhook";
+const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "mirror";
+const usesMirrorProvider = provider === "mirror";
 const usesGithubProvider = provider === "github";
-const usesCustomWebhook = hasValue("MODEL_IMAGE_REBUILD_WEBHOOK_URL");
 const pollingEnabled = Bun.env.MODEL_IMAGE_RUNPOD_BUILD_POLLING !== "false";
 
 const checks: Check[] = [
@@ -45,9 +45,14 @@ const checks: Check[] = [
   required("MODEL_IMAGE_WEBHOOK_TOKEN", "Shared token for model-image build callbacks."),
   {
     name: "MODEL_IMAGE_REBUILD_PROVIDER",
-    ok: usesGithubProvider || usesCustomWebhook,
+    ok: usesMirrorProvider || usesGithubProvider,
     detail:
-      "Use webhook with MODEL_IMAGE_REBUILD_WEBHOOK_URL for private installs; github is optional and metadata-revealing.",
+      "Use mirror for private RunPod deploy repos; github is optional and metadata-revealing.",
+  },
+  {
+    name: "MODEL_IMAGE_REBUILD_MIRROR_PATH",
+    ok: !usesMirrorProvider || hasValue("MODEL_IMAGE_REBUILD_MIRROR_PATH"),
+    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=mirror. Must point to a private git clone watched by RunPod.",
   },
   {
     name: "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",

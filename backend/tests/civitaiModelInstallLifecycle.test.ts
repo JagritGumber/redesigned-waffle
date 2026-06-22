@@ -153,9 +153,10 @@ const { registerOrUpdateCivitaiModel } = await import("@/services/civitaiService
 
 describe("Worker registerOrUpdateCivitaiModel model image lifecycle", () => {
   const env = {
-    MODEL_IMAGE_REBUILD_PROVIDER: "webhook",
-    MODEL_IMAGE_REBUILD_WEBHOOK_URL: "https://builder.example.com/model-image-build",
-    MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN: "test-token",
+    MODEL_IMAGE_REBUILD_PROVIDER: "github",
+    MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "true",
+    MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "owner/repo",
+    MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "test-token",
   };
   const safeModelData = {
     id: 9301,

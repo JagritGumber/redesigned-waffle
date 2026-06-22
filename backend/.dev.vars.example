@@ -6,7 +6,6 @@
 AUTH_SECRET=
 RUNPOD_API_KEY=
 MODEL_IMAGE_REBUILD_GITHUB_TOKEN=
-MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN=
 MODEL_IMAGE_WEBHOOK_TOKEN=
 
 # Non-secret Worker vars and binding-related names. These may also live in wrangler.jsonc.
@@ -17,9 +16,9 @@ MODEL_IMAGE_RUNPOD_BUILD_POLLING=true
 R2_PUBLIC_BUCKET_URL=
 R2_BUCKET_NAME=
 
-# Prefer this for self-hosting: a private builder webhook keeps model identities out of GitHub.
-MODEL_IMAGE_REBUILD_PROVIDER=webhook
-MODEL_IMAGE_REBUILD_WEBHOOK_URL=
+# Cloudflare Workers cannot commit model migrations to a private mirror clone.
+# Use the manager backend for private mirror model installs, or explicitly opt into GitHub below.
+MODEL_IMAGE_REBUILD_PROVIDER=
 
 # Optional GitHub provider for private repos or non-sensitive installs only.
 # It commits model migration metadata and creates model release tags in GitHub.

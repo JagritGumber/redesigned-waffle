@@ -57,7 +57,7 @@ for (const snippet of [
   "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: c.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
   "MODEL_IMAGE_REBUILD_GITHUB_TOKEN: c.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
   "isModelImageRebuildConfigured(envConfig)",
-  "The GitHub/custom rebuild path does not need the legacy downloader endpoint.",
+  "The GitHub rebuild path does not need the legacy downloader endpoint.",
 ]) {
   assert(modelRouter.includes(snippet), `Worker model router is missing rebuild snippet: ${snippet}`);
 }

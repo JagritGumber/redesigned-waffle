@@ -610,8 +610,8 @@ export async function registerOrUpdateCivitaiModel(
             );
         }
       } else if (
-        Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "github" ||
-        Bun.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL
+        Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "mirror" ||
+        Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "github"
       ) {
         try {
           const reusableInstall =

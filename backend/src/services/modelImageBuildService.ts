@@ -5,8 +5,6 @@ export type ModelImageBuildEnv = {
   MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA?: string;
   MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY?: string;
   MODEL_IMAGE_REBUILD_GITHUB_TOKEN?: string;
-  MODEL_IMAGE_REBUILD_WEBHOOK_URL?: string;
-  MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN?: string;
 };
 
 export type TriggerModelImageBuildInput = {
@@ -19,10 +17,7 @@ export type TriggerModelImageBuildInput = {
 };
 
 export function isModelImageRebuildConfigured(env: ModelImageBuildEnv) {
-  return (
-    env.MODEL_IMAGE_REBUILD_PROVIDER === "github" ||
-    Boolean(env.MODEL_IMAGE_REBUILD_WEBHOOK_URL)
-  );
+  return env.MODEL_IMAGE_REBUILD_PROVIDER === "github";
 }
 
 export async function triggerModelImageBuild(
@@ -92,33 +87,7 @@ export async function triggerModelImageBuild(
     };
   }
 
-  const webhookUrl = env.MODEL_IMAGE_REBUILD_WEBHOOK_URL;
-  if (!webhookUrl) {
-    throw new Error("No model image rebuild provider configured.");
-  }
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN) {
-    headers.Authorization = `Bearer ${env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN}`;
-  }
-
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Model image rebuild webhook failed: ${response.status} ${await response.text()}`
-    );
-  }
-
-  return {
-    provider: "webhook",
-    triggerId: input.buildTriggerId,
-    status: "BUILD_QUEUED",
-  };
+  throw new Error(
+    "No Worker-compatible model image rebuild provider configured. Use the manager mirror provider for private RunPod deploy mirrors, or explicitly opt into github."
+  );
 }

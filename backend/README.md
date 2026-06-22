@@ -88,24 +88,22 @@ For deployed Workers, use Wrangler secrets:
 ```sh
 wrangler secret put AUTH_SECRET
 wrangler secret put RUNPOD_API_KEY
-wrangler secret put MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN
 wrangler secret put MODEL_IMAGE_WEBHOOK_TOKEN
 ```
 
 Use normal Wrangler vars only for non-secret values:
 
 ```sh
-MODEL_IMAGE_REBUILD_PROVIDER=webhook
-MODEL_IMAGE_REBUILD_WEBHOOK_URL=https://your-private-builder.example.com/model-image-build
+MODEL_IMAGE_REBUILD_PROVIDER=
 MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false
 RUNPOD_GENERATOR_ID=runpod-serverless-endpoint-id
 MODEL_IMAGE_RUNPOD_BUILD_POLLING=true
 ```
 
-Model install requests should call your private builder webhook. The builder
-adds one immutable file in `generator/model-migrations/`, builds
-`generator/Dockerfile` on RunPod infrastructure, and reuses Docker cache layers
-for previous model migrations.
+Cloudflare Workers cannot commit migrations to a local private mirror clone.
+Use the manager backend for private mirror model installs. The Worker can still
+poll RunPod build status and can use the optional GitHub provider when you
+explicitly opt into exposing model metadata in a private/non-sensitive repo.
 
 Do not use `MODEL_IMAGE_REBUILD_PROVIDER=github` for sensitive model installs
 in a public repo. The GitHub provider commits model migration metadata and
@@ -132,7 +130,7 @@ MODEL_IMAGE_RUNPOD_BUILD_POLLING is a normal Wrangler var
 
 the Worker polls RunPod endpoint builds once per minute and updates model status
 from Pending, Building, Uploading, Testing, Completed, Failed, Cancelled, or
-Test Failed. If polling is disabled or you use a custom builder, call
+Test Failed. If polling is disabled, call
 `/api/v1/webhooks/model-image` to mark the model ready or failed.
 
 ## External Pipeline Check

@@ -113,37 +113,25 @@ try {
     "Worker migration path should be the RunPod model path.",
   );
 
-  dispatchedUrl = "";
-  dispatchedHeaders = undefined;
-  dispatchedBody = undefined;
-  const webhookResult = await triggerModelImageBuild(
-    {
-      MODEL_IMAGE_REBUILD_PROVIDER: "webhook",
-      MODEL_IMAGE_REBUILD_WEBHOOK_URL: "https://builder.example.com/model-image-build",
-      MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN: "builder-token",
-    },
-    {
-      buildTriggerId: "worker-build-456",
-      civitaiModelId: 43,
-      civitaiFileId: 778,
-      downloadUrl: "https://civitai.com/api/download/models/778",
-      runpodPath: "/runpod-volume/workspace/models/private-model.safetensors",
-      modelType: "Checkpoint" as any,
-    },
-  );
-  assert(webhookResult.provider === "webhook", "Worker private webhook provider should trigger.");
-  assert(webhookResult.triggerId === "worker-build-456", "Worker private webhook trigger ID should stay stable.");
+  let workerProviderError = "";
+  try {
+    await triggerModelImageBuild(
+      { MODEL_IMAGE_REBUILD_PROVIDER: "mirror" },
+      {
+        buildTriggerId: "worker-build-456",
+        civitaiModelId: 43,
+        civitaiFileId: 778,
+        downloadUrl: "https://civitai.com/api/download/models/778",
+        runpodPath: "/runpod-volume/workspace/models/private-model.safetensors",
+        modelType: "Checkpoint" as any,
+      },
+    );
+  } catch (error: any) {
+    workerProviderError = error.message;
+  }
   assert(
-    dispatchedUrl === "https://builder.example.com/model-image-build",
-    "Worker private webhook provider should dispatch to MODEL_IMAGE_REBUILD_WEBHOOK_URL.",
-  );
-  assert(
-    new Headers(dispatchedHeaders).get("Authorization") === "Bearer builder-token",
-    "Worker private webhook provider should send the configured builder token.",
-  );
-  assert(
-    dispatchedBody.migration.id === "civitai-43-778",
-    "Worker private webhook payload should include the cacheable model migration.",
+    workerProviderError.includes("manager mirror provider"),
+    "Worker should not pretend to support private mirror git commits.",
   );
 
   assert(

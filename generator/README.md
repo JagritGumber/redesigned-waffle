@@ -13,11 +13,12 @@ of repeatedly downloading them onto a RunPod volume.
 The flow is:
 
 1. Manager receives a model install request.
-2. With `MODEL_IMAGE_REBUILD_PROVIDER=webhook`, manager sends a private builder
-   webhook with `migration.id`, `migration.url`, and `migration.path`.
-3. The private builder adds the migration, renders `generator/Dockerfile`,
-   builds on RunPod infrastructure, stores the image in RunPod's registry, and
-   deploys the endpoint.
+2. With `MODEL_IMAGE_REBUILD_PROVIDER=mirror`, manager writes a private deploy
+   mirror migration with `migration.id`, `migration.url`, and `migration.path`.
+3. Manager renders the mirror `generator/Dockerfile`, commits the migration, and
+   pushes the private branch that RunPod watches. RunPod builds on its own
+   infrastructure, stores the image in RunPod's registry, and deploys the
+   endpoint.
 
 Do not use the GitHub provider for sensitive model installs in a public repo.
 `MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
@@ -44,8 +45,8 @@ Each migration renders as its own Docker `COPY` plus `RUN` layer pair. Older
 model layers stay cached, so adding one model only downloads that new model
 during the image build. The Dockerfile accepts an optional BuildKit secret named
 `civitai_api_token`, but public Civitai download URLs work without it. Use a
-private builder when model URLs or model identities should not appear in public
-Git history or releases.
+private deploy mirror when model URLs or model identities should not appear in
+public Git history or releases.
 
 Before relying on the workflow, run the local verifier:
 
@@ -98,13 +99,13 @@ cd ../manager
 bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
 ```
 
-The private builder or optional RunPod GitHub integration builds and deploys the
-new image. Track final build status in the RunPod Builds tab. Manager polls
+RunPod builds and deploys from the private mirror push or optional GitHub
+integration. Track final build status in the RunPod Builds tab. Manager polls
 RunPod's endpoint builds once per minute when `RUNPOD_API_KEY`,
 `RUNPOD_GENERATOR_ID`, and `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are
 configured, so the app can automatically move installs through active states and
-mark them ready or failed. If polling is disabled or a custom builder is used,
-call manager after the build is completed or failed:
+mark them ready or failed. If polling is disabled, call manager at
+`/api/v1/webhooks/model-image` after the build is completed or failed:
 
 ```bash
 MANAGER_WEBHOOK_URL="$MANAGER_URL" \
@@ -115,9 +116,8 @@ python generator/scripts/report_model_image_status.py \
   --image "model-release-tag"
 ```
 
-Use `"status":"FAILED"` with a `message` when a RunPod build fails. A custom
-builder hook can make this callback automatically; otherwise the build stays
-visible as active in the Solid UI until this callback is sent.
+Use `"status":"FAILED"` with a `message` when a RunPod build fails. Otherwise
+the build stays visible as active in the Solid UI until this callback is sent.
 
 RunPod's documented GitHub builder states are Pending, Building, Uploading,
 Testing, Completed, and Failed. The manager accepts these statuses directly.

@@ -28,8 +28,10 @@ REQUIRED_MANAGER_KEYS = [
     "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
     "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
     "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_URL",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN",
+    "MODEL_IMAGE_REBUILD_MIRROR_PATH",
+    "MODEL_IMAGE_REBUILD_MIRROR_REMOTE",
+    "MODEL_IMAGE_REBUILD_MIRROR_BRANCH",
+    "MODEL_IMAGE_REBUILD_MIRROR_PUSH",
     "MODEL_IMAGE_WEBHOOK_TOKEN",
     "R2_ACCESS_KEY_ID",
     "R2_SECRET_ACCESS_KEY",
@@ -65,9 +67,9 @@ REQUIRED_WORKFLOW_SECRETS = [
 REQUIRED_DOC_SNIPPETS = [
     "Stable Self-Host Stack",
     "Cacheable Model Installs",
-    "MODEL_IMAGE_REBUILD_PROVIDER=webhook",
-    "MODEL_IMAGE_REBUILD_WEBHOOK_URL",
-    "private builder",
+    "MODEL_IMAGE_REBUILD_PROVIDER=mirror",
+    "MODEL_IMAGE_REBUILD_MIRROR_PATH",
+    "private deploy mirror",
     "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true",
     "RunPod Builds tab",
     "polls RunPod's endpoint builds once per minute",
@@ -104,7 +106,7 @@ REQUIRED_WORKER_DOC_SNIPPETS = [
     "--verify-release model-<buildTriggerId>",
     "without printing secrets",
     "public Worker health endpoint",
-    "private builder webhook",
+    "manager backend for private mirror model installs",
     "RunPod generator endpoint",
 ]
 
@@ -190,12 +192,12 @@ def main() -> None:
     if missing_worker_docs:
         fail("worker docs are missing required snippets: " + ", ".join(missing_worker_docs))
 
-    if "MODEL_IMAGE_REBUILD_PROVIDER=webhook" not in manager_env:
-        fail("manager/.env.example should default model image rebuilds to the private webhook provider.")
+    if "MODEL_IMAGE_REBUILD_PROVIDER=mirror" not in manager_env:
+        fail("manager/.env.example should default model image rebuilds to the private mirror provider.")
     if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in manager_env:
         fail("manager/.env.example should disable GitHub metadata exposure by default.")
-    if "MODEL_IMAGE_REBUILD_PROVIDER=webhook" not in worker_env:
-        fail("backend/.dev.vars.example should default model image rebuilds to the private webhook provider.")
+    if "MODEL_IMAGE_REBUILD_PROVIDER=" not in worker_env:
+        fail("backend/.dev.vars.example should leave Worker model image rebuild provider unset by default.")
     if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in worker_env:
         fail("backend/.dev.vars.example should disable GitHub metadata exposure by default.")
 

@@ -42,9 +42,8 @@ function readWranglerConfig() {
   }
 }
 
-const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "webhook";
+const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "";
 const usesGithubProvider = provider === "github";
-const usesCustomWebhook = hasValue("MODEL_IMAGE_REBUILD_WEBHOOK_URL");
 const pollingEnabled = Bun.env.MODEL_IMAGE_RUNPOD_BUILD_POLLING !== "false";
 const wranglerConfig = readWranglerConfig();
 
@@ -58,9 +57,9 @@ const checks: Check[] = [
   required("MODEL_IMAGE_WEBHOOK_TOKEN", "Shared token for model-image build callbacks."),
   {
     name: "MODEL_IMAGE_REBUILD_PROVIDER",
-    ok: usesGithubProvider || usesCustomWebhook,
+    ok: !provider || usesGithubProvider,
     detail:
-      "Use webhook with MODEL_IMAGE_REBUILD_WEBHOOK_URL for private installs; github is optional and metadata-revealing.",
+      "Worker cannot commit private mirror migrations; use manager for mirror installs or explicitly opt into github.",
   },
   {
     name: "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
