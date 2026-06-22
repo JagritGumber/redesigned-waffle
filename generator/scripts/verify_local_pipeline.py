@@ -96,6 +96,11 @@ FAST_CHECKS = [
         ROOT / "backend",
     ),
     (
+        "worker self-host readiness",
+        ["bun", "run", "verify:self-host-readiness"],
+        ROOT / "backend",
+    ),
+    (
         "worker model install lifecycle",
         ["bun", "run", "verify:model-install-lifecycle"],
         ROOT / "backend",

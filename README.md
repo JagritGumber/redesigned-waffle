@@ -14,6 +14,10 @@ The `backend` Cloudflare Worker is experimental and not the stable backend for
 the Solid app yet. It includes the same model-image webhook plus a scheduled
 RunPod build poller for Cloudflare Cron Triggers. The `downloader` worker is
 optional; current self-host installs can run with generator-only workflows.
+For the serverless Worker path, `backend` also provides a Self-host Worker readiness
+check with `bun run check:readiness` that validates required
+environment values, D1/R2 bindings, and the Cron trigger without printing
+secrets.
 
 ## Quick Start
 

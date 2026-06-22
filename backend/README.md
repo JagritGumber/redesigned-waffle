@@ -65,6 +65,12 @@ cp .dev.vars.example .dev.vars
 Fill regenerated secret values in `backend/.dev.vars`. That file is ignored by
 git and is loaded by `wrangler dev`.
 
+Check the Worker configuration and bindings without printing secrets:
+
+```sh
+bun run check:readiness
+```
+
 D1 database IDs and R2 bucket names are not API secrets; they can stay in
 `wrangler.jsonc` as bindings. The current Worker uses one D1 binding named `DB`
 and one R2 binding named `R2`. If your deployment has a second R2 bucket, add it

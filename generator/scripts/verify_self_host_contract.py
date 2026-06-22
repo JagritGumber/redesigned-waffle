@@ -8,6 +8,7 @@ FILES = {
     "manager env example": ROOT / "manager" / ".env.example",
     "solid env example": ROOT / "solid" / ".env.example",
     "worker env example": ROOT / "backend" / ".dev.vars.example",
+    "worker package": ROOT / "backend" / "package.json",
     "workflow": ROOT / ".github" / "workflows" / "model-image-rebuild.yml",
     "readme": ROOT / "README.md",
     "generator readme": ROOT / "generator" / "README.md",
@@ -74,6 +75,7 @@ REQUIRED_DOC_SNIPPETS = [
     "report_model_image_status.py",
     "--status COMPLETED",
     "bun run check:readiness",
+    "Self-host Worker readiness",
     "bun run verify:pipeline",
     "bun run verify:pipeline:full",
 ]
@@ -100,12 +102,17 @@ def main() -> None:
     manager_env = read("manager env example")
     solid_env = read("solid env example")
     worker_env = read("worker env example")
+    worker_package = read("worker package")
     workflow = read("workflow")
     docs = read("readme") + "\n" + read("generator readme")
 
     assert_keys("manager/.env.example", manager_env, REQUIRED_MANAGER_KEYS)
     assert_keys("solid/.env.example", solid_env, REQUIRED_SOLID_KEYS)
     assert_keys("backend/.dev.vars.example", worker_env, REQUIRED_WORKER_KEYS)
+
+    for snippet in ["check:readiness", "verify:self-host-readiness"]:
+        if snippet not in worker_package:
+            fail(f"backend/package.json is missing script: {snippet}")
 
     missing_secrets = [
         secret for secret in REQUIRED_WORKFLOW_SECRETS if f"secrets.{secret}" not in workflow
