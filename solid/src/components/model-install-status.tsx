@@ -9,7 +9,7 @@ export const activeModelInstallStatuses = [
 ] as const;
 
 const activeStatuses = new Set<string>(activeModelInstallStatuses);
-const failedStatuses = new Set(["DOWNLOAD_FAILED", "BUILD_FAILED"]);
+const failedStatuses = new Set(["DOWNLOAD_FAILED", "BUILD_FAILED", "DELETE_FAILED"]);
 
 export function isActiveModelInstall(status?: string | null) {
   return status ? activeStatuses.has(status) : false;
@@ -31,6 +31,8 @@ export function modelInstallStatusLabel(status?: string | null) {
       return "Download failed";
     case "BUILD_FAILED":
       return "Build failed";
+    case "DELETE_FAILED":
+      return "Delete failed";
     default:
       return null;
   }

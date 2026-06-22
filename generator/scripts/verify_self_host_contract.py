@@ -90,6 +90,7 @@ REQUIRED_OPERATOR_PIPELINE_SNIPPETS = [
     "`READY`",
     "`DOWNLOAD_FAILED`",
     "`BUILD_FAILED`",
+    "`DELETE_FAILED`",
     "`DELETED`",
     "polls account install endpoints",
     "Global model metadata must not be used as the source of truth",

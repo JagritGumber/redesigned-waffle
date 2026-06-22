@@ -30,6 +30,7 @@ Use user-scoped install state for application behavior:
 - `READY`: the user's model is available for generation.
 - `DOWNLOAD_FAILED`: the model file download failed.
 - `BUILD_FAILED`: the Docker image build or deployment failed.
+- `DELETE_FAILED`: removing the user's install failed.
 - `DELETED`: the user's install was removed.
 
 Global model metadata must not be used as the source of truth for per-user

@@ -24,7 +24,7 @@ for (const status of ["REGISTERING", "DOWNLOADING", "BUILD_QUEUED", "BUILDING"])
   );
 }
 
-for (const status of ["READY", "DOWNLOAD_FAILED", "BUILD_FAILED"]) {
+for (const status of ["READY", "DOWNLOAD_FAILED", "BUILD_FAILED", "DELETE_FAILED"]) {
   assert(
     statusComponent.includes(`case "${status}"`) ||
       statusComponent.includes(`props.status === "${status}"`),
@@ -34,6 +34,7 @@ for (const status of ["READY", "DOWNLOAD_FAILED", "BUILD_FAILED"]) {
 
 assert(
   statusComponent.includes("activeModelInstallStatuses") &&
+    statusComponent.includes('failedStatuses = new Set(["DOWNLOAD_FAILED", "BUILD_FAILED", "DELETE_FAILED"])') &&
     statusComponent.includes("isActiveModelInstall") &&
     statusComponent.includes("showMessage") &&
     statusComponent.includes("title={message()") &&
