@@ -14,9 +14,6 @@ function assert(condition: boolean, message: string) {
 
 const originalFetch = globalThis.fetch;
 const originalProvider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
-const originalAllowGithubMetadata = Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA;
-const originalRepository = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
-const originalToken = Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
 const originalMirrorPath = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH;
 const originalMirrorPush = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH;
 
@@ -31,26 +28,22 @@ globalThis.fetch = (async (url, init) => {
   return new Response(null, { status: 204 });
 }) as typeof fetch;
 
-Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "github";
-Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA = "true";
-Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY = "owner/repo";
-Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = "test-token";
-
 try {
   const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
   const modelRouter = readFileSync("src/routers/v1/modelRouter.ts", "utf-8");
   const buildService = readFileSync("src/services/modelImageBuildService.ts", "utf-8");
-  assert(
-    buildService.includes("MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA") &&
-      buildService.includes("writes model migration metadata to GitHub"),
-    "Manager GitHub model rebuild provider should require explicit metadata exposure opt-in.",
-  );
   assert(
     buildService.includes('MODEL_IMAGE_REBUILD_PROVIDER === "mirror"') &&
       buildService.includes("MODEL_IMAGE_REBUILD_MIRROR_PATH") &&
       buildService.includes("generator/scripts/add_model_migration.py") &&
       buildService.includes("git\", \"commit"),
     "Manager mirror provider should commit migrations into a private deploy mirror.",
+  );
+  assert(
+    !buildService.includes("api.github.com") &&
+      !buildService.includes("MODEL_IMAGE_REBUILD_GITHUB") &&
+      !buildService.includes("repository dispatch"),
+    "Manager model image provider should not contain a GitHub release/dispatch path.",
   );
   assert(
     civitaiService.includes("findReusableActiveModelImageInstall") &&
@@ -82,62 +75,22 @@ try {
     );
   }
 
-  const result = await triggerModelImageBuild({
-    civitaiModelId: 42,
-    civitaiFileId: 777,
-    downloadUrl: "https://civitai.com/api/download/models/777",
-    runpodPath: "/runpod-volume/workspace/models/safe-model.safetensors",
-    runpodJobId: "download-job-1",
-  });
-
-  assert(result.triggered, "Model image build should be triggered.");
-  assert(Boolean(result.buildTriggerId), "Build trigger ID should be returned.");
-  assert(
-    dispatchedUrl === "https://api.github.com/repos/owner/repo/dispatches",
-    "Model image build should dispatch to the configured GitHub repository.",
-  );
-
-  const headers = new Headers(dispatchedHeaders);
-  assert(
-    headers.get("Authorization") === "Bearer test-token",
-    "GitHub dispatch should use the configured token.",
-  );
-  assert(
-    dispatchedBody.event_type === "model-image-rebuild",
-    "GitHub dispatch should use the model-image-rebuild event type.",
-  );
-
-  const payload = dispatchedBody.client_payload;
-  assert(payload.event === "model.downloaded", "Dispatch payload should identify model download.");
-  assert(payload.buildTriggerId === result.buildTriggerId, "Dispatch payload should include the build trigger ID.");
-  assert(payload.civitaiModelId === 42, "Dispatch payload should include the Civitai model ID.");
-  assert(payload.civitaiFileId === 777, "Dispatch payload should include the Civitai file ID.");
-  assert(payload.runpodJobId === "download-job-1", "Dispatch payload should keep the source RunPod job ID.");
-  assert(payload.cacheKey === "civitai-42-777", "Dispatch payload should include a stable cache key.");
-  assert(payload.migration.id === "civitai-42-777", "Migration ID should match the cache key.");
-  assert(
-    payload.migration.path === "/runpod-volume/workspace/models/safe-model.safetensors",
-    "Migration path should be the RunPod model path.",
-  );
-
   const mirrorPath = createPrivateMirrorFixture();
   Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "mirror";
-  delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
-  delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
   Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = mirrorPath;
   Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH = "false";
 
   dispatchedUrl = "";
   dispatchedHeaders = undefined;
   dispatchedBody = undefined;
-  const mirrorResult = await triggerModelImageBuild({
+  const result = await triggerModelImageBuild({
     civitaiModelId: 43,
     civitaiFileId: 778,
     downloadUrl: "https://civitai.com/api/download/models/778",
     runpodPath: "/runpod-volume/workspace/models/private-model.safetensors",
     runpodJobId: "download-job-2",
   });
-  assert(mirrorResult.triggered, "Private mirror provider should trigger a model image build.");
+  assert(result.triggered, "Private mirror provider should trigger a model image build.");
   assert(dispatchedUrl === "", "Private mirror provider should not dispatch a webhook.");
   assert(
     readFileSync(join(mirrorPath, "generator/model-migrations/0001-civitai-43-778.json"), "utf-8").includes(
@@ -214,15 +167,6 @@ try {
 
   if (originalProvider === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
   else Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = originalProvider;
-
-  if (originalAllowGithubMetadata === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA;
-  else Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA = originalAllowGithubMetadata;
-
-  if (originalRepository === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY;
-  else Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY = originalRepository;
-
-  if (originalToken === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN;
-  else Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = originalToken;
 
   if (originalMirrorPath === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH;
   else Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = originalMirrorPath;

@@ -95,22 +95,13 @@ Use normal Wrangler vars only for non-secret values:
 
 ```sh
 MODEL_IMAGE_REBUILD_PROVIDER=
-MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false
 RUNPOD_GENERATOR_ID=runpod-serverless-endpoint-id
 MODEL_IMAGE_RUNPOD_BUILD_POLLING=true
 ```
 
 Cloudflare Workers cannot commit migrations to a local private mirror clone.
 Use the manager backend for private mirror model installs. The Worker can still
-poll RunPod build status and can use the optional GitHub provider when you
-explicitly opt into exposing model metadata in a private/non-sensitive repo.
-
-Do not use `MODEL_IMAGE_REBUILD_PROVIDER=github` for sensitive model installs
-in a public repo. The GitHub provider commits model migration metadata and
-creates model release tags in GitHub, so anyone with repo access can infer which
-models were installed. It requires
-`MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true` and should be used only for
-private repositories or non-sensitive installs.
+poll RunPod build status.
 
 The Worker includes a scheduled handler. With this Wrangler trigger:
 
@@ -132,30 +123,3 @@ the Worker polls RunPod endpoint builds once per minute and updates model status
 from Pending, Building, Uploading, Testing, Completed, Failed, Cancelled, or
 Test Failed. If polling is disabled, call
 `/api/v1/webhooks/model-image` to mark the model ready or failed.
-
-## External Pipeline Check
-
-After deploying the Worker and setting real GitHub and RunPod credentials for
-the optional GitHub provider, verify that external wiring without printing
-secrets:
-
-```sh
-bun run check:external-pipeline
-```
-
-The default check is read-only. It verifies the public Worker health endpoint,
-the GitHub model-image workflow, and the RunPod generator endpoint. To prove
-`repository_dispatch` reaches GitHub without creating a migration commit,
-release, Docker build, RunPod hook, or Worker callback, run:
-
-```sh
-bun run check:external-pipeline -- --dispatch-dry-run --wait
-```
-
-If the optional GitHub provider creates a release such as
-`model-<buildTriggerId>`, verify the GitHub release and matching RunPod build
-record:
-
-```sh
-bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
-```

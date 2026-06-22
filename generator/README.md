@@ -20,16 +20,8 @@ The flow is:
    infrastructure, stores the image in RunPod's registry, and deploys the
    endpoint.
 
-Do not use the GitHub provider for sensitive model installs in a public repo.
-`MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
-creates release tags in GitHub. It requires
-`MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true` and should be used only for
-private repositories or non-sensitive installs.
-
-If the optional GitHub provider is explicitly enabled, GitHub Actions is only
-the release trigger. It must not run `docker build`, use Buildx, log in to
-Docker Hub, or push images; RunPod's GitHub builder owns the expensive Docker
-build and can reuse Docker cache layers across releases.
+This repo only supports private-mirror model builds. Keep generated model
+migrations in the private deploy mirror, not in public branches or tags.
 
 The migration rendering step is:
 
@@ -64,43 +56,12 @@ bun run check:readiness
 
 These checks create a temporary migration, render the Dockerfile, check that
 model layers use BuildKit secrets, verify idempotence, reject unsafe paths, and
-confirm the GitHub Actions workflow still contains the cache, retry, RunPod
-release trigger, manager callback pieces, and documented self-host environment
-keys.
+confirm the documented self-host environment keys.
 Use `bun run verify:pipeline:full` before a release to include manager/Solid
 builds, Worker dry-run deploy, and whitespace checks.
 
-If the optional GitHub provider is enabled for a private repo, verify external
-access without printing secrets:
-
-```bash
-cd ../manager
-bun run check:external-pipeline
-```
-
-This confirms `HOST_URL/api/v1/health` is reachable from the internet, the
-GitHub workflow can be read, and the RunPod generator endpoint is visible to the
-configured API key.
-
-To confirm `repository_dispatch` reaches the workflow without creating a
-migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
-run the opt-in dry-run and wait for the GitHub Actions result:
-
-```bash
-cd ../manager
-bun run check:external-pipeline -- --dispatch-dry-run --wait
-```
-
-If the optional GitHub provider creates a release such as
-`model-<buildTriggerId>`, verify the release and matching RunPod build record:
-
-```bash
-cd ../manager
-bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
-```
-
-RunPod builds and deploys from the private mirror push or optional GitHub
-integration. Track final build status in the RunPod Builds tab. Manager polls
+RunPod builds and deploys from the private mirror push. Track final build status
+in the RunPod Builds tab. Manager polls
 RunPod's endpoint builds once per minute when `RUNPOD_API_KEY`,
 `RUNPOD_GENERATOR_ID`, and `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are
 configured, so the app can automatically move installs through active states and
@@ -119,18 +80,10 @@ python generator/scripts/report_model_image_status.py \
 Use `"status":"FAILED"` with a `message` when a RunPod build fails. Otherwise
 the build stays visible as active in the Solid UI until this callback is sent.
 
-RunPod's documented GitHub builder states are Pending, Building, Uploading,
-Testing, Completed, and Failed. The manager accepts these statuses directly.
-RunPod also documents a 30 minute Docker build step timeout and an 80 GB image
-size limit for this integration, so model installs should be kept as small,
-incremental migrations.
-
-Optional GitHub provider repository secrets:
-
-- `MANAGER_WEBHOOK_URL`, public manager base URL for build status callbacks
-- `MANAGER_WEBHOOK_TOKEN`, must match manager `MODEL_IMAGE_WEBHOOK_TOKEN` when configured
-- `RUNPOD_BUILD_WEBHOOK_URL`, optional custom build hook if not using RunPod's GitHub release integration
-- `RUNPOD_BUILD_WEBHOOK_TOKEN`, optional bearer token for the custom build hook
+RunPod builder states include Pending, Building, Uploading, Testing, Completed,
+and Failed. The manager accepts these statuses directly. RunPod documents a
+30 minute Docker build step timeout and an 80 GB image size limit, so model
+installs should be kept as small, incremental migrations.
 
 ---
 

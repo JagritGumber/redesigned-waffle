@@ -147,10 +147,6 @@ const webhookRouter = new Hono<ContextForHono>()
             const file = updatedFile[0];
             const envConfig = {
               MODEL_IMAGE_REBUILD_PROVIDER: c.env.MODEL_IMAGE_REBUILD_PROVIDER,
-              MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA:
-                c.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA,
-              MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: c.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY,
-              MODEL_IMAGE_REBUILD_GITHUB_TOKEN: c.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN,
             };
 
             if (isModelImageRebuildConfigured(envConfig)) {

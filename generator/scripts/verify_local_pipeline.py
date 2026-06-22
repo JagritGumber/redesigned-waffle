@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 FAST_CHECKS = [
     ("self-host contract", [sys.executable, "generator/scripts/verify_self_host_contract.py"], ROOT),
-    ("model image workflow", [sys.executable, "generator/scripts/verify_model_image_workflow.py"], ROOT),
     ("model migrations", [sys.executable, "generator/scripts/verify_model_migrations.py"], ROOT),
     (
         "generator scripts compile",
@@ -23,7 +22,6 @@ FAST_CHECKS = [
             "generator/scripts/add_model_migration.py",
             "generator/scripts/report_model_image_status.py",
             "generator/scripts/verify_model_migrations.py",
-            "generator/scripts/verify_model_image_workflow.py",
             "generator/scripts/verify_self_host_contract.py",
             "generator/scripts/verify_local_pipeline.py",
             "generator/src/handler.py",
@@ -41,11 +39,6 @@ FAST_CHECKS = [
     (
         "manager model image pipeline contract",
         ["bun", "run", "verify:model-image-pipeline"],
-        ROOT / "manager",
-    ),
-    (
-        "manager external model pipeline checker",
-        ["bun", "run", "verify:external-model-pipeline"],
         ROOT / "manager",
     ),
     (
@@ -89,11 +82,6 @@ FAST_CHECKS = [
     (
         "worker model image pipeline contract",
         ["bun", "run", "verify:model-image-pipeline"],
-        ROOT / "backend",
-    ),
-    (
-        "worker external model pipeline checker",
-        ["bun", "run", "verify:external-model-pipeline"],
         ROOT / "backend",
     ),
     (

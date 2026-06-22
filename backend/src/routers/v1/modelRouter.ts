@@ -104,14 +104,11 @@ const modelRouter = new Hono<ContextForHono>()
       RUNPOD_DOWNLOADER_ID: c.env.RUNPOD_DOWNLOADER_ID,
       RUNPOD_WEBHOOK_URL: c.env.RUNPOD_WEBHOOK_URL,
       MODEL_IMAGE_REBUILD_PROVIDER: c.env.MODEL_IMAGE_REBUILD_PROVIDER,
-      MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: c.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA,
-      MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: c.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY,
-      MODEL_IMAGE_REBUILD_GITHUB_TOKEN: c.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN,
     };
 
     const usesModelImageRebuild = isModelImageRebuildConfigured(envConfig);
 
-    // The GitHub rebuild path does not need the legacy downloader endpoint.
+    // Worker-hosted installs use the legacy downloader endpoint; manager handles private mirror builds.
     if (!usesModelImageRebuild && !envConfig.RUNPOD_API_KEY) {
       return c.json(
         { error: "RUNPOD_API_KEY environment variable is not set." },

@@ -10,7 +10,6 @@ FILES = {
     "worker env example": ROOT / "backend" / ".dev.vars.example",
     "worker package": ROOT / "backend" / "package.json",
     "worker readme": ROOT / "backend" / "README.md",
-    "workflow": ROOT / ".github" / "workflows" / "model-image-rebuild.yml",
     "readme": ROOT / "README.md",
     "operator pipeline": ROOT / "docs" / "operator-model-pipeline.md",
     "generator readme": ROOT / "generator" / "README.md",
@@ -25,9 +24,6 @@ REQUIRED_MANAGER_KEYS = [
     "MODEL_IMAGE_RUNPOD_BUILD_POLLING",
     "RUNPOD_WEBHOOK_URL",
     "MODEL_IMAGE_REBUILD_PROVIDER",
-    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
-    "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-    "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
     "MODEL_IMAGE_REBUILD_MIRROR_PATH",
     "MODEL_IMAGE_REBUILD_MIRROR_REMOTE",
     "MODEL_IMAGE_REBUILD_MIRROR_BRANCH",
@@ -51,17 +47,9 @@ REQUIRED_WORKER_KEYS = [
     "RUNPOD_WEBHOOK_URL",
     "MODEL_IMAGE_RUNPOD_BUILD_POLLING",
     "MODEL_IMAGE_REBUILD_PROVIDER",
-    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
-    "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-    "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
     "MODEL_IMAGE_WEBHOOK_TOKEN",
     "R2_PUBLIC_BUCKET_URL",
     "R2_BUCKET_NAME",
-]
-
-REQUIRED_WORKFLOW_SECRETS = [
-    "MANAGER_WEBHOOK_URL",
-    "MANAGER_WEBHOOK_TOKEN",
 ]
 
 REQUIRED_DOC_SNIPPETS = [
@@ -70,7 +58,6 @@ REQUIRED_DOC_SNIPPETS = [
     "MODEL_IMAGE_REBUILD_PROVIDER=mirror",
     "MODEL_IMAGE_REBUILD_MIRROR_PATH",
     "private deploy mirror",
-    "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true",
     "RunPod Builds tab",
     "polls RunPod's endpoint builds once per minute",
     "Cloudflare Cron Triggers",
@@ -100,14 +87,8 @@ REQUIRED_OPERATOR_PIPELINE_SNIPPETS = [
 ]
 
 REQUIRED_WORKER_DOC_SNIPPETS = [
-    "External Pipeline Check",
-    "bun run check:external-pipeline",
-    "--dispatch-dry-run --wait",
-    "--verify-release model-<buildTriggerId>",
-    "without printing secrets",
-    "public Worker health endpoint",
     "manager backend for private mirror model installs",
-    "RunPod generator endpoint",
+    "Cloudflare Workers cannot commit migrations to a local private mirror clone",
 ]
 
 FORBIDDEN_OPERATOR_PIPELINE_SNIPPETS = [
@@ -141,7 +122,6 @@ def main() -> None:
     worker_env = read("worker env example")
     worker_package = read("worker package")
     worker_readme = read("worker readme")
-    workflow = read("workflow")
     operator_pipeline = read("operator pipeline")
     docs = read("readme") + "\n" + read("generator readme")
 
@@ -152,17 +132,9 @@ def main() -> None:
     for snippet in [
         "check:readiness",
         "verify:self-host-readiness",
-        "check:external-pipeline",
-        "verify:external-model-pipeline",
     ]:
         if snippet not in worker_package:
             fail(f"backend/package.json is missing script: {snippet}")
-
-    missing_secrets = [
-        secret for secret in REQUIRED_WORKFLOW_SECRETS if f"secrets.{secret}" not in workflow
-    ]
-    if missing_secrets:
-        fail("model-image workflow is missing secrets: " + ", ".join(missing_secrets))
 
     missing_docs = [snippet for snippet in REQUIRED_DOC_SNIPPETS if snippet not in docs]
     if missing_docs:
@@ -194,12 +166,20 @@ def main() -> None:
 
     if "MODEL_IMAGE_REBUILD_PROVIDER=mirror" not in manager_env:
         fail("manager/.env.example should default model image rebuilds to the private mirror provider.")
-    if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in manager_env:
-        fail("manager/.env.example should disable GitHub metadata exposure by default.")
     if "MODEL_IMAGE_REBUILD_PROVIDER=" not in worker_env:
         fail("backend/.dev.vars.example should leave Worker model image rebuild provider unset by default.")
-    if "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=false" not in worker_env:
-        fail("backend/.dev.vars.example should disable GitHub metadata exposure by default.")
+
+    forbidden = [
+        "MODEL_IMAGE_REBUILD_GITHUB",
+        "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
+        "repository_dispatch",
+        "GitHub release",
+        "model-image-rebuild.yml",
+    ]
+    combined = manager_env + "\n" + worker_env + "\n" + worker_readme + "\n" + docs
+    found = [snippet for snippet in forbidden if snippet in combined]
+    if found:
+        fail("self-host config/docs still mention removed GitHub release provider snippets: " + ", ".join(found))
 
     print("Self-host configuration contract verification passed.")
 

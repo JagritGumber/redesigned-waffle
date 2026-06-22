@@ -27,9 +27,6 @@ interface CivitaiServiceEnv {
   RUNPOD_DOWNLOADER_ID?: string;
   RUNPOD_WEBHOOK_URL?: string;
   MODEL_IMAGE_REBUILD_PROVIDER?: string;
-  MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA?: string;
-  MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY?: string;
-  MODEL_IMAGE_REBUILD_GITHUB_TOKEN?: string;
 }
 
 const CIVITAI_API_BASE_URL = "https://civitai.com/api/v1";

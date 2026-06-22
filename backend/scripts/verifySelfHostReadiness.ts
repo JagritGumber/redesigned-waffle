@@ -21,8 +21,6 @@ const missing = spawnSync(bunExecutable, [script], {
     R2_BUCKET_NAME: "",
     MODEL_IMAGE_WEBHOOK_TOKEN: "",
     MODEL_IMAGE_REBUILD_PROVIDER: "",
-    MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "",
-    MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "",
   },
   encoding: "utf-8",
 });
@@ -53,7 +51,6 @@ const passed = spawnSync(bunExecutable, [script], {
     R2_BUCKET_NAME: "bucket",
     MODEL_IMAGE_WEBHOOK_TOKEN: secretValue,
     MODEL_IMAGE_REBUILD_PROVIDER: "",
-    MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "false",
     MODEL_IMAGE_RUNPOD_BUILD_POLLING: "true",
   },
   encoding: "utf-8",

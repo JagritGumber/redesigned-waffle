@@ -25,8 +25,6 @@ const missing = spawnSync(bunExecutable, [script], {
     MODEL_IMAGE_WEBHOOK_TOKEN: "",
     MODEL_IMAGE_REBUILD_PROVIDER: "mirror",
     MODEL_IMAGE_REBUILD_MIRROR_PATH: "",
-    MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "",
-    MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "",
   },
   encoding: "utf-8",
 });
@@ -58,7 +56,6 @@ const passed = spawnSync(bunExecutable, [script], {
     MODEL_IMAGE_REBUILD_MIRROR_REMOTE: "origin",
     MODEL_IMAGE_REBUILD_MIRROR_BRANCH: "main",
     MODEL_IMAGE_REBUILD_MIRROR_PUSH: "true",
-    MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "false",
     MODEL_IMAGE_RUNPOD_BUILD_POLLING: "true",
   },
   encoding: "utf-8",

@@ -29,7 +29,6 @@ function printCheck(check: Check) {
 
 const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "mirror";
 const usesMirrorProvider = provider === "mirror";
-const usesGithubProvider = provider === "github";
 const pollingEnabled = Bun.env.MODEL_IMAGE_RUNPOD_BUILD_POLLING !== "false";
 
 const checks: Check[] = [
@@ -45,30 +44,13 @@ const checks: Check[] = [
   required("MODEL_IMAGE_WEBHOOK_TOKEN", "Shared token for model-image build callbacks."),
   {
     name: "MODEL_IMAGE_REBUILD_PROVIDER",
-    ok: usesMirrorProvider || usesGithubProvider,
-    detail:
-      "Use mirror for private RunPod deploy repos; github is optional and metadata-revealing.",
+    ok: usesMirrorProvider,
+    detail: "Use mirror for private RunPod deploy repos.",
   },
   {
     name: "MODEL_IMAGE_REBUILD_MIRROR_PATH",
     ok: !usesMirrorProvider || hasValue("MODEL_IMAGE_REBUILD_MIRROR_PATH"),
     detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=mirror. Must point to a private git clone watched by RunPod.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
-    ok: !usesGithubProvider || Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA === "true",
-    detail:
-      "Required when MODEL_IMAGE_REBUILD_PROVIDER=github because GitHub commits/releases reveal model metadata.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-    ok: !usesGithubProvider || hasValue("MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY"),
-    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=github.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
-    ok: !usesGithubProvider || hasValue("MODEL_IMAGE_REBUILD_GITHUB_TOKEN"),
-    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=github.",
   },
   {
     name: "MODEL_IMAGE_RUNPOD_BUILD_POLLING",

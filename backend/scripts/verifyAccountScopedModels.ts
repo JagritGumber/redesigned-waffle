@@ -37,27 +37,20 @@ assert(
 
 assert(
   contextTypes.includes("MODEL_IMAGE_REBUILD_PROVIDER") &&
-    contextTypes.includes("MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA") &&
-    contextTypes.includes("MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY") &&
-    contextTypes.includes("MODEL_IMAGE_REBUILD_GITHUB_TOKEN"),
-  "Worker context should expose model image rebuild env bindings.",
+    !contextTypes.includes("MODEL_IMAGE_REBUILD_GITHUB"),
+  "Worker context should not expose GitHub model image rebuild env bindings.",
 );
 assert(
-  modelImageBuildService.includes('event_type: "model-image-rebuild"') &&
-    modelImageBuildService.includes("MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA") &&
-    modelImageBuildService.includes("writes model migration metadata to GitHub") &&
-    modelImageBuildService.includes("MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY") &&
-    modelImageBuildService.includes("MODEL_IMAGE_REBUILD_GITHUB_TOKEN"),
-  "Worker model image build service should guard GitHub metadata exposure.",
+  !modelImageBuildService.includes('event_type: "model-image-rebuild"') &&
+    !modelImageBuildService.includes("api.github.com") &&
+    !modelImageBuildService.includes("MODEL_IMAGE_REBUILD_GITHUB"),
+  "Worker model image build service should not contain a GitHub release/dispatch path.",
 );
 
 for (const snippet of [
   "MODEL_IMAGE_REBUILD_PROVIDER: c.env.MODEL_IMAGE_REBUILD_PROVIDER",
-  "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: c.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
-  "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: c.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-  "MODEL_IMAGE_REBUILD_GITHUB_TOKEN: c.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
   "isModelImageRebuildConfigured(envConfig)",
-  "The GitHub rebuild path does not need the legacy downloader endpoint.",
+  "Worker-hosted installs use the legacy downloader endpoint; manager handles private mirror builds.",
 ]) {
   assert(modelRouter.includes(snippet), `Worker model router is missing rebuild snippet: ${snippet}`);
 }

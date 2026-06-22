@@ -61,54 +61,11 @@ export async function triggerModelImageBuild(
     };
   }
 
-  if (Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "github") {
-    if (Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA !== "true") {
-      throw new Error(
-        "MODEL_IMAGE_REBUILD_PROVIDER=github writes model migration metadata to GitHub. Set MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true only for private repos or non-sensitive installs.",
-      );
-    }
-
-    if (!Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY || !Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN) {
-      throw new Error(
-        "MODEL_IMAGE_REBUILD_PROVIDER=github requires MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY and MODEL_IMAGE_REBUILD_GITHUB_TOKEN.",
-      );
-    }
-
-    const response = await fetch(
-      `https://api.github.com/repos/${Bun.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY}/dispatches`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN}`,
-          "User-Agent": "redesigned-waffle-manager",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        body: JSON.stringify({
-          event_type: "model-image-rebuild",
-          client_payload: body,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`GitHub repository dispatch failed with ${response.status}: ${errorBody}`);
-    }
-
-    return {
-      triggered: true,
-      buildTriggerId,
-      message: "GitHub model image rebuild workflow queued.",
-    };
-  }
-
   return {
     triggered: false,
     buildTriggerId: null,
     message:
-      "Model downloaded. MODEL_IMAGE_REBUILD_PROVIDER is not set to mirror or github, so image rebuild was not triggered.",
+      "Model downloaded. MODEL_IMAGE_REBUILD_PROVIDER is not set to mirror, so image rebuild was not triggered.",
   };
 }
 

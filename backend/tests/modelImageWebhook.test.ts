@@ -211,7 +211,7 @@ describe("Worker POST /webhooks/model-image", () => {
     expect(install.deployedAt).toBeNull();
   });
 
-  it("queues a model image rebuild when the legacy downloader completes", async () => {
+  it("marks the account install ready when the legacy downloader completes without a rebuild provider", async () => {
     await db.insert(civitaiFiles).values({
       id: 501,
       civitaiVersionId: 401,
@@ -232,58 +232,28 @@ describe("Worker POST /webhooks/model-image", () => {
     });
 
     const originalFetch = globalThis.fetch;
-    let dispatchedBody: any;
-    globalThis.fetch = (async (_url, init) => {
-      dispatchedBody = JSON.parse(String(init?.body));
-      return new Response(null, { status: 204 });
-    }) as typeof fetch;
-
-    try {
-      const response = await postDownloaderWebhook(
-        {
-          id: "legacy-download-job-1",
-          status: "COMPLETED",
-          output: { status: "COMPLETED", storage_used: 1024 },
-          input: {
-            action: "download",
-            model_id: 301,
-            civitai_file_id: 501,
-            model_type: "Checkpoint",
-          },
-        },
-        {
-          MODEL_IMAGE_REBUILD_PROVIDER: "github",
-          MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "true",
-          MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "owner/repo",
-          MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "test-token",
-        },
-      );
-
-      expect(response.status).toBe(200);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-
-    expect(dispatchedBody.event_type).toBe("model-image-rebuild");
-    expect(dispatchedBody.client_payload).toMatchObject({
-      event: "model.downloaded",
-      civitaiModelId: 301,
-      civitaiFileId: 501,
-      downloadUrl: "https://civitai.com/api/download/models/501",
-      runpodPath: "/runpod-volume/workspace/models/worker-downloaded-model.safetensors",
+    const response = await postDownloaderWebhook({
+      id: "legacy-download-job-1",
+      status: "COMPLETED",
+      output: { status: "COMPLETED", storage_used: 1024 },
+      input: {
+        action: "download",
+        model_id: 301,
+        civitai_file_id: 501,
+        model_type: "Checkpoint",
+      },
     });
+
+    globalThis.fetch = originalFetch;
+    expect(response.status).toBe(200);
 
     const [install] = await db
       .select()
       .from(civitaiModelInstalls)
       .where(eq(civitaiModelInstalls.runpodJobId, "legacy-download-job-1"));
-    expect(install.status).toBe("BUILD_QUEUED");
-    expect(install.statusMessage).toBe(
-      "Model image rebuild queued. The model will be ready after the Docker image deploys.",
-    );
-    expect(install.buildTriggerId).toBeTruthy();
+    expect(install.status).toBe("READY");
+    expect(install.buildTriggerId).toBeNull();
     expect(install.downloadCompletedAt).toBeInstanceOf(Date);
-    expect(install.buildTriggeredAt).toBeInstanceOf(Date);
   });
 
   it("marks only the account install deleted when a legacy delete callback completes", async () => {

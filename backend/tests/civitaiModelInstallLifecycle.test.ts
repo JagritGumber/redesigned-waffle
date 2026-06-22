@@ -142,7 +142,7 @@ mock.module("@/services/modelImageBuildService", () => ({
   triggerModelImageBuild: async (_env: unknown, input: (typeof triggeredBuilds)[number]) => {
     triggeredBuilds.push(input);
     return {
-      provider: "github",
+      provider: "test",
       triggerId: input.buildTriggerId,
       status: "BUILD_QUEUED",
     };
@@ -153,10 +153,7 @@ const { registerOrUpdateCivitaiModel } = await import("@/services/civitaiService
 
 describe("Worker registerOrUpdateCivitaiModel model image lifecycle", () => {
   const env = {
-    MODEL_IMAGE_REBUILD_PROVIDER: "github",
-    MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA: "true",
-    MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "owner/repo",
-    MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "test-token",
+    MODEL_IMAGE_REBUILD_PROVIDER: "test",
   };
   const safeModelData = {
     id: 9301,

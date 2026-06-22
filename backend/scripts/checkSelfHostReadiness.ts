@@ -43,7 +43,6 @@ function readWranglerConfig() {
 }
 
 const provider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER || "";
-const usesGithubProvider = provider === "github";
 const pollingEnabled = Bun.env.MODEL_IMAGE_RUNPOD_BUILD_POLLING !== "false";
 const wranglerConfig = readWranglerConfig();
 
@@ -57,25 +56,8 @@ const checks: Check[] = [
   required("MODEL_IMAGE_WEBHOOK_TOKEN", "Shared token for model-image build callbacks."),
   {
     name: "MODEL_IMAGE_REBUILD_PROVIDER",
-    ok: !provider || usesGithubProvider,
-    detail:
-      "Worker cannot commit private mirror migrations; use manager for mirror installs or explicitly opt into github.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA",
-    ok: !usesGithubProvider || Bun.env.MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA === "true",
-    detail:
-      "Required when MODEL_IMAGE_REBUILD_PROVIDER=github because GitHub commits/releases reveal model metadata.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY",
-    ok: !usesGithubProvider || hasValue("MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY"),
-    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=github.",
-  },
-  {
-    name: "MODEL_IMAGE_REBUILD_GITHUB_TOKEN",
-    ok: !usesGithubProvider || hasValue("MODEL_IMAGE_REBUILD_GITHUB_TOKEN"),
-    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=github.",
+    ok: !provider,
+    detail: "Worker cannot commit private mirror migrations; use manager for mirror installs.",
   },
   {
     name: "MODEL_IMAGE_RUNPOD_BUILD_POLLING",

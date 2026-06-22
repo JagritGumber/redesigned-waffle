@@ -122,19 +122,8 @@ Model install requests add a migration file inside that private mirror, render
 RunPod watches. The public repo stays free of model names, URLs, and migration
 history.
 
-Do not use the GitHub provider for sensitive model installs in a public repo.
-`MODEL_IMAGE_REBUILD_PROVIDER=github` commits model migration metadata and
-creates release tags in GitHub. That can reveal which models were installed to
-anyone who can see the repository history or releases. The GitHub provider now
-requires `MODEL_IMAGE_REBUILD_ALLOW_GITHUB_METADATA=true`; set it only for
-private repositories or non-sensitive model installs.
-
-GitHub Actions does not build or push Docker images in this setup. When the
-optional GitHub provider is explicitly enabled, it only validates the migration,
-commits `generator/model-migrations/*.json`, renders `generator/Dockerfile`,
-and creates the `model-<buildTriggerId>` release that RunPod watches. Do not add
-Buildx, `docker build`, Docker Hub login, or image push steps unless you
-intentionally want to pay for external CI image builds.
+This repo only supports private-mirror model builds. Keep generated model
+migrations in the private deploy mirror, not in public branches or tags.
 
 The generator image uses `generator/model-migrations/*.json`; each migration is
 rendered as its own `COPY` plus `RUN` Docker layer pair so Docker cache reuses
@@ -171,35 +160,6 @@ Before enabling this in production, run:
 
 ```bash
 bun run verify:pipeline:full
-```
-
-If you intentionally use the optional GitHub provider in a private repo, verify
-the external wiring without printing secrets:
-
-```bash
-cd manager
-bun run check:external-pipeline
-```
-
-This checks `HOST_URL/api/v1/health`, the GitHub workflow, and the RunPod
-generator endpoint before any optional dry-run dispatch.
-
-To prove GitHub `repository_dispatch` reaches the workflow without creating a
-migration commit, GitHub release, Docker build, RunPod hook, or manager callback,
-run the opt-in smoke dispatch. Add `--wait` to wait for the GitHub Actions
-dry-run workflow to complete:
-
-```bash
-cd manager
-bun run check:external-pipeline -- --dispatch-dry-run --wait
-```
-
-If the optional GitHub provider creates a release such as
-`model-<buildTriggerId>`, verify the release and matching RunPod build record:
-
-```bash
-cd manager
-bun run check:external-pipeline -- --verify-release model-<buildTriggerId>
 ```
 
 ## Open Source
