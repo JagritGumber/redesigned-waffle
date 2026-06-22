@@ -216,6 +216,14 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
     expect(result.status).toBe("SUCCESS");
     expect(result.dbModelId).toBe(9001);
     expect(result.message).toContain("Docker image rebuild queued");
+    expect(result.installStatus).toBe("BUILD_QUEUED");
+    expect(result.statusMessage).toBe(
+      "Docker image build queued. The model will be downloaded as a cacheable image layer.",
+    );
+    expect(result.buildTriggerId).toBe("build-user-a-model-9001");
+    expect(result.civitaiFileId).toBe(9201);
+    expect(result.runpodPath).toContain("/runpod-volume/workspace/models/");
+    expect(result.buildTriggeredAt).toBeInstanceOf(Date);
 
     expect(triggeredBuilds).toHaveLength(1);
     expect(triggeredBuilds[0]).toMatchObject({
@@ -252,6 +260,8 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
 
     expect(userQueuedResult.status).toBe("SUCCESS");
     expect(userQueuedResult.message).toContain("Existing Docker image build reused");
+    expect(userQueuedResult.installStatus).toBe("BUILD_QUEUED");
+    expect(userQueuedResult.buildTriggerId).toBe("build-user-a-model-9001");
     expect(triggeredBuilds).toHaveLength(1);
 
     const [queuedInstall] = await db
@@ -287,6 +297,9 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
 
     expect(userARepeatResult.status).toBe("SUCCESS");
     expect(userARepeatResult.message).toContain("Existing Docker image reused");
+    expect(userARepeatResult.installStatus).toBe("READY");
+    expect(userARepeatResult.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
+    expect(userARepeatResult.deployedAt).toEqual(deployedAt);
     expect(triggeredBuilds).toHaveLength(1);
 
     const userBResult = await registerOrUpdateCivitaiModel(
@@ -301,6 +314,9 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
 
     expect(userBResult.status).toBe("SUCCESS");
     expect(userBResult.message).toContain("Existing Docker image reused");
+    expect(userBResult.installStatus).toBe("READY");
+    expect(userBResult.buildTriggerId).toBe("build-user-a-model-9001");
+    expect(userBResult.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
     expect(triggeredBuilds).toHaveLength(1);
 
     const [userBInstall] = await db
@@ -322,5 +338,60 @@ describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
     expect(userARepeatInstall.status).toBe("READY");
     expect(userARepeatInstall.imageName).toBe("registry.runpod.io/example:model-build-user-a-model-9001");
     expect(userARepeatInstall.deployedAt).toEqual(deployedAt);
+  });
+
+  it("marks the account install failed when the requested version is missing", async () => {
+    const result = await registerOrUpdateCivitaiModel(
+      {
+        id: 9002,
+        name: "Missing Version Model",
+        description: "A safe model with a missing requested version.",
+        type: "Checkpoint",
+        nsfw: false,
+        creator: {
+          username: "missing-version-creator",
+          image: "https://example.com/avatar.png",
+        },
+        tags: ["safe", "test"],
+        modelVersions: [
+          {
+            id: 9102,
+            index: 0,
+            name: "v1",
+            baseModel: "SD 1.5",
+            baseModelType: "Standard",
+            publishedAt: "2026-01-01T00:00:00.000Z",
+            availability: "Public",
+            nsfwLevel: 1,
+            description: "Version description.",
+            trainedWords: [],
+            supportsGeneration: true,
+            downloadUrl: "https://civitai.com/api/download/models/9102",
+            files: [],
+            images: [],
+          },
+        ],
+      } as any,
+      {
+        userId: "user-missing-version",
+        versionId: 999999,
+        fileId: 9201,
+        triggerDownload: true,
+      },
+    );
+
+    expect(result.status).toBe("PARTIAL_SUCCESS");
+    expect(result.message).toContain("Requested version ID 999999 not found");
+    expect(result.installStatus).toBe("DOWNLOAD_FAILED");
+    expect(result.statusMessage).toContain("Requested version ID 999999 not found");
+    expect(result.buildTriggerId).toBeNull();
+
+    const [install] = await db
+      .select()
+      .from(schema.civitaiModelInstalls)
+      .where(eq(schema.civitaiModelInstalls.userId, "user-missing-version"));
+
+    expect(install.status).toBe("DOWNLOAD_FAILED");
+    expect(install.statusMessage).toContain("Requested version ID 999999 not found");
   });
 });

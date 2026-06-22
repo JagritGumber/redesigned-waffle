@@ -54,6 +54,64 @@ async function findReusableActiveModelImageInstall(civitaiModelId: number, civit
   return install;
 }
 
+async function markAccountInstallFailed(
+  userId: string | undefined,
+  civitaiModelId: number | undefined,
+  message: string,
+) {
+  if (!userId || !civitaiModelId) return;
+
+  await db
+    .update(civitaiModelInstalls)
+    .set({
+      status: "DOWNLOAD_FAILED",
+      statusMessage: message,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(civitaiModelInstalls.userId, userId),
+        eq(civitaiModelInstalls.civitaiModelId, civitaiModelId),
+      ),
+    );
+}
+
+async function getAccountInstallSnapshot(
+  userId: string | undefined,
+  civitaiModelId: number | undefined,
+) {
+  if (!userId || !civitaiModelId) return undefined;
+
+  const [install] = await db
+    .select()
+    .from(civitaiModelInstalls)
+    .where(
+      and(
+        eq(civitaiModelInstalls.userId, userId),
+        eq(civitaiModelInstalls.civitaiModelId, civitaiModelId),
+      ),
+    )
+    .limit(1);
+
+  return install;
+}
+
+function accountInstallResultFields(
+  accountInstall: Awaited<ReturnType<typeof getAccountInstallSnapshot>>,
+) {
+  return {
+    installStatus: accountInstall?.status ?? null,
+    statusMessage: accountInstall?.statusMessage ?? null,
+    buildTriggerId: accountInstall?.buildTriggerId ?? null,
+    civitaiFileId: accountInstall?.civitaiFileId ?? null,
+    imageName: accountInstall?.imageName ?? null,
+    runpodPath: accountInstall?.runpodPath ?? null,
+    downloadCompletedAt: accountInstall?.downloadCompletedAt ?? null,
+    buildTriggeredAt: accountInstall?.buildTriggeredAt ?? null,
+    deployedAt: accountInstall?.deployedAt ?? null,
+  };
+}
+
 /**
  * Fetches model details from Civitai API.
  * @param modelId The Civitai model ID.
@@ -112,6 +170,15 @@ export async function registerOrUpdateCivitaiModel(
   downloadInitiatedPath?: string;
   loraRunpodPath?: string;
   embeddingRunpodPath?: string;
+  installStatus?: string | null;
+  statusMessage?: string | null;
+  buildTriggerId?: string | null;
+  civitaiFileId?: number | null;
+  imageName?: string | null;
+  runpodPath?: string | null;
+  downloadCompletedAt?: Date | null;
+  buildTriggeredAt?: Date | null;
+  deployedAt?: Date | null;
 }> {
   const triggerDownload = options?.triggerDownload ?? true;
   const requestedVersionId = options?.versionId;
@@ -239,12 +306,15 @@ export async function registerOrUpdateCivitaiModel(
 
       finalStatus = "PARTIAL_SUCCESS";
       finalMessage += ` ${msg}`;
+      await markAccountInstallFailed(userId, savedCivitaiModelId, msg);
+      const accountInstall = await getAccountInstallSnapshot(userId, savedCivitaiModelId);
       return {
         status: finalStatus,
         message: finalMessage,
         id: id,
         dbModelId: savedCivitaiModelId,
         errors: errors.length > 0 ? errors : undefined,
+        ...accountInstallResultFields(accountInstall),
       };
     }
     console.log(`Selected requested version ${selectedVersion.id}.`);
@@ -258,12 +328,15 @@ export async function registerOrUpdateCivitaiModel(
       errors.push(msg);
       finalStatus = "PARTIAL_SUCCESS";
       finalMessage += ` ${msg}`;
+      await markAccountInstallFailed(userId, savedCivitaiModelId, msg);
+      const accountInstall = await getAccountInstallSnapshot(userId, savedCivitaiModelId);
       return {
         status: finalStatus,
         message: finalMessage,
         id: id,
         dbModelId: savedCivitaiModelId,
         errors: errors.length > 0 ? errors : undefined,
+        ...accountInstallResultFields(accountInstall),
       };
     }
     console.log(`Selected latest version ${selectedVersion.id}.`);
@@ -786,6 +859,8 @@ export async function registerOrUpdateCivitaiModel(
     }
   }
 
+  const accountInstall = await getAccountInstallSnapshot(userId, savedCivitaiModelId);
+
   return {
     status: finalStatus,
     message: finalMessage,
@@ -796,5 +871,6 @@ export async function registerOrUpdateCivitaiModel(
     downloadInitiatedPath: downloadInitiatedPath,
     loraRunpodPath: loraRunpodPath,
     embeddingRunpodPath: embeddingRunpodPath,
+    ...accountInstallResultFields(accountInstall),
   };
 }

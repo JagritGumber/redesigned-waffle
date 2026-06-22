@@ -32,12 +32,36 @@ Bun.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN = "test-token";
 
 try {
   const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
+  const modelRouter = readFileSync("src/routers/v1/modelRouter.ts", "utf-8");
   assert(
     civitaiService.includes("findReusableActiveModelImageInstall") &&
       civitaiService.includes("IN ('BUILD_QUEUED', 'BUILDING')") &&
       civitaiService.includes("Existing Docker image build reused"),
     "Manager model installs should reuse active Docker image builds instead of dispatching duplicates.",
   );
+  assert(
+    civitaiService.includes("markAccountInstallFailed") &&
+      civitaiService.includes("accountInstallResultFields") &&
+      civitaiService.includes("DOWNLOAD_FAILED"),
+    "Manager Civitai service should return failed install snapshots for early install failures.",
+  );
+
+  for (const field of [
+    "installStatus",
+    "statusMessage",
+    "buildTriggerId",
+    "civitaiFileId",
+    "imageName",
+    "runpodPath",
+    "downloadCompletedAt",
+    "buildTriggeredAt",
+    "deployedAt",
+  ]) {
+    assert(
+      modelRouter.includes(`${field}: install?.`) || modelRouter.includes(`${field}: result.${field}`),
+      `Manager model install response should expose ${field}.`,
+    );
+  }
 
   const result = await triggerModelImageBuild({
     civitaiModelId: 42,
