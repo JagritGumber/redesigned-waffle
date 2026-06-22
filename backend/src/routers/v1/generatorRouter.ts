@@ -13,9 +13,7 @@ import {
   GenerateRequestPayloadType,
 } from "@/validators/generation";
 
-const generatorRouter = new Hono<ContextForHono>()
-  .use("*", verifyAuth())
-  .post("/generate", async (c) => {
+async function handleGenerateImage(c: any) {
     const userId = getRequiredUserId(c);
     if (!userId) {
       return c.json({ status: "error", message: "Authentication required." }, 401);
@@ -367,7 +365,12 @@ const generatorRouter = new Hono<ContextForHono>()
         500
       );
     }
-  })
+}
+
+const generatorRouter = new Hono<ContextForHono>()
+  .use("*", verifyAuth())
+  .post("/generate-image", handleGenerateImage)
+  .post("/generate", handleGenerateImage)
   .get("/images", async (c) => {
     const db = c.get("db");
     const userId = getRequiredUserId(c);

@@ -70,7 +70,7 @@ function generationPayload(modelId: number) {
 }
 
 describe("Worker generator model readiness", () => {
-  it("rejects generation while a selected account model is still installing", async () => {
+  it("rejects Solid-compatible generation route while a selected account model is still installing", async () => {
     await db.insert(schema.civitaiModelInstalls).values({
       id: "install-building",
       userId: "user-a",
@@ -80,7 +80,7 @@ describe("Worker generator model readiness", () => {
     });
 
     const response = await createApp().fetch(
-      new Request("http://localhost/generator/generate", {
+      new Request("http://localhost/generator/generate-image", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,5 +105,35 @@ describe("Worker generator model readiness", () => {
         statusMessage: "RunPod image build is still running.",
       },
     ]);
+  });
+
+  it("keeps the legacy Worker generation route as an alias", async () => {
+    await db.insert(schema.civitaiModelInstalls).values({
+      id: "install-building-legacy",
+      userId: "user-b",
+      civitaiModelId: 1002,
+      status: "BUILDING",
+      statusMessage: "RunPod image build is still running.",
+    });
+
+    const response = await createApp().fetch(
+      new Request("http://localhost/generator/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-test-user-id": "user-b",
+        },
+        body: JSON.stringify(generationPayload(1002)),
+      }),
+      {
+        RUNPOD_API_KEY: "test-runpod-key",
+        RUNPOD_GENERATOR_ID: "test-generator",
+        RUNPOD_WEBHOOK_URL: "http://localhost/api/v1/webhooks/runpod",
+      } as any,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.models[0].modelId).toBe(1002);
   });
 });

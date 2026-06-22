@@ -51,6 +51,10 @@ Keep committed `wrangler.jsonc` limited to non-secret IDs, URLs, bucket names,
 and feature flags. Do not put API keys, bearer tokens, OAuth secrets, or webhook
 tokens in `wrangler.jsonc`.
 
+For Solid compatibility, image generation is available at
+`/api/v1/generator/generate-image`. The older Worker-only
+`/api/v1/generator/generate` route remains as an alias.
+
 Treat `backend/.dev.vars.example` as the source of variable names only. The real
 local file is `backend/.dev.vars`, and it must stay uncommitted. For production,
 Wrangler stores sensitive values separately from `wrangler.jsonc` through

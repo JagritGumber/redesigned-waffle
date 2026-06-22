@@ -70,6 +70,8 @@ for (const snippet of [
 
 for (const snippet of [
   "const userId = getRequiredUserId(c)",
+  ".post(\"/generate-image\"",
+  ".post(\"/generate\"",
   "uniqueRequestedModelIds",
   "eq(civitaiModelInstalls.userId, userId)",
   "inArray(civitaiModelInstalls.civitaiModelId, uniqueRequestedModelIds)",
