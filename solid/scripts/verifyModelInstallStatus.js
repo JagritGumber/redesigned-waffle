@@ -33,7 +33,11 @@ assert(
   statusComponent.includes("activeModelInstallStatuses") &&
     statusComponent.includes("isActiveModelInstall") &&
     statusComponent.includes("showMessage") &&
-    statusComponent.includes("title={message()"),
+    statusComponent.includes("title={message()") &&
+    statusComponent.includes("ModelInstallProgress") &&
+    statusComponent.includes("buildTriggerId") &&
+    statusComponent.includes("imageName") &&
+    statusComponent.includes("RunPod ready"),
   "Model install status component should expose active state and visible/tooltip messages.",
 );
 assert(
@@ -68,10 +72,12 @@ assert(
 );
 assert(
   detailRoute.includes("ModelInstallStatus") &&
+    detailRoute.includes("ModelInstallProgress") &&
     detailRoute.includes("installMessage") &&
+    detailRoute.includes("installProgress") &&
     detailRoute.includes("installToastMessage") &&
     detailRoute.includes("Docker image build may take a while"),
-  "Model detail page should surface install status and long-running build messaging.",
+  "Model detail page should surface install status, lifecycle details, and long-running build messaging.",
 );
 assert(
   generationRoute.includes("withCredentials: true") &&

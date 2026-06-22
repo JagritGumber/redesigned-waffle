@@ -10,6 +10,7 @@ type InstalledModelResponse = {
     statusMessage?: string | null;
     buildTriggerId?: string | null;
     runpodJobId?: string | null;
+    imageName?: string | null;
     civitaiFileId?: number | null;
     runpodPath?: string | null;
     downloadCompletedAt?: string | number | Date | null;

@@ -44,7 +44,11 @@ import { useInstalledModel } from "~/hooks/useInstalledModel";
 import { formatBytes } from "~/utils/formatBytes";
 import { formatTime } from "~/utils/formatTime";
 import { toast, Toaster } from "solid-sonner";
-import { ModelInstallStatus, isActiveModelInstall } from "~/components/model-install-status";
+import {
+  ModelInstallProgress,
+  ModelInstallStatus,
+  isActiveModelInstall,
+} from "~/components/model-install-status";
 
 export const Route = createFileRoute("/models/$id/$vId")({
   component: RouteComponent,
@@ -93,6 +97,17 @@ function RouteComponent() {
   const installedModel = () => installedModelQuery.data?.model;
   const installStatus = () => installedModel()?.status;
   const installMessage = () => installedModel()?.statusMessage;
+  const installProgress = () => ({
+    status: installStatus(),
+    message: installMessage(),
+    buildTriggerId: installedModel()?.buildTriggerId,
+    runpodJobId: installedModel()?.runpodJobId,
+    imageName: installedModel()?.imageName,
+    runpodPath: installedModel()?.runpodPath,
+    downloadCompletedAt: installedModel()?.downloadCompletedAt,
+    buildTriggeredAt: installedModel()?.buildTriggeredAt,
+    deployedAt: installedModel()?.deployedAt,
+  });
   const isInstallBusy = () => downloadMutation.isPending || isActiveModelInstall(installStatus());
   const installToastMessage = (modelName: string | undefined, result: { installStatus?: string | null; statusMessage?: string | null }) => {
     if (isActiveModelInstall(result.installStatus)) {
@@ -391,6 +406,7 @@ function RouteComponent() {
                   ? "Installing..."
                   : `Download (${formatBytes((primaryFile()?.sizeKB ?? 0) * 1024)})`}
               </Button>
+              <ModelInstallProgress {...installProgress()} />
               <Accordion multiple={false} collapsible>
                 <AccordionItem value="details">
                   <Table class="border-border border rounded-md">
