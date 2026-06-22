@@ -24,11 +24,19 @@ globalThis.fetch = (async (url, init) => {
 try {
   const modelRouter = readFileSync("src/routers/v1/modelRouter.ts", "utf-8");
   const civitaiService = readFileSync("src/services/civitaiService.ts", "utf-8");
+  const webhookRouter = readFileSync("src/routers/v1/webhookRouter.ts", "utf-8");
   assert(
     civitaiService.includes("findReusableActiveModelImageInstall") &&
       civitaiService.includes("IN ('BUILD_QUEUED', 'BUILDING')") &&
       civitaiService.includes("Existing Docker image build reused"),
     "Worker model installs should reuse active Docker image builds instead of dispatching duplicates.",
+  );
+  assert(
+    webhookRouter.includes("triggerModelImageBuild") &&
+      webhookRouter.includes("Model image rebuild queued") &&
+      webhookRouter.includes("downloadCompletedAt") &&
+      webhookRouter.includes("buildTriggeredAt"),
+    "Worker downloader webhook should queue a model-image rebuild after a completed legacy download.",
   );
 
   for (const field of [

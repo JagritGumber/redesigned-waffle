@@ -13,6 +13,11 @@ import {
 import { updateStorageInfo } from "@/utils/updateStorageInfo";
 import { InfoParsedResult } from "@/types/generator";
 import { resolveModelImageWebhookState } from "@/services/modelImageStatusService";
+import {
+  isModelImageRebuildConfigured,
+  triggerModelImageBuild,
+} from "@/services/modelImageBuildService";
+import { ModelTypes } from "@/types/models";
 
 type RunPodWebhookPayload = {
   id: string; // RunPod Job ID
@@ -90,6 +95,7 @@ const webhookRouter = new Hono<ContextForHono>()
           model_id?: number | string; // RunPod payloads may serialize this as a string.
           user_id?: string;
           civitai_file_id?: number;
+          model_type?: ModelTypes;
         };
       }>();
       const {
@@ -125,15 +131,65 @@ const webhookRouter = new Hono<ContextForHono>()
           .where(eq(civitaiFiles.runpodJobId, runpodJobId))
           .returning();
 
+        const modelId =
+          input.model_id === undefined ? undefined : Number(input.model_id);
+
         if (runpodJobId) {
+          let installStatus =
+            actionStatus === "COMPLETED" ? "READY" : "DOWNLOAD_FAILED";
+          let statusMessage =
+            actionStatus === "COMPLETED"
+              ? "Model downloaded and ready."
+              : output?.message ?? null;
+          let buildTriggerId: string | null = null;
+          let buildTriggeredAt: Date | null = null;
+
+          if (actionStatus === "COMPLETED" && updatedFile.length > 0 && modelId !== undefined) {
+            const file = updatedFile[0];
+            const envConfig = {
+              MODEL_IMAGE_REBUILD_PROVIDER: c.env.MODEL_IMAGE_REBUILD_PROVIDER,
+              MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: c.env.MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY,
+              MODEL_IMAGE_REBUILD_GITHUB_TOKEN: c.env.MODEL_IMAGE_REBUILD_GITHUB_TOKEN,
+              MODEL_IMAGE_REBUILD_WEBHOOK_URL: c.env.MODEL_IMAGE_REBUILD_WEBHOOK_URL,
+              MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN: c.env.MODEL_IMAGE_REBUILD_WEBHOOK_TOKEN,
+            };
+
+            if (isModelImageRebuildConfigured(envConfig)) {
+              try {
+                buildTriggerId =
+                  typeof crypto !== "undefined" && "randomUUID" in crypto
+                    ? crypto.randomUUID()
+                    : `${modelId}-${file.id}-${Date.now()}`;
+                await triggerModelImageBuild(envConfig, {
+                  buildTriggerId,
+                  civitaiModelId: modelId,
+                  civitaiFileId: file.id,
+                  downloadUrl: file.downloadUrl,
+                  runpodPath: file.runpodPath,
+                  modelType: input.model_type ?? ModelTypes.Checkpoint,
+                });
+                installStatus = "BUILD_QUEUED";
+                statusMessage =
+                  "Model image rebuild queued. The model will be ready after the Docker image deploys.";
+                buildTriggeredAt = new Date();
+              } catch (buildError: any) {
+                installStatus = "BUILD_FAILED";
+                statusMessage =
+                  buildError?.message || "Model downloaded, but Docker image rebuild failed.";
+                console.error("Failed to trigger model image rebuild:", buildError);
+              }
+            }
+          }
+
           await db
             .update(civitaiModelInstalls)
             .set({
-              status:
-                actionStatus === "COMPLETED"
-                  ? "DOWNLOADED"
-                  : "DOWNLOAD_FAILED",
-              statusMessage: output?.message ?? null,
+              status: installStatus,
+              statusMessage,
+              buildTriggerId,
+              downloadCompletedAt:
+                actionStatus === "COMPLETED" ? new Date() : null,
+              buildTriggeredAt,
               updatedAt: new Date(),
             })
             .where(eq(civitaiModelInstalls.runpodJobId, runpodJobId));

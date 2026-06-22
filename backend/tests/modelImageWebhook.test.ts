@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import webhookRouter from "@/routers/v1/webhookRouter";
 import { civitaiModelInstalls } from "@/schema/modelInstall";
+import { civitaiFiles } from "@/schema/modelFiles";
 
 const client = new Database(":memory:");
 const db = drizzle(client);
@@ -30,6 +31,36 @@ db.run(sql`
   )
 `);
 
+db.run(sql`
+  CREATE TABLE civitaiFile (
+    id INTEGER PRIMARY KEY,
+    civitaiVersionId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT,
+    sizeKB INTEGER NOT NULL,
+    pickleScanResult TEXT,
+    pickleScanMessage TEXT,
+    virusScanResult TEXT,
+    virusScanMessage TEXT,
+    scannedAt INTEGER,
+    downloadStatus TEXT,
+    downloadOutput TEXT,
+    downloadUrl TEXT NOT NULL,
+    runpodPath TEXT NOT NULL,
+    createdAt INTEGER,
+    updatedAt INTEGER,
+    runpodJobId TEXT
+  )
+`);
+
+db.run(sql`
+  CREATE TABLE storage_info (
+    id INTEGER PRIMARY KEY,
+    total_storage_bytes INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER
+  )
+`);
+
 function createApp() {
   const app = new Hono()
     .use("*", async (c, next) => {
@@ -39,6 +70,20 @@ function createApp() {
     .route("/webhooks", webhookRouter as any);
 
   return app;
+}
+
+async function postDownloaderWebhook(body: unknown, env: Record<string, string> = {}) {
+  return createApp().request(
+    "/webhooks/runpod/downloader",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    },
+    env,
+  );
 }
 
 async function postModelImageWebhook(body: unknown, token = "test-webhook-token") {
@@ -139,5 +184,79 @@ describe("Worker POST /webhooks/model-image", () => {
     expect(install.status).toBe("BUILD_FAILED");
     expect(install.statusMessage).toBe("RunPod build failed during testing.");
     expect(install.deployedAt).toBeNull();
+  });
+
+  it("queues a model image rebuild when the legacy downloader completes", async () => {
+    await db.insert(civitaiFiles).values({
+      id: 501,
+      civitaiVersionId: 401,
+      name: "worker-downloaded-model.safetensors",
+      sizeKB: 1024,
+      downloadUrl: "https://civitai.com/api/download/models/501",
+      runpodPath: "/runpod-volume/workspace/models/worker-downloaded-model.safetensors",
+      runpodJobId: "legacy-download-job-1",
+    });
+    await db.insert(civitaiModelInstalls).values({
+      id: "worker-legacy-download-install",
+      userId: "user-legacy-download",
+      civitaiModelId: 301,
+      status: "DOWNLOADING",
+      runpodJobId: "legacy-download-job-1",
+      civitaiFileId: 501,
+      runpodPath: "/runpod-volume/workspace/models/worker-downloaded-model.safetensors",
+    });
+
+    const originalFetch = globalThis.fetch;
+    let dispatchedBody: any;
+    globalThis.fetch = (async (_url, init) => {
+      dispatchedBody = JSON.parse(String(init?.body));
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+
+    try {
+      const response = await postDownloaderWebhook(
+        {
+          id: "legacy-download-job-1",
+          status: "COMPLETED",
+          output: { status: "COMPLETED", storage_used: 1024 },
+          input: {
+            action: "download",
+            model_id: 301,
+            civitai_file_id: 501,
+            model_type: "Checkpoint",
+          },
+        },
+        {
+          MODEL_IMAGE_REBUILD_PROVIDER: "github",
+          MODEL_IMAGE_REBUILD_GITHUB_REPOSITORY: "owner/repo",
+          MODEL_IMAGE_REBUILD_GITHUB_TOKEN: "test-token",
+        },
+      );
+
+      expect(response.status).toBe(200);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(dispatchedBody.event_type).toBe("model-image-rebuild");
+    expect(dispatchedBody.client_payload).toMatchObject({
+      event: "model.downloaded",
+      civitaiModelId: 301,
+      civitaiFileId: 501,
+      downloadUrl: "https://civitai.com/api/download/models/501",
+      runpodPath: "/runpod-volume/workspace/models/worker-downloaded-model.safetensors",
+    });
+
+    const [install] = await db
+      .select()
+      .from(civitaiModelInstalls)
+      .where(eq(civitaiModelInstalls.runpodJobId, "legacy-download-job-1"));
+    expect(install.status).toBe("BUILD_QUEUED");
+    expect(install.statusMessage).toBe(
+      "Model image rebuild queued. The model will be ready after the Docker image deploys.",
+    );
+    expect(install.buildTriggerId).toBeTruthy();
+    expect(install.downloadCompletedAt).toBeInstanceOf(Date);
+    expect(install.buildTriggeredAt).toBeInstanceOf(Date);
   });
 });
