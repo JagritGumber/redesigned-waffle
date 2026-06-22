@@ -11,6 +11,7 @@ FILES = {
     "worker package": ROOT / "backend" / "package.json",
     "workflow": ROOT / ".github" / "workflows" / "model-image-rebuild.yml",
     "readme": ROOT / "README.md",
+    "operator pipeline": ROOT / "docs" / "operator-model-pipeline.md",
     "generator readme": ROOT / "generator" / "README.md",
 }
 
@@ -80,6 +81,26 @@ REQUIRED_DOC_SNIPPETS = [
     "bun run verify:pipeline:full",
 ]
 
+REQUIRED_OPERATOR_PIPELINE_SNIPPETS = [
+    "`REGISTERING`",
+    "`DOWNLOADING`",
+    "`BUILD_QUEUED`",
+    "`BUILDING`",
+    "`READY`",
+    "`DOWNLOAD_FAILED`",
+    "`BUILD_FAILED`",
+    "`DELETED`",
+    "polls account install endpoints",
+    "Global model metadata must not be used as the source of truth",
+]
+
+FORBIDDEN_OPERATOR_PIPELINE_SNIPPETS = [
+    "`QUEUED`",
+    "`DOWNLOADED`",
+    "`DEPLOYING`",
+    "`FAILED`",
+]
+
 
 def fail(message: str) -> None:
     raise SystemExit(message)
@@ -104,6 +125,7 @@ def main() -> None:
     worker_env = read("worker env example")
     worker_package = read("worker package")
     workflow = read("workflow")
+    operator_pipeline = read("operator pipeline")
     docs = read("readme") + "\n" + read("generator readme")
 
     assert_keys("manager/.env.example", manager_env, REQUIRED_MANAGER_KEYS)
@@ -123,6 +145,24 @@ def main() -> None:
     missing_docs = [snippet for snippet in REQUIRED_DOC_SNIPPETS if snippet not in docs]
     if missing_docs:
         fail("self-host docs are missing required snippets: " + ", ".join(missing_docs))
+
+    missing_operator_docs = [
+        snippet for snippet in REQUIRED_OPERATOR_PIPELINE_SNIPPETS if snippet not in operator_pipeline
+    ]
+    if missing_operator_docs:
+        fail(
+            "operator pipeline docs are missing required snippets: "
+            + ", ".join(missing_operator_docs)
+        )
+
+    forbidden_operator_docs = [
+        snippet for snippet in FORBIDDEN_OPERATOR_PIPELINE_SNIPPETS if snippet in operator_pipeline
+    ]
+    if forbidden_operator_docs:
+        fail(
+            "operator pipeline docs mention unsupported status snippets: "
+            + ", ".join(forbidden_operator_docs)
+        )
 
     if "MODEL_IMAGE_REBUILD_PROVIDER=github" not in manager_env:
         fail("manager/.env.example should default model image rebuilds to GitHub provider.")

@@ -23,18 +23,21 @@ provider secret stores only.
 
 Use user-scoped install state for application behavior:
 
-- `QUEUED`: install request accepted.
+- `REGISTERING`: install request accepted and Civitai metadata is being stored.
 - `DOWNLOADING`: downloader job is active.
-- `DOWNLOADED`: model files are present and image build can start.
 - `BUILD_QUEUED`: image build request accepted.
 - `BUILDING`: image build is active.
-- `DEPLOYING`: RunPod update is active.
 - `READY`: the user's model is available for generation.
-- `FAILED`: the install, build, or deployment failed.
+- `DOWNLOAD_FAILED`: the model file download failed.
+- `BUILD_FAILED`: the Docker image build or deployment failed.
 - `DELETED`: the user's install was removed.
 
 Global model metadata must not be used as the source of truth for per-user
 install availability.
+
+The Solid frontend treats `REGISTERING`, `DOWNLOADING`, `BUILD_QUEUED`, and
+`BUILDING` as active statuses and polls account install endpoints while any of
+those statuses are present.
 
 ## Docker cache strategy
 
