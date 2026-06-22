@@ -6,6 +6,7 @@ import { Loader } from "./loader";
 import type useMarketplaceModels from "~/hooks/useMarketplaceModels";
 import type useGenerationModels from "~/hooks/useGenerationModels";
 import { cn } from "~/lib/utils";
+import type { Accessor } from "solid-js";
 
 export interface ModelListProps {
   query: ReturnType<
@@ -14,9 +15,16 @@ export interface ModelListProps {
   size?: "sm" | "md" | "lg";
   class?: string;
   selectable?: boolean;
+  installStateByModelId?: Accessor<Map<number, Record<string, unknown>>>;
 }
 
-export const ModelList = ({ query, size = "md", selectable = false, ...props }: ModelListProps) => {
+export const ModelList = ({
+  query,
+  size = "md",
+  selectable = false,
+  installStateByModelId,
+  ...props
+}: ModelListProps) => {
   let endOfListRef: HTMLDivElement | undefined;
 
   createEffect(() => {
@@ -52,6 +60,10 @@ export const ModelList = ({ query, size = "md", selectable = false, ...props }: 
   };
 
   const isFetchingNextPage = isMarketplaceQuery(query) ? query.isFetchingNextPage : false;
+  const withInstallState = <T extends { id: number }>(model: T) => ({
+    ...model,
+    ...(installStateByModelId?.().get(model.id) ?? {}),
+  });
 
   return (
     <Suspense fallback={<Loader />}>
@@ -75,7 +87,7 @@ export const ModelList = ({ query, size = "md", selectable = false, ...props }: 
                   ?.models
               }
             >
-              {(model) => <ModelCard model={model()} selectable={selectable} />}
+              {(model) => <ModelCard model={withInstallState(model())} selectable={selectable} />}
             </Index>
           </Match>
           <Match
@@ -86,7 +98,7 @@ export const ModelList = ({ query, size = "md", selectable = false, ...props }: 
                 (page) => page.models,
               )}
             >
-              {(model) => <ModelCard model={model()} selectable={selectable} />}
+              {(model) => <ModelCard model={withInstallState(model())} selectable={selectable} />}
             </Index>
           </Match>
         </Switch>

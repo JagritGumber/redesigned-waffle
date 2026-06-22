@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/solid-router";
 import { useStore } from "@tanstack/solid-store";
 import { CaretLeft, Funnel } from "phosphor-solid";
-import { createSignal } from "solid-js";
+import { createMemo, createSignal } from "solid-js";
 import { ModelList } from "~/components/model-list";
 import { Button } from "~/components/ui/button";
 import { TextField, TextFieldInput } from "~/components/ui/text-field";
+import useDownloadedModels from "~/hooks/useDownloadedModels";
 import useMarketplaceModels from "~/hooks/useMarketplaceModels";
 import { marketplaceStore, setSearchText } from "~/store/marketplace";
 import type { FetchModelsParams } from "~/utils/fetchCivitaiModels";
@@ -20,6 +21,20 @@ function RouteComponent() {
   );
   const searchText = useStore(marketplaceStore, (state) => state.query);
   const modelsQuery = useMarketplaceModels(appliedFilters);
+  const downloadedModelsQuery = useDownloadedModels();
+  const installStateByModelId = createMemo(() => {
+    const installs = new Map<number, Record<string, unknown>>();
+    for (const model of downloadedModelsQuery.data?.models ?? []) {
+      installs.set((model as any).id, {
+        status: (model as any).status,
+        statusMessage: (model as any).statusMessage,
+        buildTriggerId: (model as any).buildTriggerId,
+        imageName: (model as any).imageName,
+        runpodJobId: (model as any).runpodJobId,
+      });
+    }
+    return installs;
+  });
 
   return (
     <>
@@ -53,7 +68,7 @@ function RouteComponent() {
         </nav>
       </header>
       <main>
-        <ModelList query={modelsQuery} size="lg" />
+        <ModelList query={modelsQuery} size="lg" installStateByModelId={installStateByModelId} />
       </main>
     </>
   );
