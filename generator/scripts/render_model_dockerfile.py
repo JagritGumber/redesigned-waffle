@@ -28,7 +28,10 @@ def main() -> None:
             f"COPY generator/model-migrations/{migration.name} {manifest_path}"
         )
         lines.append(
-            f"RUN python /usr/local/bin/download_model_layer.py --manifest {manifest_path}"
+            "RUN set -eux; \\\n"
+            f"    echo \"[generator-build] migration {migration.stem}: start\"; \\\n"
+            f"    python /usr/local/bin/download_model_layer.py --manifest {manifest_path}; \\\n"
+            f"    echo \"[generator-build] migration {migration.stem}: done\""
         )
     lines.append(END)
 
