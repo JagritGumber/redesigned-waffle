@@ -1,15 +1,14 @@
 {
   "input": {
-    "prompt": "a photo of an astronaut riding a horse on mars",
-    "negative_prompt": "blurry, bad quality",
-    "width": 512,
-    "height": 512,
-    "steps": 20,
-    "cfg_scale": 7.5,
-    "seed": 42,
-    "override_settings": {
-      "sd_model_checkpoint": "/defaults/workspace/models/boleromix_illustrious_/v2.90/boleromixIllustrious_v290.safetensors"
-    },
-    "override_settings_defaults": {}
+    "job_type": "generate_image",
+    "data": {
+      "prompt": "a photo of an astronaut riding a horse on mars",
+      "negative_prompt": "blurry, bad quality",
+      "width": 1024,
+      "height": 1024,
+      "steps": 20,
+      "cfg_scale": 7.5,
+      "seed": 42
+    }
   }
 }

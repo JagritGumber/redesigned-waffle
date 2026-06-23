@@ -1,75 +1,53 @@
-import os  # Added for path manipulation if needed later
-import time
+import base64
+import io
+import os
+
 import runpod
-import requests
-from requests.adapters import HTTPAdapter, Retry
-from runpod import RunPodLogger
-
-logger = RunPodLogger()
-
-LOCAL_URL = "http://127.0.0.1:3000/sdapi/v1"
-
-automatic_session = requests.Session()
-retries = Retry(total=10, backoff_factor=0.1, status_forcelist=[502, 503, 504])
-automatic_session.mount("http://", HTTPAdapter(max_retries=retries))
-
-# ---------------------------------------------------------------------------- #
-#                              Automatic Functions                             #
-# ---------------------------------------------------------------------------- #
-def wait_for_service(url):
-    """
-    Check if the service is ready to receive requests.
-    """
-    retries = 0
-
-    while True:
-        try:
-            requests.get(url, timeout=120)
-            return
-        except requests.exceptions.RequestException:
-            retries += 1
-
-            # Only log every 15 retries so the logs don't get spammed
-            if retries % 15 == 0:
-                print("Service not ready yet. Retrying...")
-        except Exception as err:
-            print("Error: ", err)
-
-        time.sleep(0.2)
+import torch
+from diffusers import (
+    AutoencoderKL,
+    EulerAncestralDiscreteScheduler,
+    EulerDiscreteScheduler,
+    StableDiffusionXLPipeline,
+)
 
 
-def generate_image_a1111(inference_request):
-    """
-    Run image generation inference using Automatic1111.
-    """
-
-    logger.log(inference_request)
-
-    response = None  # Initialize response to None
-    try:
-        response = automatic_session.post(
-            url=f"{LOCAL_URL}/txt2img", json=inference_request, timeout=600
-        )
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        logger.log(f"Request to Automatic1111 failed: {e}")
-        logger.log(f"Response content: {response.text if response else 'No response'}")
-        raise  # Re-raise the exception after logging
-    except ValueError as e:
-        logger.log(f"Failed to parse JSON response from Automatic1111: {e}")
-        logger.log(f"Response content: {response.text if response else 'No response'}")
-        raise  # Re-raise the exception after logging
-    except Exception as e:
-        logger.log(f"An unexpected error occurred during image generation: {e}")
-        raise  # Re-raise the exception after logging
+PIPELINE = None
 
 
-def generate_prompt(inference_request):
-    """
-    Build a deterministic safe-for-work prompt from user-provided seed tags.
-    This keeps the self-host pipeline functional without an external LLM.
-    """
+def load_pipeline():
+    global PIPELINE
+    if PIPELINE is not None:
+        return PIPELINE
+
+    vae = AutoencoderKL.from_pretrained(
+        "madebyollin/sdxl-vae-fp16-fix",
+        torch_dtype=torch.float16,
+        local_files_only=True,
+    )
+    pipe = StableDiffusionXLPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        vae=vae,
+        torch_dtype=torch.float16,
+        variant="fp16",
+        use_safetensors=True,
+        add_watermarker=False,
+        local_files_only=True,
+    ).to("cuda")
+
+    pipe.enable_xformers_memory_efficient_attention()
+    pipe.enable_model_cpu_offload()
+    PIPELINE = pipe
+    return PIPELINE
+
+
+def image_to_base64(image):
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
+def build_prompt(inference_request):
     raw_prompt = (inference_request or {}).get("prompt", "")
     tokens = [
         token.strip()
@@ -86,30 +64,72 @@ def generate_prompt(inference_request):
     return {"generated_prompt": generated}
 
 
-# ---------------------------------------------------------------------------- #
-#                                RunPod Handler                                #
-# ---------------------------------------------------------------------------- #
+def as_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def as_float(value, default):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+@torch.inference_mode()
+def generate_image(inference_request):
+    pipe = load_pipeline()
+    data = inference_request or {}
+
+    seed = data.get("seed")
+    if seed is None:
+        seed = int.from_bytes(os.urandom(2), "big")
+    seed = as_int(seed, 0)
+
+    scheduler_name = data.get("scheduler") or data.get("sampler_name")
+    if scheduler_name in {"Euler a", "K_EULER_ANCESTRAL"}:
+        pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+    elif scheduler_name in {"Euler", "K_EULER"}:
+        pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config)
+
+    generator = torch.Generator("cuda").manual_seed(seed)
+    result = pipe(
+        prompt=data.get("prompt", ""),
+        negative_prompt=data.get("negative_prompt"),
+        width=as_int(data.get("width"), 1024),
+        height=as_int(data.get("height"), 1024),
+        num_inference_steps=as_int(
+            data.get("num_inference_steps", data.get("steps")),
+            25,
+        ),
+        guidance_scale=as_float(
+            data.get("guidance_scale", data.get("cfg_scale")),
+            7.5,
+        ),
+        num_images_per_prompt=as_int(data.get("num_images", data.get("batch_size")), 1),
+        generator=generator,
+    )
+
+    images = [image_to_base64(image) for image in result.images]
+    return {"images": images, "seed": seed}
+
+
 def handler(event):
-    """
-    This is the handler function that will be called by the serverless.
-    It dispatches to different functions based on the job_type in the input.
-    """
-    job_type = event["input"].get("job_type")
-    request_data = event["input"].get("data")
+    job_input = event.get("input") or {}
+    job_type = job_input.get("job_type", "generate_image")
+    request_data = job_input.get("data", job_input)
 
     if job_type == "generate_image":
-        result = generate_image_a1111(request_data)
+        result = generate_image(request_data)
     elif job_type == "generate_prompt":
-        result = generate_prompt(request_data)
+        result = build_prompt(request_data)
     else:
         raise ValueError(f"Unknown job_type: {job_type}")
 
-    # return the output that you want to be returned like pre-signed URLs to output artifacts
     return result
 
 
 if __name__ == "__main__":
-    wait_for_service(url=f"{LOCAL_URL}/sd-models")
-
-    print("WebUI API Service is ready. Starting RunPod Serverless...")
     runpod.serverless.start({"handler": handler})

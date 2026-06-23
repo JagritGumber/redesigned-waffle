@@ -1,54 +1,36 @@
-# ---------------------------------------------------------------------------- #
-#                         Stage 1: Download the models                         #
-# ---------------------------------------------------------------------------- #
-FROM python:3.10.14-slim as download
-
-RUN apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*
-
-RUN pip install requests
-
-COPY generator/download_pretrained.py .
-
-RUN chmod +x download_pretrained.py
-
-RUN python -u download_pretrained.py
-
-
-# ---------------------------------------------------------------------------- #
-#                        Stage 2: Build the final image                        #
-# ---------------------------------------------------------------------------- #
-FROM python:3.10.14-slim as build_final_image
-
-ARG A1111_RELEASE=v1.9.3
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_PREFER_BINARY=1 \
-    ROOT=/stable-diffusion-webui \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
     PYTHONUNBUFFERED=1
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y \
-    fonts-dejavu-core rsync git jq moreutils aria2 wget libgoogle-perftools-dev libtcmalloc-minimal4 procps libgl1 libglib2.0-0 && \
-    apt-get autoremove -y && rm -rf /var/lib/apt/lists/* && apt-get clean -y
+RUN ln -sf /usr/bin/python3.11 /usr/local/bin/python && \
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python3
 
-RUN git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git && \
-    cd stable-diffusion-webui && \
-    git reset --hard ${A1111_RELEASE} && \
-    pip install xformers && \
-    pip install -r requirements_versions.txt && \
-    python -c "from launch import prepare_environment; prepare_environment()" --skip-torch-cuda-test
+RUN pip install --no-cache-dir uv
 
-COPY --from=download /defaults/ /defaults/
+ENV PATH="/.venv/bin:${PATH}"
+RUN uv venv --python 3.11 /.venv
 
-# install dependencies
-COPY generator/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install torch==2.7.0 torchvision --extra-index-url https://download.pytorch.org/whl/cu121
 
-COPY generator/test_input.json .
+COPY generator/requirements.txt /requirements.txt
+RUN uv pip install -r /requirements.txt
 
-ADD generator/src .
+COPY generator/src/download_weights.py /download_weights.py
+RUN python /download_weights.py
 
-RUN chmod +x /start.sh
-CMD ./start.sh
+COPY generator/test_input.json /test_input.json
+ADD generator/src /
+
+CMD python -u /handler.py

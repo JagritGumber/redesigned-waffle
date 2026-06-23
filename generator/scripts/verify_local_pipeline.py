@@ -10,20 +10,15 @@ ROOT = Path(__file__).resolve().parents[2]
 
 FAST_CHECKS = [
     ("self-host contract", [sys.executable, "generator/scripts/verify_self_host_contract.py"], ROOT),
-    ("model migrations", [sys.executable, "generator/scripts/verify_model_migrations.py"], ROOT),
     (
         "generator scripts compile",
         [
             sys.executable,
             "-m",
             "py_compile",
-            "generator/scripts/download_model_layer.py",
-            "generator/scripts/render_model_dockerfile.py",
-            "generator/scripts/add_model_migration.py",
-            "generator/scripts/report_model_image_status.py",
-            "generator/scripts/verify_model_migrations.py",
             "generator/scripts/verify_self_host_contract.py",
             "generator/scripts/verify_local_pipeline.py",
+            "generator/src/download_weights.py",
             "generator/src/handler.py",
         ],
         ROOT,
