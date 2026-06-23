@@ -1,7 +1,5 @@
-import { cpSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { triggerModelImageBuild } from "../src/services/modelImageBuildService";
 import { resolveModelImageWebhookState } from "../src/services/modelImageStatusService";
 import { buildMatchesInstall } from "../src/services/runpodBuildStatusService";
@@ -14,8 +12,8 @@ function assert(condition: boolean, message: string) {
 
 const originalFetch = globalThis.fetch;
 const originalProvider = Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
-const originalMirrorPath = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH;
-const originalMirrorPush = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH;
+const originalMirrorToken = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN;
+const originalPublicRepositoryUrl = Bun.env.PUBLIC_REPOSITORY_URL;
 
 let dispatchedUrl = "";
 let dispatchedHeaders: HeadersInit | undefined;
@@ -34,16 +32,16 @@ try {
   const buildService = readFileSync("src/services/modelImageBuildService.ts", "utf-8");
   assert(
     buildService.includes('MODEL_IMAGE_REBUILD_PROVIDER === "mirror"') &&
-      buildService.includes("MODEL_IMAGE_REBUILD_MIRROR_PATH") &&
-      buildService.includes("generator/scripts/add_model_migration.py") &&
-      buildService.includes("git\", \"commit"),
-    "Manager mirror provider should commit migrations into a private deploy mirror.",
+      buildService.includes("MODEL_IMAGE_REBUILD_MIRROR_TOKEN") &&
+      buildService.includes("model-migration.yml/dispatches") &&
+      buildService.includes("-deploy"),
+    "Manager mirror provider should dispatch the private deploy mirror workflow.",
   );
   assert(
-    !buildService.includes("api.github.com") &&
-      !buildService.includes("MODEL_IMAGE_REBUILD_GITHUB") &&
-      !buildService.includes("repository dispatch"),
-    "Manager model image provider should not contain a GitHub release/dispatch path.",
+    !buildService.includes("MODEL_IMAGE_REBUILD_GITHUB") &&
+      !buildService.includes("repository_dispatch") &&
+      !buildService.includes("/releases"),
+    "Manager model image provider should not contain the removed GitHub release provider path.",
   );
   assert(
     civitaiService.includes("findReusableActiveModelImageInstall") &&
@@ -75,10 +73,9 @@ try {
     );
   }
 
-  const mirrorPath = createPrivateMirrorFixture();
   Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "mirror";
-  Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = mirrorPath;
-  Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH = "false";
+  Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN = "mirror-token";
+  Bun.env.PUBLIC_REPOSITORY_URL = "https://github.com/JagritGumber/redesigned-waffle";
 
   dispatchedUrl = "";
   dispatchedHeaders = undefined;
@@ -91,20 +88,20 @@ try {
     runpodJobId: "download-job-2",
   });
   assert(result.triggered, "Private mirror provider should trigger a model image build.");
-  assert(dispatchedUrl === "", "Private mirror provider should not dispatch a webhook.");
   assert(
-    readFileSync(join(mirrorPath, "generator/model-migrations/0001-civitai-43-778.json"), "utf-8").includes(
-      "private-model.safetensors",
-    ),
-    "Private mirror provider should write the model migration into the mirror.",
+    dispatchedUrl ===
+      "https://api.github.com/repos/JagritGumber/redesigned-waffle-deploy/actions/workflows/model-migration.yml/dispatches",
+    "Private mirror provider should dispatch the fixed workflow in the derived -deploy repo.",
   );
+  const headers = new Headers(dispatchedHeaders);
+  assert(headers.get("Authorization") === "Bearer mirror-token", "Private mirror dispatch should use the mirror token.");
+  assert(dispatchedBody.ref === "main", "Private mirror workflow dispatch should target main.");
   assert(
-    readFileSync(join(mirrorPath, "generator/Dockerfile"), "utf-8").includes("0001-civitai-43-778.json"),
-    "Private mirror provider should render the mirror Dockerfile with the new migration layer.",
-  );
-  assert(
-    run(["git", "log", "-1", "--pretty=%B"], mirrorPath).stdout.includes("Add model migration civitai-43-778"),
-    "Private mirror provider should commit the migration to the mirror repo.",
+    dispatchedBody.inputs.migrationId === "civitai-43-778" &&
+      dispatchedBody.inputs.migrationUrl === "https://civitai.com/api/download/models/778" &&
+      dispatchedBody.inputs.migrationPath === "/runpod-volume/workspace/models/private-model.safetensors" &&
+      dispatchedBody.inputs.buildTriggerId === result.buildTriggerId,
+    "Private mirror workflow dispatch should include the migration payload.",
   );
 
   assert(
@@ -168,38 +165,9 @@ try {
   if (originalProvider === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_PROVIDER;
   else Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = originalProvider;
 
-  if (originalMirrorPath === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH;
-  else Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = originalMirrorPath;
+  if (originalMirrorToken === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN;
+  else Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN = originalMirrorToken;
 
-  if (originalMirrorPush === undefined) delete Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH;
-  else Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH = originalMirrorPush;
-}
-
-function createPrivateMirrorFixture() {
-  const mirrorPath = mkdtempSync(join(tmpdir(), "redesigned-waffle-mirror-"));
-  cpSync(resolve(import.meta.dir, "../../generator"), join(mirrorPath, "generator"), {
-    recursive: true,
-    filter: (source) => !source.includes("__pycache__"),
-  });
-  for (const command of [
-    ["git", "init"],
-    ["git", "config", "user.email", "mirror@example.com"],
-    ["git", "config", "user.name", "Private Mirror Test"],
-    ["git", "add", "generator"],
-    ["git", "commit", "-m", "Initial mirror"],
-  ]) {
-    run(command, mirrorPath);
-  }
-  return mirrorPath;
-}
-
-function run(command: string[], cwd: string) {
-  const result = spawnSync(command[0], command.slice(1), {
-    cwd,
-    encoding: "utf-8",
-  });
-  if (result.status !== 0) {
-    throw new Error(`${command.join(" ")} failed: ${result.stderr || result.stdout}`);
-  }
-  return { stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+  if (originalPublicRepositoryUrl === undefined) delete Bun.env.PUBLIC_REPOSITORY_URL;
+  else Bun.env.PUBLIC_REPOSITORY_URL = originalPublicRepositoryUrl;
 }

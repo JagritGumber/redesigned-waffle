@@ -13,12 +13,13 @@ of repeatedly downloading them onto a RunPod volume.
 The flow is:
 
 1. Manager receives a model install request.
-2. With `MODEL_IMAGE_REBUILD_PROVIDER=mirror`, manager writes a private deploy
-   mirror migration with `migration.id`, `migration.url`, and `migration.path`.
-3. Manager renders the mirror `generator/Dockerfile`, commits the migration, and
-   pushes the private branch that RunPod watches. RunPod builds on its own
-   infrastructure, stores the image in RunPod's registry, and deploys the
-   endpoint.
+2. With `MODEL_IMAGE_REBUILD_PROVIDER=mirror`, manager dispatches
+   `model-migration.yml` in the private `<repo>-deploy` mirror with
+   `migration.id`, `migration.url`, and `migration.path`.
+3. The private mirror workflow renders `generator/Dockerfile`, commits the
+   migration, and pushes the private branch that RunPod watches. RunPod builds
+   on its own infrastructure, stores the image in RunPod's registry, and deploys
+   the endpoint.
 
 This repo only supports private-mirror model builds. Keep generated model
 migrations in the private deploy mirror, not in public branches or tags.

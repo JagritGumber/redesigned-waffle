@@ -48,9 +48,9 @@ const checks: Check[] = [
     detail: "Use mirror for private RunPod deploy repos.",
   },
   {
-    name: "MODEL_IMAGE_REBUILD_MIRROR_PATH",
-    ok: !usesMirrorProvider || hasValue("MODEL_IMAGE_REBUILD_MIRROR_PATH"),
-    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=mirror. Must point to a private git clone watched by RunPod.",
+    name: "MODEL_IMAGE_REBUILD_MIRROR_TOKEN",
+    ok: !usesMirrorProvider || hasValue("MODEL_IMAGE_REBUILD_MIRROR_TOKEN"),
+    detail: "Required when MODEL_IMAGE_REBUILD_PROVIDER=mirror. Dispatches the private -deploy repo workflow.",
   },
   {
     name: "MODEL_IMAGE_RUNPOD_BUILD_POLLING",

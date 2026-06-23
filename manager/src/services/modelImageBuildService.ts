@@ -1,6 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-
 type TriggerModelImageBuildInput = {
   civitaiModelId: number;
   civitaiFileId?: number | null;
@@ -35,7 +32,7 @@ export async function triggerModelImageBuild(
   }
 
   const buildTriggerId = crypto.randomUUID();
-  const body = {
+  const payload = {
     event: "model.downloaded",
     buildTriggerId,
     civitaiModelId: input.civitaiModelId,
@@ -52,12 +49,12 @@ export async function triggerModelImageBuild(
   };
 
   if (Bun.env.MODEL_IMAGE_REBUILD_PROVIDER === "mirror") {
-    await commitMigrationToPrivateMirror(body.migration, buildTriggerId);
+    await dispatchPrivateMirrorWorkflow(payload);
 
     return {
       triggered: true,
       buildTriggerId,
-      message: "Private mirror model migration committed. RunPod will build from the mirror push.",
+      message: "Private mirror migration workflow queued. RunPod will build after the mirror commit.",
     };
   }
 
@@ -69,77 +66,50 @@ export async function triggerModelImageBuild(
   };
 }
 
-async function commitMigrationToPrivateMirror(
-  migration: { id: string; url: string; path: string },
-  buildTriggerId: string,
-) {
-  const mirrorPath = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH;
-  if (!mirrorPath) {
-    throw new Error("MODEL_IMAGE_REBUILD_PROVIDER=mirror requires MODEL_IMAGE_REBUILD_MIRROR_PATH.");
-  }
-  if (!existsSync(join(mirrorPath, ".git"))) {
-    throw new Error(`MODEL_IMAGE_REBUILD_MIRROR_PATH is not a git repository: ${mirrorPath}`);
+async function dispatchPrivateMirrorWorkflow(payload: {
+  buildTriggerId: string;
+  migration: { id: string; url: string; path: string };
+}) {
+  const token = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN;
+  if (!token) {
+    throw new Error("MODEL_IMAGE_REBUILD_PROVIDER=mirror requires MODEL_IMAGE_REBUILD_MIRROR_TOKEN.");
   }
 
-  await runCommand(
-    [
-      Bun.env.PYTHON_BIN ?? "python",
-      join(import.meta.dir, "../../../generator/scripts/add_model_migration.py"),
-      "--id",
-      migration.id,
-      "--url",
-      migration.url,
-      "--path",
-      migration.path,
-    ],
-    process.cwd(),
-    { GENERATOR_MIGRATION_ROOT: mirrorPath },
-  );
-  await runCommand(
-    [
-      Bun.env.PYTHON_BIN ?? "python",
-      join(import.meta.dir, "../../../generator/scripts/render_model_dockerfile.py"),
-    ],
-    process.cwd(),
-    { GENERATOR_MIGRATION_ROOT: mirrorPath },
+  const repository = mirrorRepository();
+  const response = await fetch(
+    `https://api.github.com/repos/${repository}/actions/workflows/model-migration.yml/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "redesigned-waffle-manager",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: {
+          buildTriggerId: payload.buildTriggerId,
+          migrationId: payload.migration.id,
+          migrationUrl: payload.migration.url,
+          migrationPath: payload.migration.path,
+        },
+      }),
+    },
   );
 
-  const status = await runCommand(
-    ["git", "status", "--porcelain", "--", "generator/model-migrations", "generator/Dockerfile"],
-    mirrorPath,
-  );
-  if (!status.stdout.trim()) {
-    return;
+  if (!response.ok) {
+    throw new Error(`Private mirror workflow dispatch failed with ${response.status}: ${await response.text()}`);
   }
-
-  await runCommand(["git", "add", "generator/model-migrations", "generator/Dockerfile"], mirrorPath);
-  await runCommand(["git", "commit", "-m", `Add model migration ${migration.id}`, "-m", `Build trigger: ${buildTriggerId}`], mirrorPath);
-
-  if (Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PUSH === "false") {
-    return;
-  }
-
-  const remote = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_REMOTE || "origin";
-  const branch = Bun.env.MODEL_IMAGE_REBUILD_MIRROR_BRANCH;
-  await runCommand(branch ? ["git", "push", remote, `HEAD:${branch}`] : ["git", "push", remote, "HEAD"], mirrorPath);
 }
 
-async function runCommand(command: string[], cwd: string, extraEnv: Record<string, string> = {}) {
-  const proc = Bun.spawn(command, {
-    cwd,
-    env: { ...process.env, ...extraEnv },
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    throw new Error(`${command.join(" ")} failed with exit code ${exitCode}: ${stderr || stdout}`);
+function mirrorRepository() {
+  const origin = Bun.env.PUBLIC_REPOSITORY_URL || "https://github.com/JagritGumber/redesigned-waffle";
+  const match = origin.match(/github\.com[:/](?<owner>[^/]+)\/(?<repo>[^/.]+)(?:\.git)?$/);
+  if (!match?.groups) {
+    throw new Error(`Cannot derive private deploy mirror repository from PUBLIC_REPOSITORY_URL: ${origin}`);
   }
 
-  return { stdout, stderr };
+  return `${match.groups.owner}/${match.groups.repo}-deploy`;
 }

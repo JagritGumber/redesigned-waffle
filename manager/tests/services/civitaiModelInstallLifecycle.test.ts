@@ -146,7 +146,7 @@ const { registerOrUpdateCivitaiModel } = await import("@/services/civitaiService
 describe("registerOrUpdateCivitaiModel preferred model image lifecycle", () => {
   beforeAll(() => {
     Bun.env.MODEL_IMAGE_REBUILD_PROVIDER = "mirror";
-    Bun.env.MODEL_IMAGE_REBUILD_MIRROR_PATH = "D:/private/redesigned-waffle-deploy";
+    Bun.env.MODEL_IMAGE_REBUILD_MIRROR_TOKEN = "test-token";
   });
 
   it("creates an account-scoped install and queues the cacheable Docker model build", async () => {

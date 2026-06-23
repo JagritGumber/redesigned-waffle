@@ -116,11 +116,11 @@ Marketplace browsing requests safe model listings by default. Backend model APIs
 ## Cacheable Model Installs
 
 For production, set `MODEL_IMAGE_REBUILD_PROVIDER=mirror` in `manager` with
-`MODEL_IMAGE_REBUILD_MIRROR_PATH` pointing at a private deploy mirror clone.
-Model install requests add a migration file inside that private mirror, render
-`generator/Dockerfile`, commit the change, and push the mirror branch that
-RunPod watches. The public repo stays free of model names, URLs, and migration
-history.
+`MODEL_IMAGE_REBUILD_MIRROR_TOKEN`. Model install requests dispatch the fixed
+`model-migration.yml` workflow in the private `<repo>-deploy` mirror. That
+workflow adds a migration file, renders `generator/Dockerfile`, commits the
+change, and pushes the mirror branch that RunPod watches. The public repo stays
+free of model names, URLs, and migration history.
 
 This repo only supports private-mirror model builds. Keep generated model
 migrations in the private deploy mirror, not in public branches or tags.
@@ -129,8 +129,8 @@ The generator image uses `generator/model-migrations/*.json`; each migration is
 rendered as its own `COPY` plus `RUN` Docker layer pair so Docker cache reuses
 all previous model downloads and only downloads the newly added model. Configure the RunPod
 Serverless endpoint from the private deploy mirror with `generator/Dockerfile`
-as the Dockerfile path. RunPod builds after the mirror push; final build/deploy
-status is visible in RunPod's
+as the Dockerfile path. RunPod builds after the mirror workflow push; final
+build/deploy status is visible in RunPod's
 Builds tab. Manager also polls RunPod's endpoint builds once per minute when
 `RUNPOD_API_KEY`, `RUNPOD_GENERATOR_ID`, and
 `MODEL_IMAGE_RUNPOD_BUILD_POLLING=true` are configured, so normal RunPod
