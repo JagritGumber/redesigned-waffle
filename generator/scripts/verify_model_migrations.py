@@ -84,8 +84,8 @@ def main() -> None:
         dockerfile = (generator / "Dockerfile").read_text(encoding="utf-8")
         if "ARG CIVITAI_API_TOKEN" in dockerfile:
             fail("Dockerfile must not use CIVITAI_API_TOKEN as a build arg.")
-        if "--mount=type=secret,id=civitai_api_token" not in dockerfile:
-            fail("Dockerfile migration layers must use the Civitai BuildKit secret.")
+        if "--mount=type=secret,id=civitai_api_token" in dockerfile:
+            fail("Dockerfile migration layers must not require BuildKit secret mounts.")
         if "/model-migrations/0001-verify-model-1.json" not in dockerfile:
             fail("Rendered Dockerfile did not include the new migration layer.")
         if "COPY generator/model-migrations/ /model-migrations/" in dockerfile:

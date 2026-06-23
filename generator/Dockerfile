@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # ---------------------------------------------------------------------------- #
 #                         Stage 1: Download the models                         #
 # ---------------------------------------------------------------------------- #
@@ -12,7 +11,7 @@ COPY generator/scripts/download_model_layer.py /usr/local/bin/download_model_lay
 # with: python generator/scripts/render_model_dockerfile.py
 # BEGIN MODEL MIGRATION LAYERS
 COPY generator/model-migrations/0000-base.json /model-migrations/0000-base.json
-RUN --mount=type=secret,id=civitai_api_token python /usr/local/bin/download_model_layer.py --manifest /model-migrations/0000-base.json
+RUN python /usr/local/bin/download_model_layer.py --manifest /model-migrations/0000-base.json
 # END MODEL MIGRATION LAYERS
 
 
