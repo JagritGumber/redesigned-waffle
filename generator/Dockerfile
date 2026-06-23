@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir uv
 ENV PATH="/.venv/bin:${PATH}"
 RUN uv venv --python 3.11 /.venv
 
-RUN uv pip install torch==2.7.0 torchvision --extra-index-url https://download.pytorch.org/whl/cu121
+RUN uv pip install torch --extra-index-url https://download.pytorch.org/whl/cu121
 
 COPY generator/requirements.txt /requirements.txt
 RUN uv pip install -r /requirements.txt
