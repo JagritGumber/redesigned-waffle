@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/solid-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/solid-router";
 import { createSignal, onMount, Show } from "solid-js";
 import { toast } from "solid-sonner";
 import { Button } from "~/components/ui/button";
 import { TextField, TextFieldInput, TextFieldLabel } from "~/components/ui/text-field";
+import { clearSessionGuardCache } from "./__root";
 
 type AuthMode = "login" | "register";
 
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/account")({
 });
 
 function AccountRoute() {
+  const navigate = useNavigate();
   const [mode, setMode] = createSignal<AuthMode>("login");
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
@@ -54,7 +56,9 @@ function AccountRoute() {
         throw new Error(data.message || "Authentication failed.");
       }
       setCurrentUser(data.user);
+      clearSessionGuardCache();
       toast.success(mode() === "register" ? "Account created" : "Signed in");
+      await navigate({ to: "/tabs/one", replace: true });
     } catch (error: any) {
       toast.error(error.message || "Authentication failed.");
     } finally {
@@ -68,6 +72,7 @@ function AccountRoute() {
       credentials: "include",
     });
     setCurrentUser(null);
+    clearSessionGuardCache();
     toast.success("Signed out");
   };
 
@@ -131,6 +136,9 @@ function AccountRoute() {
             <Button class="mt-4" variant="outline" onClick={logout}>
               Sign out
             </Button>
+            <Link to="/tabs/one" class="mt-2 block">
+              <Button class="w-full">Open studio</Button>
+            </Link>
           </section>
         )}
       </Show>
