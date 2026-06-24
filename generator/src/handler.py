@@ -5,13 +5,13 @@ import os
 import runpod
 import torch
 from diffusers import (
-    AutoencoderKL,
     EulerAncestralDiscreteScheduler,
     EulerDiscreteScheduler,
     StableDiffusionXLPipeline,
 )
 
 
+MODEL_ID = "hf-internal-testing/tiny-stable-diffusion-xl-pipe"
 PIPELINE = None
 
 
@@ -20,22 +20,14 @@ def load_pipeline():
     if PIPELINE is not None:
         return PIPELINE
 
-    vae = AutoencoderKL.from_pretrained(
-        "madebyollin/sdxl-vae-fp16-fix",
-        torch_dtype=torch.float16,
-        local_files_only=True,
-    )
     pipe = StableDiffusionXLPipeline.from_pretrained(
-        "stabilityai/stable-diffusion-xl-base-1.0",
-        vae=vae,
+        MODEL_ID,
         torch_dtype=torch.float16,
-        variant="fp16",
-        use_safetensors=True,
         add_watermarker=False,
         local_files_only=True,
     ).to("cuda")
 
-    pipe.enable_xformers_memory_efficient_attention()
+    pipe.enable_attention_slicing()
     pipe.enable_model_cpu_offload()
     PIPELINE = pipe
     return PIPELINE

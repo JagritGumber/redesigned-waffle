@@ -38,4 +38,4 @@ RUN python /download_weights.py && \
 COPY generator/test_input.json /test_input.json
 ADD generator/src /
 
-CMD python -u /handler.py
+CMD ["python", "-u", "/handler.py"]
