@@ -5,8 +5,8 @@ import type { Model, ModelVersion } from "~/types/civitai";
 
 const fetchCivitaiDetails = async (id: string) => {
   try {
-    const apiUrl = `https://civitai.com/api/v1/models/${id}?token=${import.meta.env.VITE_CIVITAI_API_TOKEN}`;
-    const response = await axios.get<Model>(apiUrl);
+    const apiUrl = `${import.meta.env.VITE_BACKEND_URL}/api/v1/civitai/models/${id}`;
+    const response = await axios.get<Model>(apiUrl, { withCredentials: true });
     const [latestVersion] = response.data.modelVersions.sort(
       (a, b) =>
         new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -20,8 +20,8 @@ const fetchCivitaiDetails = async (id: string) => {
 
 const fetchCivitaiVersionDetails = async (id: string) => {
   try {
-    const apiUrl = `https://civitai.com/api/v1/model-versions/${id}?token=${import.meta.env.VITE_CIVITAI_API_TOKEN}`;
-    const response = await axios.get<ModelVersion>(apiUrl);
+    const apiUrl = `${import.meta.env.VITE_BACKEND_URL}/api/v1/civitai/model-versions/${id}`;
+    const response = await axios.get<ModelVersion>(apiUrl, { withCredentials: true });
     return { modelVersion: response.data };
   } catch (e: any) {
     console.error("Error fetching Civitai model details:", e);

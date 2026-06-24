@@ -6,6 +6,7 @@ import { groupRouter } from "./v1/groupRouter";
 import { templatesRouter } from "./v1/templatesRouter";
 import { webhookRouter } from "./v1/webhookRouter";
 import { authRouter } from "./v1/authRouter";
+import { civitaiRouter } from "./v1/civitaiRouter";
 
 export const v1Router = new Elysia({ name: "v1.router", prefix: "/v1" })
   .get("/health", () => ({
@@ -14,6 +15,7 @@ export const v1Router = new Elysia({ name: "v1.router", prefix: "/v1" })
     timestamp: new Date().toISOString(),
   }))
   .use(authRouter)
+  .use(civitaiRouter)
   .use(generatorRouter)
   .use(modelRouter)
   .use(imageRouter)

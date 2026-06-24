@@ -8,8 +8,7 @@ export interface FetchModelsPage {
   nextPageUrl: string | null | undefined; // URL for the next page, or null/undefined if none
 }
 
-// Base URL (without query params initially)
-const CIVITAI_API_BASE_URL = "https://civitai.com/api/v1/models";
+const CIVITAI_MODELS_URL = `${import.meta.env.VITE_BACKEND_URL}/api/v1/civitai/models`;
 
 // Keep your filter param interface
 export interface FetchModelsParams {
@@ -30,12 +29,9 @@ export const fetchCivitAIModelsPage = async ({
 }: {
   pageParam?: string;
 }): Promise<FetchModelsPage> => {
-  const urlToFetch = pageParam || CIVITAI_API_BASE_URL;
-  console.log("Fetching page:", urlToFetch); // Debugging
-
+  const urlToFetch = pageParam || CIVITAI_MODELS_URL;
   try {
-    // Directly use the URL passed as pageParam
-    const response = await axios.get(urlToFetch);
+    const response = await axios.get(urlToFetch, { withCredentials: true });
     const data = response.data;
 
     return {
@@ -55,7 +51,6 @@ export const fetchCivitAIModelsPage = async ({
 // Helper to construct the *initial* URL based on filters
 export const buildInitialUrl = (baseParams: FetchModelsParams): string => {
   const urlParams = new URLSearchParams({
-    token: import.meta.env.VITE_CIVITAI_API_TOKEN,
     nsfw: `${baseParams.nsfw ?? false}`,
   });
 
@@ -66,5 +61,5 @@ export const buildInitialUrl = (baseParams: FetchModelsParams): string => {
     urlParams.set("types", baseParams.types.join(","));
   if (baseParams.sort) urlParams.set("sort", baseParams.sort);
 
-  return `${CIVITAI_API_BASE_URL}?${urlParams.toString()}`;
+  return `${CIVITAI_MODELS_URL}?${urlParams.toString()}`;
 };
