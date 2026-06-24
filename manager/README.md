@@ -52,7 +52,7 @@ bearer credentials.
 The backend uses local SQLite at `manager/db.sqlite`. Run migrations against a new database before hosting:
 
 ```bash
-bunx drizzle-kit migrate
+bun run db:migrate
 ```
 
 Do not commit `db.sqlite` or database backups.

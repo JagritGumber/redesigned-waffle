@@ -15,6 +15,7 @@
     "verify:account-scoped-models:api": "bun test tests/routers/v1/modelRouterAccountScope.test.ts",
     "verify:self-host-readiness": "bun scripts/verifySelfHostReadiness.ts",
     "check:readiness": "bun scripts/checkSelfHostReadiness.ts",
+    "db:migrate": "bun migrate.ts",
     "dev": "bun --bun run --watch src/index.ts --env-file='./.env.development.local'",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts"
   },
