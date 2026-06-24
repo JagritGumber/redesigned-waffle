@@ -7,13 +7,22 @@ import { dataRouter } from "./routers/dataRouter";
 import { cors } from "@elysiajs/cors";
 import { v1Router } from "./routers/v1Router";
 
+const frontendOrigins = Array.from(
+  new Set([
+    Bun.env.FRONTEND_URL,
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+  ].filter(Boolean) as string[]),
+);
+
 const app = new Elysia({ prefix: "/api" })
   .use(rootCron)
   .use(r2CleanupCron)
   .use(runpodBuildStatusCron)
   .use(
     cors({
-      origin: Bun.env.FRONTEND_URL ?? "http://localhost:3000",
+      origin: frontendOrigins,
       credentials: true,
     })
   )
